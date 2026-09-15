@@ -105,6 +105,7 @@ func (ai *AI) update(w *World, dt float32) {
 		ai.actionState = ActionSearchingFood
 	case ActionFleeing:
 		ai.flee(w.player, w.gameMap, dt)
+		ai.handleFoodInteractions(w.fruitSpawner, w.player)
 	case ActionSleeping:
 		ai.sleep(dt)
 	}
@@ -350,7 +351,9 @@ func (ai *AI) nutritionalValue() float32 {
 
 func (ai *AI) eatFood(nutrition float32) {
 	ai.stats.exp += nutrition
-	ai.actionState = ActionEating
+	if ai.actionState != ActionFleeing {
+		ai.actionState = ActionEating
+	}
 }
 
 func (ai *AI) markAIDeath() {
