@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"log"
+	"math"
 	"net/http"
 	"time"
 
@@ -55,22 +56,36 @@ func (h *Hub) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 	defer func() { cancel(); <-writerDone }()
 
+	const messagesPerSecond = 120.0
+	tokens, lastMessage := messagesPerSecond, time.Now()
 	for {
-		var request protocol.Message
-		if err := wsjson.Read(ctx, conn, &request); err != nil {
+		kind, data, err := conn.Read(ctx)
+		if err != nil {
 			status := websocket.CloseStatus(err)
 			if ctx.Err() == nil && status != websocket.StatusNormalClosure && status != websocket.StatusGoingAway {
 				log.Printf("read websocket JSON: %v", err)
 			}
 			return
 		}
-		if request.Type != "" && request.Type != protocol.TypeEcho {
-			conn.Close(websocket.StatusPolicyViolation, "unsupported message type")
+		now := time.Now()
+		tokens = math.Min(messagesPerSecond, tokens+now.Sub(lastMessage).Seconds()*messagesPerSecond)
+		lastMessage = now
+		if tokens < 1 {
+			conn.Close(websocket.StatusPolicyViolation, "message rate exceeded")
 			return
 		}
-		reply := protocol.Message{Type: protocol.TypeEcho, Message: "received: " + request.Message}
+		tokens--
+		if kind != websocket.MessageText {
+			conn.Close(websocket.StatusUnsupportedData, "expected JSON text")
+			return
+		}
+		request, err := protocol.DecodeClientMessage(data)
+		if err != nil {
+			conn.Close(websocket.StatusPolicyViolation, "invalid client message")
+			return
+		}
 		select {
-		case h.messages <- clientMessage{client: c, message: reply}:
+		case h.messages <- clientMessage{client: c, message: request}:
 		case <-ctx.Done():
 			return
 		case <-h.done:

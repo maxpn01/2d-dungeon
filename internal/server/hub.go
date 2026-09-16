@@ -3,9 +3,10 @@ package server
 import (
 	"context"
 	"fmt"
-	"sort"
+	"time"
 
 	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/simulation"
 )
 
 type client struct {
@@ -16,7 +17,7 @@ type client struct {
 
 type clientMessage struct {
 	client  *client
-	message protocol.Message
+	message protocol.ClientMessage
 }
 
 type Hub struct {
@@ -36,9 +37,13 @@ func NewHub() *Hub {
 func (h *Hub) Run(ctx context.Context) {
 	defer close(h.done)
 	clients := make(map[*client]struct{})
+	world := simulation.NewWorld()
+	ticker := time.NewTicker(time.Second / simulation.TickRate)
+	defer ticker.Stop()
 	nextID := 0
 	remove := func(c *client) {
 		delete(clients, c)
+		world.Leave(c.id)
 		c.cancel()
 	}
 	defer func() {
@@ -49,12 +54,12 @@ func (h *Hub) Run(ctx context.Context) {
 
 	broadcast := func() {
 		for {
-			players := make([]protocol.Player, 0, len(clients))
-			for c := range clients {
-				players = append(players, protocol.Player{ID: c.id})
+			tick, states := world.Snapshot()
+			players := make([]protocol.Player, 0, len(states))
+			for _, state := range states {
+				players = append(players, protocol.Player{ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize})
 			}
-			sort.Slice(players, func(i, j int) bool { return players[i].ID < players[j].ID })
-			message := protocol.Message{Type: protocol.TypeSnapshot, Players: &players}
+			message := protocol.Message{Type: protocol.TypeSnapshot, Tick: tick, Players: &players}
 			dropped := false
 			for c := range clients {
 				select {
@@ -74,10 +79,17 @@ func (h *Hub) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
+		case <-ticker.C:
+			world.Step(time.Now())
+			tick := world.Tick()
+			if tick%2 == 0 {
+				broadcast()
+			}
 		case c := <-h.join:
 			nextID++
 			c.id = fmt.Sprintf("p%d", nextID)
 			clients[c] = struct{}{}
+			world.Join(c.id)
 			c.send <- protocol.Message{Type: protocol.TypeWelcome, PlayerID: c.id}
 			broadcast()
 		case c := <-h.leave:
@@ -89,8 +101,14 @@ func (h *Hub) Run(ctx context.Context) {
 			if _, exists := clients[event.client]; !exists {
 				continue
 			}
+			if event.message.Type == protocol.TypeInput {
+				d := event.message.Direction
+				world.Input(event.client.id, simulation.Direction{X: d.X, Y: d.Y}, time.Now())
+				continue
+			}
+			reply := protocol.Message{Type: protocol.TypeEcho, Message: "received: " + event.message.Message}
 			select {
-			case event.client.send <- event.message:
+			case event.client.send <- reply:
 			default:
 				remove(event.client)
 				broadcast()
