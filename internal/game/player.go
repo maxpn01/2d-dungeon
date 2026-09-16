@@ -2,6 +2,7 @@ package game
 
 import (
 	"image/color"
+	"raylib-2d-sandbox/internal/terrain"
 	"slices"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -103,12 +104,10 @@ func (p *Player) move(gameMap *Map, dt float32) {
 	if move.X != 0 || move.Y != 0 {
 		move = rl.Vector2Normalize(move)
 
-		p.pos.X += move.X * speed * dt
-		p.pos.Y += move.Y * speed * dt
+		x, y := terrain.Move(float64(p.pos.X), float64(p.pos.Y), float64(move.X*speed*dt), float64(move.Y*speed*dt), float64(p.size.X), float64(p.size.Y))
+		p.pos = rl.NewVector2(float32(x), float32(y))
 	}
 
-	clamp(gameMap.edgePosX.start, &p.pos.X, &p.size.X, gameMap.edgePosX.end)
-	clamp(gameMap.edgePosY.start, &p.pos.Y, &p.size.Y, gameMap.edgePosY.end)
 }
 
 func (p *Player) handleFoodCollision(fs *FruitSpawner, ai *AI) {

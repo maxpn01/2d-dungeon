@@ -109,6 +109,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		rl.DrawText(label, int32(player.X), int32(player.Y)-22, 18, rl.RayWhite)
 	}
 	rl.EndMode2D()
+	drawDungeonLocation(camera.Target.X, camera.Target.Y, window.width, window.height)
 	rl.DrawRectangle(0, 0, window.width, 122, rl.Fade(rl.Black, .8))
 	alive := 0
 	for _, player := range m.view.Players {

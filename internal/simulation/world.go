@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"math"
+	"raylib-2d-sandbox/internal/terrain"
 	"sort"
 	"time"
 )
@@ -119,7 +120,7 @@ func Move(x, y float64, d Direction, seconds, speed float64) (float64, float64) 
 		return x, y
 	}
 	distance := speed * seconds
-	return max(MinPosition, min(MaxPosition, x+d.X/length*distance)), max(MinPosition, min(MaxPosition, y+d.Y/length*distance))
+	return terrain.Move(x, y, d.X/length*distance, d.Y/length*distance, PlayerSize, PlayerSize)
 }
 
 func (w *World) Step(now time.Time) {

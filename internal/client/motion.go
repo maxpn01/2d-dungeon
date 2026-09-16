@@ -71,7 +71,7 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 		if player.ID == latest.PlayerID {
 			player = m.local
 			player.X = max(simulation.MinPosition, min(simulation.MaxPosition, player.X))
-			player.Y = max(simulation.MinPosition, min(simulation.MaxPosition, player.Y))
+			player.Y = min(simulation.MaxPosition, player.Y)
 		} else {
 			a, okA := beforeByID[player.ID]
 			b, okB := afterByID[player.ID]

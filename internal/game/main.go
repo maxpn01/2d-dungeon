@@ -142,6 +142,7 @@ func (g *Game) run() {
 				g.world.draw(RenderContext{Camera: g.camera, WindowWidth: g.window.width, WindowHeight: g.window.height})
 				rl.EndMode2D()
 				g.hud.draw()
+				drawDungeonLocation(g.world.player.pos.X, g.world.player.pos.Y, g.window.width, g.window.height)
 			}
 		case screenMultiplayer:
 			m := g.multiplayer

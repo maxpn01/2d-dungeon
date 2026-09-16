@@ -3,6 +3,7 @@ package game
 import (
 	"image/color"
 	"math/rand"
+	"raylib-2d-sandbox/internal/terrain"
 	"slices"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -135,6 +136,7 @@ func (ai *AI) checkDangers(p *Player) {
 }
 
 func (ai *AI) flee(p *Player, gameMap *Map, dt float32) {
+	origin := ai.pos
 	aiCenter := rectCenter(ai.pos, ai.size)
 	playerCenter := rectCenter(p.pos, p.size)
 
@@ -146,8 +148,7 @@ func (ai *AI) flee(p *Player, gameMap *Map, dt float32) {
 	ai.pos.X += move.X * ai.stats.speed * dt
 	ai.pos.Y += move.Y * ai.stats.speed * dt
 
-	clamp(gameMap.edgePosX.start, &ai.pos.X, &ai.size.X, gameMap.edgePosX.end)
-	clamp(gameMap.edgePosY.start, &ai.pos.Y, &ai.size.Y, gameMap.edgePosY.end)
+	ai.resolveMovement(origin)
 }
 
 /* arigato ai bish for this corner case checking */
@@ -280,17 +281,18 @@ func (ai *AI) canEatPlayer(p *Player) bool {
 }
 
 func (ai *AI) move(targetPos, targetSize rl.Vector2, gameMap *Map, dt float32) {
+	origin := ai.pos
 	target := rl.NewVector2(
 		targetPos.X+targetSize.X/2-ai.size.X/2,
 		targetPos.Y+targetSize.Y/2-ai.size.Y/2,
 	)
 	ai.pos = rl.Vector2MoveTowards(ai.pos, target, ai.stats.speed*dt)
 
-	clamp(gameMap.edgePosX.start, &ai.pos.X, &ai.size.X, gameMap.edgePosX.end)
-	clamp(gameMap.edgePosY.start, &ai.pos.Y, &ai.size.Y, gameMap.edgePosY.end)
+	ai.resolveMovement(origin)
 }
 
 func (ai *AI) wander(gameMap *Map, dt float32) {
+	origin := ai.pos
 	if ai.wanderDirection.X == 0 && ai.wanderDirection.Y == 0 {
 		ai.wanderDirection = rl.NewVector2(
 			float32(rand.Intn(3)-1),
@@ -307,8 +309,7 @@ func (ai *AI) wander(gameMap *Map, dt float32) {
 
 	attemptedPos := ai.pos
 
-	clamp(gameMap.edgePosX.start, &ai.pos.X, &ai.size.X, gameMap.edgePosX.end)
-	clamp(gameMap.edgePosY.start, &ai.pos.Y, &ai.size.Y, gameMap.edgePosY.end)
+	ai.resolveMovement(origin)
 
 	directionShouldReset := ai.pos != attemptedPos
 
@@ -395,4 +396,9 @@ func (ai *AI) handleLevelUp() {
 		ai.stats.hp = min(ai.stats.hp+ai.growth.HPPerLevel, ai.stats.maxHP)
 		ai.stats.speed += ai.growth.SpeedPerLevel
 	}
+}
+
+func (ai *AI) resolveMovement(origin rl.Vector2) {
+	x, y := terrain.Move(float64(origin.X), float64(origin.Y), float64(ai.pos.X-origin.X), float64(ai.pos.Y-origin.Y), float64(ai.size.X), float64(ai.size.Y))
+	ai.pos = rl.NewVector2(float32(x), float32(y))
 }

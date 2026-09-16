@@ -21,8 +21,8 @@ type World struct {
 
 func NewDefaultAI(mapSize rl.Vector2) *AI {
 	size := rl.NewVector2(30, 30)
-	x := size.X + float32(rand.Intn(int(mapSize.X)-int(size.X)))
-	y := size.Y + float32(rand.Intn(int(mapSize.Y)-int(size.Y)))
+	x := 10 + float32(rand.Intn(int(mapSize.X-size.X-20)))
+	y := 10 + float32(rand.Intn(int(mapSize.Y-size.Y-20)))
 
 	return NewAI(
 		rl.NewVector2(x, y),

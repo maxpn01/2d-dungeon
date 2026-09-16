@@ -12,6 +12,7 @@ import (
 
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
+	"raylib-2d-sandbox/internal/terrain"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
@@ -326,8 +327,7 @@ func validateAIs(ais []protocol.AI) error {
 				return errors.New("server sent invalid AI coordinates")
 			}
 		}
-		if ai.Size <= 0 || ai.X < simulation.MapMin || ai.Y < simulation.MapMin ||
-			ai.X+ai.Size > simulation.MapMax || ai.Y+ai.Size > simulation.MapMax {
+		if ai.Size <= 0 || !terrain.Walkable(ai.X, ai.Y, ai.Size, ai.Size) {
 			return errors.New("server sent an AI outside the map")
 		}
 	}

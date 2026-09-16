@@ -65,18 +65,9 @@ func (m *Map) draw(ctx RenderContext) {
 			rl.DrawRectangle(int32(x), int32(y), int32(cell.size.X), int32(cell.size.Y), cell.color)
 		}
 	}
+	m.drawDungeon(ctx)
 }
 
-/* Implemented with AI, too mathy for me */
-/*
-	Raylib's Camera2D world→screen transform (with rotation=0) is:
-	screen = (world - target) * zoom + offset
-	Inverting it gives the world-space corners of the visible rectangle:
-	worldMin = target - offset / zoom              // top-left
-	worldMax = target + (screenSize - offset)/zoom // bottom-right
-	Then divide by cell size → floor for the inclusive start index, ceil for the exclusive end index →
- 	clamp to map bounds → loop only that sub-rectangle.
-*/
 func (m *Map) visibleCellRange(camera rl.Camera2D, windowWidth, windowHeight int32) (colStart, rowStart, colEnd, rowEnd int) {
 	if camera.Rotation != 0 {
 		return 0, 0, int(m.sizeInCells.X), int(m.sizeInCells.Y)
