@@ -23,7 +23,7 @@ func (h *Hub) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	c := &client{send: make(chan protocol.Message, 16), cancel: cancel}
+	c := &client{name: protocol.NormalizePlayerName(r.URL.Query().Get("name")), send: make(chan protocol.Message, 16), cancel: cancel}
 	select {
 	case h.join <- c:
 	case <-h.done:

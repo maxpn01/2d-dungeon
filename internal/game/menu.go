@@ -14,6 +14,8 @@ const (
 	ActionExit
 	ActionMultiplayer
 	ActionMenu
+	ActionSettings
+	ActionSaveSettings
 )
 
 type MenuButton struct {

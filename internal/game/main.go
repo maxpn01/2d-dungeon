@@ -9,6 +9,7 @@ import (
 type Game struct {
 	window              *Window
 	camera              rl.Camera2D
+	settings            *Settings
 	menu                *Menu
 	gameOver            *GameOver
 	multiplayerGameOver *GameOver
@@ -22,7 +23,7 @@ type Game struct {
 func NewGame() *Game {
 	window := NewWindow(
 		1440,
-		820,
+		1000,
 		"2D sandbox",
 		rl.Black,
 	)
@@ -32,16 +33,20 @@ func NewGame() *Game {
 	menu := NewMenu([]*MenuButton{
 		NewMenuButton("play", ActionPlay),
 		NewMenuButton("multiplayer", ActionMultiplayer),
+		NewMenuButton("settings", ActionSettings),
 		NewMenuButton("exit", ActionExit),
 	}, 30, rl.Black)
 
 	menu.Title = "2D SANDBOX"
 
+	settings := newSettings()
 	world := NewWorld()
+	world.player.name = settings.PlayerName
 
 	hud := NewHUD(world, window)
 
 	return &Game{
+		settings:            settings,
 		window:              window,
 		camera:              camera,
 		menu:                menu,
@@ -69,6 +74,7 @@ const (
 	screenMenu screen = iota
 	screenSinglePlayer
 	screenMultiplayer
+	screenSettings
 )
 
 func (g *Game) leaveMultiplayer() {
@@ -89,6 +95,8 @@ func (g *Game) run() {
 		dt := rl.GetFrameTime()
 		if rl.IsKeyPressed(rl.KeyEscape) {
 			switch current {
+			case screenSettings:
+				current = screenMenu
 			case screenMultiplayer:
 				g.leaveMultiplayer()
 				current = screenMenu
@@ -122,6 +130,8 @@ func (g *Game) run() {
 		rl.ClearBackground(g.window.bgColor)
 		action := ActionNone
 		switch current {
+		case screenSettings:
+			action = g.settings.draw()
 		case screenMenu:
 			action = g.menu.draw()
 		case screenSinglePlayer:
@@ -157,6 +167,12 @@ func (g *Game) run() {
 
 		// Screen transitions happen after drawing, on the same thread as raylib.
 		switch action {
+		case ActionSettings:
+			g.settings.open()
+			current = screenSettings
+		case ActionSaveSettings:
+			g.world.player.name = g.settings.PlayerName
+			current = screenMenu
 		case ActionPlay:
 			g.leaveMultiplayer()
 			if g.world.player.isDeadFlag {
@@ -166,7 +182,7 @@ func (g *Game) run() {
 			current = screenSinglePlayer
 		case ActionMultiplayer:
 			g.leaveMultiplayer()
-			g.multiplayer = newMultiplayer(g.serverURL)
+			g.multiplayer = newMultiplayer(g.serverURL, g.settings.PlayerName)
 			current = screenMultiplayer
 		case ActionMenu:
 			g.leaveMultiplayer()
@@ -183,6 +199,7 @@ func drawCenteredText(text string, y, size int32, tint color.RGBA) {
 
 func (g *Game) restart() {
 	g.world = NewWorld()
+	g.world.player.name = g.settings.PlayerName
 	g.hud = NewHUD(g.world, g.window)
 	g.cameraFollowPlayer()
 }

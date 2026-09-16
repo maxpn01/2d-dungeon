@@ -30,6 +30,7 @@ type PlayerInput struct {
 }
 
 type Player struct {
+	name  string
 	input PlayerInput
 	pos   rl.Vector2
 	size  rl.Vector2
@@ -70,9 +71,9 @@ func (p *Player) update(w *World, dt float32) {
 
 func (p *Player) draw() {
 	rl.DrawRectangleV(p.pos, p.size, p.color)
+	rl.DrawText(p.name, int32(p.pos.X), int32(p.pos.Y)-22, 18, rl.RayWhite)
 }
 
-// Read held controls once per rendered frame; every simulation step uses them.
 func (p *Player) readInput() {
 	input := PlayerInput{Sprint: rl.IsKeyDown(rl.KeyLeftShift)}
 	if rl.IsKeyDown(rl.KeyW) {

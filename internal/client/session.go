@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/url"
 	"sync"
 	"time"
 
@@ -47,14 +48,26 @@ type Session struct {
 	inputAt         time.Time
 }
 
-func Connect(url string) *Session {
+func Connect(endpoint string) *Session {
+	return ConnectWithName(endpoint, "Player")
+}
+
+func ConnectWithName(endpoint, name string) *Session {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Session{updates: make(chan Update, 1), done: make(chan struct{}), cancel: cancel}
 	go func() {
 		defer close(s.done)
 		defer close(s.updates)
 		defer cancel()
-		if err := s.run(ctx, url); err != nil && ctx.Err() == nil {
+		address, err := url.Parse(endpoint)
+		if err != nil {
+			s.publish(Update{Err: err})
+			return
+		}
+		query := address.Query()
+		query.Set("name", protocol.NormalizePlayerName(name))
+		address.RawQuery = query.Encode()
+		if err := s.run(ctx, address.String()); err != nil && ctx.Err() == nil {
 			s.publish(Update{Err: err})
 		}
 	}()

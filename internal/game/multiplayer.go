@@ -22,9 +22,9 @@ type multiplayer struct {
 	errorText   string
 }
 
-func newMultiplayer(url string) *multiplayer {
+func newMultiplayer(url, name string) *multiplayer {
 	return &multiplayer{
-		session: client.Connect(url),
+		session: client.ConnectWithName(url, name),
 		gameMap: NewMap(rl.NewVector2(200, 200), rl.NewVector2(10, 10), rl.Black, rl.Gray),
 	}
 }
@@ -100,7 +100,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	}
 	for _, player := range m.rendered {
 		tint := rl.SkyBlue
-		label := fmt.Sprintf("%s Lv.%d", player.ID, player.Stats.Level)
+		label := fmt.Sprintf("%s Lv.%d", protocol.NormalizePlayerName(player.Name), player.Stats.Level)
 		if player.ID == m.view.PlayerID {
 			tint = rl.Red
 			label += " (you)"
@@ -116,7 +116,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 			alive++
 		}
 	}
-	rl.DrawText(fmt.Sprintf("Multiplayer | %s | Players: %d | Fruit: %d | AIs: %d", m.view.PlayerID, alive, len(m.view.Fruits), len(m.view.AIs)), 24, 20, 22, rl.RayWhite)
+	rl.DrawText(fmt.Sprintf("Multiplayer | %s | Players: %d | Fruit: %d | AIs: %d", protocol.NormalizePlayerName(m.view.Local.Name), alive, len(m.view.Fruits), len(m.view.AIs)), 24, 20, 22, rl.RayWhite)
 	for _, player := range m.view.Players {
 		if player.ID != m.view.PlayerID {
 			continue

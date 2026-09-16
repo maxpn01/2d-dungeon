@@ -68,6 +68,7 @@ type PlayerStats struct {
 }
 
 type Player struct {
+	Name     string      `json:"name"`
 	Dead     bool        `json:"dead"`
 	KilledBy string      `json:"killed_by,omitempty"`
 	Stats    PlayerStats `json:"stats"`

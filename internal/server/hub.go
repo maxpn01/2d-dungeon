@@ -10,6 +10,7 @@ import (
 )
 
 type client struct {
+	name   string
 	id     string
 	send   chan protocol.Message
 	cancel context.CancelFunc
@@ -37,12 +38,14 @@ func NewHub() *Hub {
 func (h *Hub) Run(ctx context.Context) {
 	defer close(h.done)
 	clients := make(map[*client]struct{})
+	names := make(map[string]string)
 	world := simulation.NewWorld()
 	ticker := time.NewTicker(time.Second / simulation.TickRate)
 	defer ticker.Stop()
 	nextID := 0
 	remove := func(c *client) {
 		delete(clients, c)
+		delete(names, c.id)
 		world.Leave(c.id)
 		c.cancel()
 	}
@@ -58,7 +61,7 @@ func (h *Hub) Run(ctx context.Context) {
 			players := make([]protocol.Player, 0, len(snapshot.Players))
 			for _, state := range snapshot.Players {
 				players = append(players, protocol.Player{
-					Dead: state.Dead, KilledBy: state.KilledBy, ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
+					Name: names[state.ID], Dead: state.Dead, KilledBy: state.KilledBy, ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
 					Stats: protocol.PlayerStats{
 						Level: state.Stats.Level, XP: state.Stats.XP, HP: state.Stats.HP, Speed: state.Stats.Speed,
 					},
@@ -105,6 +108,7 @@ func (h *Hub) Run(ctx context.Context) {
 			nextID++
 			c.id = fmt.Sprintf("p%d", nextID)
 			clients[c] = struct{}{}
+			names[c.id] = c.name
 			world.Join(c.id)
 			c.send <- protocol.Message{Type: protocol.TypeWelcome, PlayerID: c.id}
 			broadcast()
