@@ -35,6 +35,8 @@ func NewGame() *Game {
 		NewMenuButton("exit", ActionExit),
 	}, 30, rl.Black)
 
+	menu.Title = "2D SANDBOX"
+
 	world := NewWorld()
 
 	hud := NewHUD(world, window)

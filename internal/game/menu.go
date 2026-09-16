@@ -73,6 +73,7 @@ func (btn *MenuButton) draw() Action {
 }
 
 type Menu struct {
+	Title           string
 	Options         []*MenuButton
 	Gap             float32
 	BackgroundColor color.RGBA
@@ -93,6 +94,18 @@ func (m *Menu) draw() Action {
 		int32(rl.GetScreenHeight()),
 		m.BackgroundColor,
 	)
+
+	if m.Title != "" {
+		cx := int32(rl.GetScreenWidth()) / 2
+		cy := int32(rl.GetScreenHeight()) / 2
+		pixelSize := max(int32(1), min(int32(rl.GetScreenWidth())/max(64, int32(len(m.Title)*6+11)), int32(rl.GetScreenHeight())/64))
+		titleY := cy - 10*pixelSize
+
+		rl.DrawRectangle(cx-2*pixelSize, titleY-8*pixelSize, 4*pixelSize, 4*pixelSize, rl.Red)
+		drawPixelTitle(m.Title, cx, titleY, pixelSize, rl.RayWhite)
+
+		return m.drawOptions(float32(cy + 5*pixelSize))
+	}
 
 	var totalHeight float32
 	for i, btn := range m.Options {
