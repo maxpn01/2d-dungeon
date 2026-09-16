@@ -9,14 +9,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/coder/websocket"
-	"github.com/coder/websocket/wsjson"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
+
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 )
 
-// Update is a complete client view. Its player slice is immutable after delivery.
 type Update struct {
+	Fruits     []protocol.Fruit
 	ReceivedAt time.Time
 	Local      protocol.Player
 	PlayerID   string
@@ -32,17 +33,18 @@ type sentInput struct {
 }
 
 type Session struct {
-	sequence  uint64
-	pending   []sentInput
-	updates   chan Update
-	done      chan struct{}
-	cancel    context.CancelFunc
-	inputMu   sync.Mutex
-	direction protocol.Direction
-	inputAt   time.Time
+	predicted       protocol.Player
+	predictionReady bool
+	sequence        uint64
+	pending         []sentInput
+	updates         chan Update
+	done            chan struct{}
+	cancel          context.CancelFunc
+	inputMu         sync.Mutex
+	direction       protocol.Direction
+	inputAt         time.Time
 }
 
-// Connect returns immediately; DNS, dialing, and reads happen in the background.
 func Connect(url string) *Session {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Session{updates: make(chan Update, 1), done: make(chan struct{}), cancel: cancel}
@@ -59,19 +61,23 @@ func Connect(url string) *Session {
 
 func (s *Session) Updates() <-chan Update { return s.updates }
 func (s *Session) Done() <-chan struct{}  { return s.done }
-func (s *Session) Close()                 { s.cancel() } // Never block the render loop on network cleanup.
+func (s *Session) Close()                 { s.cancel() }
 
-// SetInput is cheap enough to call each frame. The writer samples it at 30 Hz.
 func (s *Session) SetInput(direction protocol.Direction) {
 	s.inputMu.Lock()
 	s.direction, s.inputAt = direction, time.Now()
 	s.inputMu.Unlock()
 }
 
+func (s *Session) PredictedPlayer() (protocol.Player, bool) {
+	s.inputMu.Lock()
+	defer s.inputMu.Unlock()
+	return s.predicted, s.predictionReady
+}
+
 func (s *Session) input() protocol.Direction {
 	s.inputMu.Lock()
 	defer s.inputMu.Unlock()
-	// If rendering freezes, don't keep refreshing an old held key forever.
 	if time.Since(s.inputAt) > 150*time.Millisecond {
 		return protocol.Direction{}
 	}
@@ -79,8 +85,6 @@ func (s *Session) input() protocol.Direction {
 }
 
 func (s *Session) publish(update Update) {
-	// Only this session's reader publishes. Keep the newest complete view if the
-	// renderer is slow; never build an unbounded backlog of stale positions.
 	select {
 	case <-s.updates:
 	default:
@@ -95,8 +99,6 @@ func (s *Session) run(ctx context.Context, url string) error {
 	if err != nil {
 		return fmt.Errorf("connect: %w", err)
 	}
-	// Cancellation asks the peer to close normally. This runs off the render
-	// thread, while reads remain active to process the close handshake.
 	connectionCtx, cancelConnection := context.WithCancel(context.Background())
 	finished, closerDone := make(chan struct{}), make(chan struct{})
 	go func() {
@@ -154,6 +156,9 @@ func (s *Session) run(ctx context.Context, url string) error {
 				s.sequence++
 				sequence := s.sequence
 				s.pending = append(s.pending, sentInput{sequence, direction})
+				if s.predictionReady {
+					s.predicted.X, s.predicted.Y = simulation.Move(s.predicted.X, s.predicted.Y, simulation.Direction{X: direction.X, Y: direction.Y}, simulation.StepSeconds)
+				}
 				s.inputMu.Unlock()
 				writeCtx, finish := context.WithTimeout(ioCtx, 3*time.Second)
 				err := wsjson.Write(writeCtx, conn, protocol.ClientMessage{Type: protocol.TypeInput, Direction: &direction, Sequence: sequence})
@@ -177,13 +182,16 @@ func (s *Session) run(ctx context.Context, url string) error {
 			}
 			return fmt.Errorf("connection lost: %w", err)
 		}
-		if message.Type != protocol.TypeSnapshot || message.Players == nil {
+		if message.Type != protocol.TypeSnapshot || message.Players == nil || message.Fruits == nil {
 			return errors.New("server sent an unexpected message")
 		}
 		if message.Tick < lastTick {
 			return errors.New("server tick moved backwards")
 		}
 		if err := validatePlayers(*message.Players, welcome.PlayerID); err != nil {
+			return err
+		}
+		if err := validateFruits(*message.Fruits); err != nil {
 			return err
 		}
 		lastTick = message.Tick
@@ -194,8 +202,6 @@ func (s *Session) run(ctx context.Context, url string) error {
 				break
 			}
 		}
-		// Rebase on the authoritative position, then replay only commands the
-		// server hasn't simulated yet. Input history stays private to networking.
 		s.inputMu.Lock()
 		if local.InputSeq > s.sequence || local.InputSeq < lastAck {
 			s.inputMu.Unlock()
@@ -210,8 +216,9 @@ func (s *Session) run(ctx context.Context, url string) error {
 		for _, input := range s.pending {
 			local.X, local.Y = simulation.Move(local.X, local.Y, simulation.Direction{X: input.direction.X, Y: input.direction.Y}, simulation.StepSeconds)
 		}
+		s.predicted, s.predictionReady = local, true
 		s.inputMu.Unlock()
-		s.publish(Update{PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now()})
+		s.publish(Update{PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits})
 	}
 }
 
@@ -233,6 +240,29 @@ func validatePlayers(players []protocol.Player, localID string) error {
 	}
 	if !ids[localID] {
 		return errors.New("local player is missing from the world")
+	}
+	return nil
+}
+
+func validateFruits(fruits []protocol.Fruit) error {
+	if len(fruits) > simulation.MaxFruits {
+		return errors.New("server sent too many fruits")
+	}
+	ids := make(map[string]bool, len(fruits))
+	for _, fruit := range fruits {
+		if fruit.ID == "" || ids[fruit.ID] {
+			return errors.New("server sent invalid fruit IDs")
+		}
+		ids[fruit.ID] = true
+		for _, v := range []float64{fruit.X, fruit.Y, fruit.Size} {
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				return errors.New("server sent invalid fruit coordinates")
+			}
+		}
+		if fruit.Size <= 0 || fruit.X < simulation.MapMin || fruit.Y < simulation.MapMin ||
+			fruit.X+fruit.Size > simulation.MapMax || fruit.Y+fruit.Size > simulation.MapMax {
+			return errors.New("server sent fruit outside the map")
+		}
 	}
 	return nil
 }

@@ -10,23 +10,16 @@ import (
 
 const interpolationDelay = 100 * time.Millisecond
 
-// Motion belongs to the render thread. It never alters authoritative snapshots.
 type Motion struct {
-	frames           []Update
-	local            protocol.Player
-	offsetX, offsetY float64
+	frames []Update
+	local  protocol.Player
 }
 
 func (m *Motion) Apply(update Update) {
-	if len(m.frames) > 0 {
-		// Keep small corrections invisible at arrival, then ease them out over time.
-		m.offsetX += m.local.X - update.Local.X
-		m.offsetY += m.local.Y - update.Local.Y
-		if math.Hypot(m.offsetX, m.offsetY) > 200 {
-			m.offsetX, m.offsetY = 0, 0
-		}
+	if len(m.frames) == 0 {
+		m.local = update.Local
 	}
-	m.local = update.Local
+
 	n := len(m.frames)
 	if n > 0 && m.frames[n-1].Tick == update.Tick {
 		update.ReceivedAt = m.frames[n-1].ReceivedAt
@@ -39,22 +32,30 @@ func (m *Motion) Apply(update Update) {
 	}
 }
 
-func (m *Motion) Advance(direction protocol.Direction, dt float64, now time.Time) {
+func (m *Motion) Advance(target protocol.Player, dt float64) {
 	if len(m.frames) == 0 {
 		return
 	}
-	// Don't predict a huge jump after a paused window or a long network stall.
 	dt = max(0, min(dt, .05))
-	if now.Sub(m.frames[len(m.frames)-1].ReceivedAt) < 250*time.Millisecond {
-		m.local.X, m.local.Y = simulation.Move(m.local.X, m.local.Y, simulation.Direction{X: direction.X, Y: direction.Y}, dt)
+	dx, dy := target.X-m.local.X, target.Y-m.local.Y
+	distance := math.Hypot(dx, dy)
+	if distance > 200 {
+		m.local = target
+		return
 	}
-	decay := math.Exp(-dt / .08)
-	m.offsetX *= decay
-	m.offsetY *= decay
+	speed := simulation.PlayerSpeed
+	if distance > 2*simulation.PlayerSpeed*simulation.StepSeconds {
+		speed *= 2
+	}
+	if distance <= speed*dt || distance == 0 {
+		m.local = target
+		return
+	}
+	m.local.X += dx / distance * speed * dt
+	m.local.Y += dy / distance * speed * dt
+	m.local.ID, m.local.Size, m.local.InputSeq = target.ID, target.Size, target.InputSeq
 }
 
-// Players presents remote entities a little behind real time so two snapshots
-// bracket the display time. Missing newer data freezes them rather than guessing.
 func (m *Motion) Players(now time.Time) []protocol.Player {
 	if len(m.frames) == 0 {
 		return nil
@@ -75,12 +76,11 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 	}
 	beforeByID, afterByID := indexPlayers(before.Players), indexPlayers(after.Players)
 	positions := make([]protocol.Player, 0, len(latest.Players))
-	// Use the newest roster so joins/leaves don't leave stale ghosts in the buffer.
 	for _, player := range latest.Players {
 		if player.ID == latest.PlayerID {
 			player = m.local
-			player.X = max(simulation.MinPosition, min(simulation.MaxPosition, player.X+m.offsetX))
-			player.Y = max(simulation.MinPosition, min(simulation.MaxPosition, player.Y+m.offsetY))
+			player.X = max(simulation.MinPosition, min(simulation.MaxPosition, player.X))
+			player.Y = max(simulation.MinPosition, min(simulation.MaxPosition, player.Y))
 		} else {
 			a, okA := beforeByID[player.ID]
 			b, okB := afterByID[player.ID]

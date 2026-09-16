@@ -11,8 +11,10 @@ const (
 	StepSeconds  = 1.0 / TickRate
 	PlayerSize   = 30.0
 	PlayerSpeed  = 600.0
-	MinPosition  = 10.0
-	MaxPosition  = 1990.0 - PlayerSize
+	MapMin       = 10.0
+	MapMax       = 1990.0
+	MinPosition  = MapMin
+	MaxPosition  = MapMax - PlayerSize
 	InputTimeout = 500 * time.Millisecond
 )
 
@@ -46,12 +48,20 @@ type playerState struct {
 }
 
 type World struct {
+	fruits    []Fruit
+	nextFruit uint64
 	players   map[string]*playerState
 	nextSpawn uint64
 	tick      uint64
 }
 
-func NewWorld() *World { return &World{players: make(map[string]*playerState)} }
+func NewWorld() *World {
+	w := &World{players: make(map[string]*playerState)}
+	for range InitialFruits {
+		w.spawnFruit()
+	}
+	return w
+}
 
 func (w *World) Join(id string) {
 	if _, exists := w.players[id]; exists {
@@ -70,9 +80,6 @@ func (w *World) Input(id string, direction Direction, now time.Time) bool {
 	return w.Command(id, direction, 0, now)
 }
 
-// Sequenced clients predict exactly one fixed step per command. The server
-// consumes at most one per tick: extra packets never grant extra movement.
-// Sequence zero retains the original demo client's held-input behavior.
 func (w *World) Command(id string, direction Direction, sequence uint64, now time.Time) bool {
 	player, exists := w.players[id]
 	if !exists || !direction.Valid() {
@@ -106,11 +113,13 @@ func Move(x, y float64, d Direction, seconds float64) (float64, float64) {
 
 func (w *World) Step(now time.Time) {
 	w.tick++
+	if w.tick%fruitSpawnTicks == 0 {
+		w.spawnFruit()
+	}
 	for _, player := range w.players {
 		if now.Sub(player.lastInput) >= InputTimeout {
 			player.direction = Direction{}
 			player.commands = nil
-			// Expired commands are acknowledged as discarded, so prediction can recover.
 			player.InputSeq = player.lastSequence
 		}
 		direction := player.direction
@@ -127,13 +136,21 @@ func (w *World) Step(now time.Time) {
 	}
 }
 
-func (w *World) Snapshot() (uint64, []Player) {
+type Snapshot struct {
+	Tick    uint64
+	Players []Player
+	Fruits  []Fruit
+}
+
+func (w *World) Snapshot() Snapshot {
 	players := make([]Player, 0, len(w.players))
 	for _, player := range w.players {
 		players = append(players, player.Player)
 	}
 	sort.Slice(players, func(i, j int) bool { return players[i].ID < players[j].ID })
-	return w.tick, players
+	fruits := make([]Fruit, len(w.fruits))
+	copy(fruits, w.fruits)
+	return Snapshot{Tick: w.tick, Players: players, Fruits: fruits}
 }
 
 func (w *World) Tick() uint64 { return w.tick }

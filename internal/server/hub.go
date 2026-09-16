@@ -54,12 +54,16 @@ func (h *Hub) Run(ctx context.Context) {
 
 	broadcast := func() {
 		for {
-			tick, states := world.Snapshot()
-			players := make([]protocol.Player, 0, len(states))
-			for _, state := range states {
+			snapshot := world.Snapshot()
+			players := make([]protocol.Player, 0, len(snapshot.Players))
+			for _, state := range snapshot.Players {
 				players = append(players, protocol.Player{ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq})
 			}
-			message := protocol.Message{Type: protocol.TypeSnapshot, Tick: tick, Players: &players}
+			fruits := make([]protocol.Fruit, 0, len(snapshot.Fruits))
+			for _, fruit := range snapshot.Fruits {
+				fruits = append(fruits, protocol.Fruit{ID: fruit.ID, X: fruit.X, Y: fruit.Y, Size: fruit.Size})
+			}
+			message := protocol.Message{Type: protocol.TypeSnapshot, Tick: snapshot.Tick, Players: &players, Fruits: &fruits}
 			dropped := false
 			for c := range clients {
 				select {

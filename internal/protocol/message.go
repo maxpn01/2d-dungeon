@@ -50,7 +50,7 @@ func DecodeClientMessage(data []byte) (ClientMessage, error) {
 		if !d.Valid() {
 			return ClientMessage{}, errors.New("direction components must be between -1 and 1")
 		}
-	case TypeEcho, "": // Preserve the original echo client format.
+	case TypeEcho, "":
 		if message.Direction != nil || message.Sequence != 0 {
 			return ClientMessage{}, errors.New("echo cannot contain direction")
 		}
@@ -68,7 +68,15 @@ type Player struct {
 	Size     float64 `json:"size"`
 }
 
+type Fruit struct {
+	ID   string  `json:"id"`
+	X    float64 `json:"x"`
+	Y    float64 `json:"y"`
+	Size float64 `json:"size"`
+}
+
 type Message struct {
+	Fruits   *[]Fruit  `json:"fruits,omitempty"`
 	Type     string    `json:"type"`
 	PlayerID string    `json:"player_id,omitempty"`
 	Tick     uint64    `json:"tick"`
