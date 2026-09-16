@@ -30,6 +30,15 @@ type Update struct {
 	Err        error
 }
 
+type ChatEntry struct {
+	At   time.Time
+	Name string
+	Text string
+	Mine bool
+}
+
+const maxChatEntries = 50
+
 type sentInput struct {
 	sequence  uint64
 	direction protocol.Direction
@@ -47,6 +56,9 @@ type Session struct {
 	inputMu         sync.Mutex
 	direction       protocol.Direction
 	inputAt         time.Time
+	chatMu          sync.Mutex
+	chat            []ChatEntry
+	outgoingChat    []string
 }
 
 func Connect(endpoint string) *Session {
@@ -83,6 +95,43 @@ func (s *Session) SetInput(direction protocol.Direction) {
 	s.inputMu.Lock()
 	s.direction, s.inputAt = direction, time.Now()
 	s.inputMu.Unlock()
+}
+
+// SendChat queues a chat line for the next writer tick.
+func (s *Session) SendChat(text string) {
+	text = protocol.NormalizeChatMessage(text)
+	if text == "" {
+		return
+	}
+	s.chatMu.Lock()
+	defer s.chatMu.Unlock()
+	if len(s.outgoingChat) < 8 {
+		s.outgoingChat = append(s.outgoingChat, text)
+	}
+}
+
+// Chat returns a copy of the chat log, oldest first.
+func (s *Session) Chat() []ChatEntry {
+	s.chatMu.Lock()
+	defer s.chatMu.Unlock()
+	return append([]ChatEntry(nil), s.chat...)
+}
+
+func (s *Session) appendChat(entry ChatEntry) {
+	s.chatMu.Lock()
+	defer s.chatMu.Unlock()
+	s.chat = append(s.chat, entry)
+	if len(s.chat) > maxChatEntries {
+		s.chat = append([]ChatEntry(nil), s.chat[len(s.chat)-maxChatEntries:]...)
+	}
+}
+
+func (s *Session) takeOutgoingChat() []string {
+	s.chatMu.Lock()
+	defer s.chatMu.Unlock()
+	pending := s.outgoingChat
+	s.outgoingChat = nil
+	return pending
 }
 
 func (s *Session) PredictedPlayer() (protocol.Player, bool) {
@@ -162,6 +211,20 @@ func (s *Session) run(ctx context.Context, url string) error {
 			case <-ioCtx.Done():
 				return
 			case <-ticker.C:
+				failed := false
+				for _, text := range s.takeOutgoingChat() {
+					writeCtx, finish := context.WithTimeout(ioCtx, 3*time.Second)
+					err := wsjson.Write(writeCtx, conn, protocol.ClientMessage{Type: protocol.TypeChat, Message: text})
+					finish()
+					if err != nil {
+						writerError <- err
+						failed = true
+						break
+					}
+				}
+				if failed {
+					return
+				}
 				direction := s.input()
 				s.inputMu.Lock()
 				if s.dead {
@@ -201,6 +264,15 @@ func (s *Session) run(ctx context.Context, url string) error {
 			default:
 			}
 			return fmt.Errorf("connection lost: %w", err)
+		}
+		if message.Type == protocol.TypeChat {
+			if text := protocol.NormalizeChatMessage(message.Message); text != "" {
+				s.appendChat(ChatEntry{
+					At: time.Now(), Name: protocol.NormalizePlayerName(message.Name),
+					Text: text, Mine: message.PlayerID == welcome.PlayerID,
+				})
+			}
+			continue
 		}
 		if message.Type != protocol.TypeSnapshot || message.Players == nil || message.Fruits == nil || message.AIs == nil {
 			return errors.New("server sent an unexpected message")

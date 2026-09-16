@@ -98,8 +98,12 @@ func (g *Game) run() {
 			case screenSettings:
 				current = screenMenu
 			case screenMultiplayer:
-				g.leaveMultiplayer()
-				current = screenMenu
+				if g.multiplayer.chat.open {
+					g.multiplayer.chat.close()
+				} else {
+					g.leaveMultiplayer()
+					current = screenMenu
+				}
 			case screenSinglePlayer:
 				if !g.world.player.isDeadFlag {
 					current = screenMenu

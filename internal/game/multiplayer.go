@@ -20,6 +20,7 @@ type multiplayer struct {
 	view        client.Update
 	gameMap     *Map
 	errorText   string
+	chat        chatBox
 }
 
 func newMultiplayer(url, name string) *multiplayer {
@@ -55,8 +56,9 @@ func (m *multiplayer) poll() {
 }
 
 func (m *multiplayer) readInput(dt float32) {
+	m.chat.update(m)
 	direction := protocol.Direction{}
-	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() {
+	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.open {
 		if rl.IsKeyDown(rl.KeyW) {
 			direction.Y--
 		}
@@ -130,5 +132,6 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		rl.DrawText(fmt.Sprintf("Level %d | %s | HP %.2f | Speed %.2f", stats.Level, progress, stats.HP, stats.Speed), 24, 52, 20, rl.RayWhite)
 		break
 	}
-	rl.DrawText("WASD to move | Eat fruit, weaker players and AIs to grow | Esc to leave", 24, 84, 20, rl.LightGray)
+	rl.DrawText("WASD to move | T to chat | Eat fruit, weaker players and AIs to grow | Esc to leave", 24, 84, 20, rl.LightGray)
+	m.chat.draw(window, m.session.Chat())
 }

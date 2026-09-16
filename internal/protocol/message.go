@@ -14,6 +14,7 @@ const (
 	TypeSnapshot = "snapshot"
 	TypeEcho     = "echo"
 	TypeInput    = "input"
+	TypeChat     = "chat"
 )
 
 type Direction struct {
@@ -49,6 +50,13 @@ func DecodeClientMessage(data []byte) (ClientMessage, error) {
 		d := simulation.Direction{X: message.Direction.X, Y: message.Direction.Y}
 		if !d.Valid() {
 			return ClientMessage{}, errors.New("direction components must be between -1 and 1")
+		}
+	case TypeChat:
+		if message.Direction != nil || message.Sequence != 0 {
+			return ClientMessage{}, errors.New("chat cannot contain direction")
+		}
+		if NormalizeChatMessage(message.Message) == "" {
+			return ClientMessage{}, errors.New("chat requires a message")
 		}
 	case TypeEcho, "":
 		if message.Direction != nil || message.Sequence != 0 {
@@ -103,4 +111,5 @@ type Message struct {
 	Tick     uint64    `json:"tick"`
 	Players  *[]Player `json:"players,omitempty"`
 	Message  string    `json:"message,omitempty"`
+	Name     string    `json:"name,omitempty"`
 }

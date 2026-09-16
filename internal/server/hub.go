@@ -10,11 +10,14 @@ import (
 )
 
 type client struct {
-	name   string
-	id     string
-	send   chan protocol.Message
-	cancel context.CancelFunc
+	name     string
+	id       string
+	send     chan protocol.Message
+	cancel   context.CancelFunc
+	lastChat time.Time
 }
+
+const chatCooldown = 500 * time.Millisecond
 
 type clientMessage struct {
 	client  *client
@@ -125,6 +128,31 @@ func (h *Hub) Run(ctx context.Context) {
 				d := event.message.Direction
 				if !world.Command(event.client.id, simulation.Direction{X: d.X, Y: d.Y}, event.message.Sequence, time.Now()) {
 					remove(event.client)
+					broadcast()
+				}
+				continue
+			}
+			if event.message.Type == protocol.TypeChat {
+				text := protocol.NormalizeChatMessage(event.message.Message)
+				now := time.Now()
+				if text == "" || now.Sub(event.client.lastChat) < chatCooldown {
+					continue
+				}
+				event.client.lastChat = now
+				chat := protocol.Message{
+					Type: protocol.TypeChat, Tick: world.Tick(),
+					PlayerID: event.client.id, Name: names[event.client.id], Message: text,
+				}
+				dropped := false
+				for c := range clients {
+					select {
+					case c.send <- chat:
+					default:
+						remove(c)
+						dropped = true
+					}
+				}
+				if dropped {
 					broadcast()
 				}
 				continue
