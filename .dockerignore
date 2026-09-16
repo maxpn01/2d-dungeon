@@ -1,0 +1,6 @@
+.git
+.env
+notes.md
+raylib-2d-sandbox
+*.exe
+dist
