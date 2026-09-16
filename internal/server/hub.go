@@ -58,7 +58,7 @@ func (h *Hub) Run(ctx context.Context) {
 			players := make([]protocol.Player, 0, len(snapshot.Players))
 			for _, state := range snapshot.Players {
 				players = append(players, protocol.Player{
-					ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
+					Dead: state.Dead, KilledBy: state.KilledBy, ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
 					Stats: protocol.PlayerStats{
 						Level: state.Stats.Level, XP: state.Stats.XP, HP: state.Stats.HP, Speed: state.Stats.Speed,
 					},
@@ -71,7 +71,7 @@ func (h *Hub) Run(ctx context.Context) {
 			ais := make([]protocol.AI, 0, len(snapshot.AIs))
 			for _, ai := range snapshot.AIs {
 				ais = append(ais, protocol.AI{
-					ID: ai.ID, X: ai.X, Y: ai.Y, Size: simulation.AISize,
+					Behavior: ai.Behavior, ID: ai.ID, X: ai.X, Y: ai.Y, Size: simulation.AISize,
 					Stats: protocol.PlayerStats{Level: ai.Stats.Level, XP: ai.Stats.XP, HP: ai.Stats.HP, Speed: ai.Stats.Speed},
 				})
 			}

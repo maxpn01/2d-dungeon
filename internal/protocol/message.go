@@ -68,6 +68,8 @@ type PlayerStats struct {
 }
 
 type Player struct {
+	Dead     bool        `json:"dead"`
+	KilledBy string      `json:"killed_by,omitempty"`
 	Stats    PlayerStats `json:"stats"`
 	InputSeq uint64      `json:"input_seq"`
 	ID       string      `json:"id"`
@@ -84,11 +86,12 @@ type Fruit struct {
 }
 
 type AI struct {
-	ID    string      `json:"id"`
-	X     float64     `json:"x"`
-	Y     float64     `json:"y"`
-	Size  float64     `json:"size"`
-	Stats PlayerStats `json:"stats"`
+	Behavior string      `json:"behavior"`
+	ID       string      `json:"id"`
+	X        float64     `json:"x"`
+	Y        float64     `json:"y"`
+	Size     float64     `json:"size"`
+	Stats    PlayerStats `json:"stats"`
 }
 
 type Message struct {

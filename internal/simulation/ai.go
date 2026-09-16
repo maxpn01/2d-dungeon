@@ -14,23 +14,28 @@ const (
 )
 
 type AI struct {
-	ID    string
-	X, Y  float64
-	Stats Stats
+	Behavior string
+	ID       string
+	X, Y     float64
+	Stats    Stats
 }
 
 type aiState struct {
 	AI
-	direction   Direction
-	wanderTicks int
+	direction       Direction
+	wanderTicks     int
+	respawnTick     uint64
+	escapeTicks     int
+	escapeDirection Direction
 }
 
 func (w *World) spawnAIs() {
 	for i := 0; i < InitialAIs; i++ {
+		w.nextAI++
 		stats := NewStats()
 		stats.Speed = AISpeed
 		w.ais = append(w.ais, aiState{AI: AI{
-			ID: fmt.Sprintf("ai-%d", i+1), X: 600 + float64(i%3)*450, Y: 400 + float64(i/3)*650, Stats: stats,
+			ID: fmt.Sprintf("ai-%d", w.nextAI), X: 600 + float64(i%3)*450, Y: 400 + float64(i/3)*650, Stats: stats, Behavior: "wandering",
 		}})
 	}
 }
@@ -38,18 +43,30 @@ func (w *World) spawnAIs() {
 func (w *World) updateAIs() {
 	for i := range w.ais {
 		ai := &w.ais[i]
-		if target, found := w.nearestFruit(ai); found {
-			dx := target.X + target.Size/2 - (ai.X + AISize/2)
-			dy := target.Y + target.Size/2 - (ai.Y + AISize/2)
-			distance := math.Hypot(dx, dy)
-			if distance > 0 {
-				direction := Direction{X: dx / distance, Y: dy / distance}
-				seconds := min(StepSeconds, distance/ai.Stats.Speed)
-				ai.X, ai.Y = Move(ai.X, ai.Y, direction, seconds, ai.Stats.Speed)
-			}
-			ai.wanderTicks = 0
+		if ai.respawnTick != 0 {
 			continue
 		}
+		if threat, _ := w.nearestPlayer(ai, true); threat != nil {
+			ai.Behavior = "fleeing"
+			ai.flee(threat)
+			continue
+		}
+		ai.escapeTicks = 0
+		prey, preyDistance := w.nearestPlayer(ai, false)
+		fruit, found := w.nearestFruit(ai)
+		fruitX, fruitY := fruit.X+fruit.Size/2-AISize/2, fruit.Y+fruit.Size/2-AISize/2
+		fruitDistance := (fruitX-ai.X)*(fruitX-ai.X) + (fruitY-ai.Y)*(fruitY-ai.Y)
+		if prey != nil && (!found || preyDistance <= fruitDistance) {
+			ai.Behavior = "chasing"
+			ai.approach(prey.X, prey.Y)
+			continue
+		}
+		if found {
+			ai.Behavior = "seeking"
+			ai.approach(fruitX, fruitY)
+			continue
+		}
+		ai.Behavior = "wandering"
 		if ai.wanderTicks == 0 {
 			directions := [8]Direction{{X: 1}, {X: -1}, {Y: 1}, {Y: -1}, {X: 1, Y: 1}, {X: 1, Y: -1}, {X: -1, Y: 1}, {X: -1, Y: -1}}
 			ai.direction = directions[rand.IntN(len(directions))]
@@ -87,4 +104,18 @@ func (w *World) nearestFruit(ai *aiState) (Fruit, bool) {
 		}
 	}
 	return nearest, found
+}
+
+func (w *World) respawnAIs() {
+	for i := range w.ais {
+		ai := &w.ais[i]
+		if ai.respawnTick == 0 || w.tick < ai.respawnTick {
+			continue
+		}
+		x, y := w.spawnPosition(uint64(i)*57 + w.tick)
+		w.nextAI++
+		stats := NewStats()
+		stats.Speed = AISpeed
+		*ai = aiState{AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "wandering"}}
+	}
 }

@@ -34,6 +34,7 @@ type sentInput struct {
 }
 
 type Session struct {
+	dead            bool
 	predicted       protocol.Player
 	predictionReady bool
 	sequence        uint64
@@ -149,6 +150,10 @@ func (s *Session) run(ctx context.Context, url string) error {
 			case <-ticker.C:
 				direction := s.input()
 				s.inputMu.Lock()
+				if s.dead {
+					s.inputMu.Unlock()
+					continue
+				}
 				if len(s.pending) >= 128 {
 					s.inputMu.Unlock()
 					writerError <- errors.New("server stopped acknowledging input")
@@ -217,10 +222,14 @@ func (s *Session) run(ctx context.Context, url string) error {
 			first++
 		}
 		s.pending = s.pending[first:]
+		s.dead = local.Dead
+		if s.dead {
+			s.pending = nil
+		}
 		for _, input := range s.pending {
 			local.X, local.Y = simulation.Move(local.X, local.Y, simulation.Direction{X: input.direction.X, Y: input.direction.Y}, simulation.StepSeconds, local.Stats.Speed)
 		}
-		s.predicted, s.predictionReady = local, true
+		s.predicted, s.predictionReady = local, !s.dead
 		s.inputMu.Unlock()
 		s.publish(Update{PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits, AIs: *message.AIs})
 	}

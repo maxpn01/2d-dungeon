@@ -65,6 +65,9 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 	beforeByID, afterByID := indexPlayers(before.Players), indexPlayers(after.Players)
 	positions := make([]protocol.Player, 0, len(latest.Players))
 	for _, player := range latest.Players {
+		if player.Dead {
+			continue
+		}
 		if player.ID == latest.PlayerID {
 			player = m.local
 			player.X = max(simulation.MinPosition, min(simulation.MaxPosition, player.X))

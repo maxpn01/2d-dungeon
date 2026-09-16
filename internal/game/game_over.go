@@ -18,6 +18,14 @@ func NewGameOver() *GameOver {
 	}, 30, rl.Black)}
 }
 
+func NewMultiplayerGameOver() *GameOver {
+	return &GameOver{menu: NewMenu([]*MenuButton{
+		NewMenuButton("respawn", ActionMultiplayer),
+		NewMenuButton("back to menu", ActionMenu),
+		NewMenuButton("exit", ActionExit),
+	}, 30, rl.Black)}
+}
+
 func (g *GameOver) draw() Action {
 	rl.ClearBackground(g.menu.BackgroundColor)
 

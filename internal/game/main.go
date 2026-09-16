@@ -7,15 +7,16 @@ import (
 )
 
 type Game struct {
-	window         *Window
-	camera         rl.Camera2D
-	menu           *Menu
-	gameOver       *GameOver
-	world          *World
-	hud            *HUD
-	serverURL      string
-	multiplayer    *multiplayer
-	connectionMenu *Menu
+	window              *Window
+	camera              rl.Camera2D
+	menu                *Menu
+	gameOver            *GameOver
+	multiplayerGameOver *GameOver
+	world               *World
+	hud                 *HUD
+	serverURL           string
+	multiplayer         *multiplayer
+	connectionMenu      *Menu
 }
 
 func NewGame() *Game {
@@ -39,14 +40,15 @@ func NewGame() *Game {
 	hud := NewHUD(world, window)
 
 	return &Game{
-		window:         window,
-		camera:         camera,
-		menu:           menu,
-		gameOver:       NewGameOver(),
-		world:          world,
-		hud:            hud,
-		serverURL:      "ws://localhost:8080/ws",
-		connectionMenu: NewMenu([]*MenuButton{NewMenuButton("retry", ActionMultiplayer), NewMenuButton("back to menu", ActionMenu)}, 20, rl.Black),
+		window:              window,
+		camera:              camera,
+		menu:                menu,
+		gameOver:            NewGameOver(),
+		multiplayerGameOver: NewMultiplayerGameOver(),
+		world:               world,
+		hud:                 hud,
+		serverURL:           "ws://localhost:8080/ws",
+		connectionMenu:      NewMenu([]*MenuButton{NewMenuButton("retry", ActionMultiplayer), NewMenuButton("back to menu", ActionMenu)}, 20, rl.Black),
 	}
 }
 
@@ -132,6 +134,8 @@ func (g *Game) run() {
 		case screenMultiplayer:
 			m := g.multiplayer
 			switch {
+			case m.view.Local.Dead:
+				action = g.multiplayerGameOver.draw()
 			case m.errorText != "":
 				action = g.connectionMenu.draw()
 				title := "Unable to connect"

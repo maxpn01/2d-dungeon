@@ -14,10 +14,16 @@ type eater struct {
 func (w *World) consumeFruits(previous map[string]position, previousAIs []position) {
 	eaters := make([]eater, 0, len(w.players)+len(w.ais))
 	for id, player := range w.players {
+		if player.Dead {
+			continue
+		}
 		eaters = append(eaters, eater{id: id, start: previous[id], end: position{player.X, player.Y}, size: PlayerSize, stats: &player.Stats})
 	}
 	for i := range w.ais {
 		ai := &w.ais[i]
+		if ai.respawnTick != 0 {
+			continue
+		}
 		eaters = append(eaters, eater{id: ai.ID, start: previousAIs[i], end: position{ai.X, ai.Y}, size: AISize, stats: &ai.Stats})
 	}
 	remaining := w.fruits[:0]

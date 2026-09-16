@@ -56,7 +56,7 @@ func (m *multiplayer) poll() {
 
 func (m *multiplayer) readInput(dt float32) {
 	direction := protocol.Direction{}
-	if m.view.Ready && m.errorText == "" && rl.IsWindowFocused() {
+	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() {
 		if rl.IsKeyDown(rl.KeyW) {
 			direction.Y--
 		}
@@ -96,7 +96,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	}
 	for _, ai := range m.renderedAIs {
 		rl.DrawRectangleV(rl.NewVector2(float32(ai.X), float32(ai.Y)), rl.NewVector2(float32(ai.Size), float32(ai.Size)), rl.Green)
-		rl.DrawText(fmt.Sprintf("%s Lv.%d", ai.ID, ai.Stats.Level), int32(ai.X), int32(ai.Y)-22, 18, rl.RayWhite)
+		rl.DrawText(fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior), int32(ai.X), int32(ai.Y)-22, 18, rl.RayWhite)
 	}
 	for _, player := range m.rendered {
 		tint := rl.SkyBlue
@@ -110,7 +110,13 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	}
 	rl.EndMode2D()
 	rl.DrawRectangle(0, 0, window.width, 122, rl.Fade(rl.Black, .8))
-	rl.DrawText(fmt.Sprintf("Multiplayer | %s | Players: %d | Fruit: %d | AIs: %d", m.view.PlayerID, len(m.view.Players), len(m.view.Fruits), len(m.view.AIs)), 24, 20, 22, rl.RayWhite)
+	alive := 0
+	for _, player := range m.view.Players {
+		if !player.Dead {
+			alive++
+		}
+	}
+	rl.DrawText(fmt.Sprintf("Multiplayer | %s | Players: %d | Fruit: %d | AIs: %d", m.view.PlayerID, alive, len(m.view.Fruits), len(m.view.AIs)), 24, 20, 22, rl.RayWhite)
 	for _, player := range m.view.Players {
 		if player.ID != m.view.PlayerID {
 			continue
@@ -123,5 +129,5 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		rl.DrawText(fmt.Sprintf("Level %d | %s | HP %.2f | Speed %.2f", stats.Level, progress, stats.HP, stats.Speed), 24, 52, 20, rl.RayWhite)
 		break
 	}
-	rl.DrawText("WASD to move | Eat yellow fruit to grow | Esc to leave", 24, 84, 20, rl.LightGray)
+	rl.DrawText("WASD to move | Eat fruit and weaker AIs to grow | Esc to leave", 24, 84, 20, rl.LightGray)
 }

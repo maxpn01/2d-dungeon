@@ -29,6 +29,8 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
+	Dead     bool
+	KilledBy string
 	Stats    Stats
 	InputSeq uint64
 	ID       string
@@ -50,6 +52,7 @@ type playerState struct {
 
 type World struct {
 	ais       []aiState
+	nextAI    uint64
 	fruits    []Fruit
 	nextFruit uint64
 	players   map[string]*playerState
@@ -70,10 +73,10 @@ func (w *World) Join(id string) {
 	if _, exists := w.players[id]; exists {
 		return
 	}
-	slot := w.nextSpawn % 400
+	x, y := w.spawnPosition(w.nextSpawn)
 	w.nextSpawn++
 	w.players[id] = &playerState{Player: Player{
-		Stats: NewStats(), ID: id, X: 300 + float64(slot%20)*60, Y: 300 + float64(slot/20)*60,
+		Stats: NewStats(), ID: id, X: x, Y: y,
 	}}
 }
 
@@ -98,7 +101,13 @@ func (w *World) Command(id string, direction Direction, sequence uint64, now tim
 			return false
 		}
 		player.lastSequence = sequence
-		player.commands = append(player.commands, command{direction, sequence})
+		if !player.Dead {
+			player.commands = append(player.commands, command{direction, sequence})
+		}
+	}
+	if player.Dead {
+		player.direction = Direction{}
+		player.InputSeq = player.lastSequence
 	}
 	player.lastInput = now
 	return true
@@ -115,12 +124,16 @@ func Move(x, y float64, d Direction, seconds, speed float64) (float64, float64) 
 
 func (w *World) Step(now time.Time) {
 	w.tick++
+	w.respawnAIs()
 	if w.tick%fruitSpawnTicks == 0 {
 		w.spawnFruit()
 	}
 	previous := make(map[string]position, len(w.players))
 	for id, player := range w.players {
 		previous[id] = position{player.X, player.Y}
+		if player.Dead {
+			continue
+		}
 		if now.Sub(player.lastInput) >= InputTimeout {
 			player.direction = Direction{}
 			player.commands = nil
@@ -143,6 +156,7 @@ func (w *World) Step(now time.Time) {
 		previousAIs[i] = position{ai.X, ai.Y}
 	}
 	w.updateAIs()
+	w.resolvePredation(previous, previousAIs)
 	w.consumeFruits(previous, previousAIs)
 }
 
@@ -161,9 +175,12 @@ func (w *World) Snapshot() Snapshot {
 	sort.Slice(players, func(i, j int) bool { return players[i].ID < players[j].ID })
 	fruits := make([]Fruit, len(w.fruits))
 	copy(fruits, w.fruits)
-	ais := make([]AI, len(w.ais))
-	for i, ai := range w.ais {
-		ais[i] = ai.AI
+	ais := make([]AI, 0, len(w.ais))
+	for _, ai := range w.ais {
+		if ai.respawnTick != 0 {
+			continue
+		}
+		ais = append(ais, ai.AI)
 	}
 	return Snapshot{Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }

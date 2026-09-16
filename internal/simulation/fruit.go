@@ -33,12 +33,18 @@ func (w *World) spawnFruit() {
 			}
 		}
 		for _, player := range w.players {
+			if player.Dead {
+				continue
+			}
 			if x < player.X+PlayerSize && x+FruitSize > player.X && y < player.Y+PlayerSize && y+FruitSize > player.Y {
 				overlaps = true
 				break
 			}
 		}
 		for _, ai := range w.ais {
+			if ai.respawnTick != 0 {
+				continue
+			}
 			if x < ai.X+AISize && x+FruitSize > ai.X && y < ai.Y+AISize && y+FruitSize > ai.Y {
 				overlaps = true
 				break
