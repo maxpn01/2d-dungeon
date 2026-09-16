@@ -11,6 +11,7 @@ func main() {
 
 	mux.HandleFunc("GET /{$}", server.RootHandler)
 	mux.HandleFunc("GET /health", server.HealthHandler)
+	mux.HandleFunc("GET /ws", server.WebSocketHandler)
 
 	log.Printf("server has started on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
