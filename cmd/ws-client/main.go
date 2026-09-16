@@ -121,6 +121,9 @@ func run(url string, direction *protocol.Direction, duration time.Duration) erro
 		case protocol.TypeSnapshot:
 			if message.Players != nil && time.Since(lastPrinted) >= 500*time.Millisecond {
 				fmt.Printf("tick=%d", message.Tick)
+				if message.AIs != nil {
+					fmt.Printf(" AIs=%d", len(*message.AIs))
+				}
 				if message.Fruits != nil {
 					fmt.Printf(" fruits=%d", len(*message.Fruits))
 				}

@@ -13,12 +13,13 @@ import (
 )
 
 type multiplayer struct {
-	motion    client.Motion
-	rendered  []protocol.Player
-	session   *client.Session
-	view      client.Update
-	gameMap   *Map
-	errorText string
+	renderedAIs []protocol.AI
+	motion      client.Motion
+	rendered    []protocol.Player
+	session     *client.Session
+	view        client.Update
+	gameMap     *Map
+	errorText   string
 }
 
 func newMultiplayer(url string) *multiplayer {
@@ -75,6 +76,7 @@ func (m *multiplayer) readInput(dt float32) {
 		m.motion.Advance(predicted, float64(dt))
 	}
 	m.rendered = m.motion.Players(now)
+	m.renderedAIs = m.motion.AIs(now)
 }
 
 func (m *multiplayer) follow(camera *rl.Camera2D) {
@@ -92,6 +94,10 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	for _, fruit := range m.view.Fruits {
 		rl.DrawRectangleV(rl.NewVector2(float32(fruit.X), float32(fruit.Y)), rl.NewVector2(float32(fruit.Size), float32(fruit.Size)), rl.Yellow)
 	}
+	for _, ai := range m.renderedAIs {
+		rl.DrawRectangleV(rl.NewVector2(float32(ai.X), float32(ai.Y)), rl.NewVector2(float32(ai.Size), float32(ai.Size)), rl.Green)
+		rl.DrawText(fmt.Sprintf("%s Lv.%d", ai.ID, ai.Stats.Level), int32(ai.X), int32(ai.Y)-22, 18, rl.RayWhite)
+	}
 	for _, player := range m.rendered {
 		tint := rl.SkyBlue
 		label := fmt.Sprintf("%s Lv.%d", player.ID, player.Stats.Level)
@@ -104,7 +110,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	}
 	rl.EndMode2D()
 	rl.DrawRectangle(0, 0, window.width, 122, rl.Fade(rl.Black, .8))
-	rl.DrawText(fmt.Sprintf("Multiplayer | %s | Players: %d | Fruit: %d", m.view.PlayerID, len(m.view.Players), len(m.view.Fruits)), 24, 20, 22, rl.RayWhite)
+	rl.DrawText(fmt.Sprintf("Multiplayer | %s | Players: %d | Fruit: %d | AIs: %d", m.view.PlayerID, len(m.view.Players), len(m.view.Fruits), len(m.view.AIs)), 24, 20, 22, rl.RayWhite)
 	for _, player := range m.view.Players {
 		if player.ID != m.view.PlayerID {
 			continue

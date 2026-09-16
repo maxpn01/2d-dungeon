@@ -83,7 +83,16 @@ type Fruit struct {
 	Size float64 `json:"size"`
 }
 
+type AI struct {
+	ID    string      `json:"id"`
+	X     float64     `json:"x"`
+	Y     float64     `json:"y"`
+	Size  float64     `json:"size"`
+	Stats PlayerStats `json:"stats"`
+}
+
 type Message struct {
+	AIs      *[]AI     `json:"ais,omitempty"`
 	Fruits   *[]Fruit  `json:"fruits,omitempty"`
 	Type     string    `json:"type"`
 	PlayerID string    `json:"player_id,omitempty"`

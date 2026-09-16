@@ -68,7 +68,14 @@ func (h *Hub) Run(ctx context.Context) {
 			for _, fruit := range snapshot.Fruits {
 				fruits = append(fruits, protocol.Fruit{ID: fruit.ID, X: fruit.X, Y: fruit.Y, Size: fruit.Size})
 			}
-			message := protocol.Message{Type: protocol.TypeSnapshot, Tick: snapshot.Tick, Players: &players, Fruits: &fruits}
+			ais := make([]protocol.AI, 0, len(snapshot.AIs))
+			for _, ai := range snapshot.AIs {
+				ais = append(ais, protocol.AI{
+					ID: ai.ID, X: ai.X, Y: ai.Y, Size: simulation.AISize,
+					Stats: protocol.PlayerStats{Level: ai.Stats.Level, XP: ai.Stats.XP, HP: ai.Stats.HP, Speed: ai.Stats.Speed},
+				})
+			}
+			message := protocol.Message{Type: protocol.TypeSnapshot, Tick: snapshot.Tick, Players: &players, Fruits: &fruits, AIs: &ais}
 			dropped := false
 			for c := range clients {
 				select {

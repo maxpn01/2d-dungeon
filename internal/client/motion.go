@@ -61,19 +61,7 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 		return nil
 	}
 	latest := m.frames[len(m.frames)-1]
-	target := now.Add(-interpolationDelay)
-	before, after := m.frames[0], m.frames[0]
-	for _, frame := range m.frames {
-		after = frame
-		if !frame.ReceivedAt.Before(target) {
-			break
-		}
-		before = frame
-	}
-	alpha := 0.0
-	if span := after.ReceivedAt.Sub(before.ReceivedAt); span > 0 {
-		alpha = max(0, min(1, float64(target.Sub(before.ReceivedAt))/float64(span)))
-	}
+	before, after, alpha := m.framesAt(now)
 	beforeByID, afterByID := indexPlayers(before.Players), indexPlayers(after.Players)
 	positions := make([]protocol.Player, 0, len(latest.Players))
 	for _, player := range latest.Players {
@@ -98,6 +86,52 @@ func indexPlayers(players []protocol.Player) map[string]protocol.Player {
 	byID := make(map[string]protocol.Player, len(players))
 	for _, player := range players {
 		byID[player.ID] = player
+	}
+	return byID
+}
+
+func (m *Motion) framesAt(now time.Time) (Update, Update, float64) {
+	target := now.Add(-interpolationDelay)
+	before, after := m.frames[0], m.frames[0]
+	for _, frame := range m.frames {
+		after = frame
+		if !frame.ReceivedAt.Before(target) {
+			break
+		}
+		before = frame
+	}
+	alpha := 0.0
+	if span := after.ReceivedAt.Sub(before.ReceivedAt); span > 0 {
+		alpha = max(0, min(1, float64(target.Sub(before.ReceivedAt))/float64(span)))
+	}
+	return before, after, alpha
+}
+
+func (m *Motion) AIs(now time.Time) []protocol.AI {
+	if len(m.frames) == 0 {
+		return nil
+	}
+	latest := m.frames[len(m.frames)-1]
+	before, after, alpha := m.framesAt(now)
+	beforeByID := indexAIs(before.AIs)
+	afterByID := indexAIs(after.AIs)
+	ais := make([]protocol.AI, 0, len(latest.AIs))
+	for _, ai := range latest.AIs {
+		a, okA := beforeByID[ai.ID]
+		b, okB := afterByID[ai.ID]
+		if okA && okB {
+			ai.X = a.X + (b.X-a.X)*alpha
+			ai.Y = a.Y + (b.Y-a.Y)*alpha
+		}
+		ais = append(ais, ai)
+	}
+	return ais
+}
+
+func indexAIs(ais []protocol.AI) map[string]protocol.AI {
+	byID := make(map[string]protocol.AI, len(ais))
+	for _, ai := range ais {
+		byID[ai.ID] = ai
 	}
 	return byID
 }

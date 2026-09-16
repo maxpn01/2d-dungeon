@@ -49,6 +49,7 @@ type playerState struct {
 }
 
 type World struct {
+	ais       []aiState
 	fruits    []Fruit
 	nextFruit uint64
 	players   map[string]*playerState
@@ -61,6 +62,7 @@ func NewWorld() *World {
 	for range InitialFruits {
 		w.spawnFruit()
 	}
+	w.spawnAIs()
 	return w
 }
 
@@ -136,10 +138,12 @@ func (w *World) Step(now time.Time) {
 		}
 		player.X, player.Y = Move(player.X, player.Y, direction, StepSeconds, player.Stats.Speed)
 	}
+	w.updateAIs()
 	w.consumeFruits(previous)
 }
 
 type Snapshot struct {
+	AIs     []AI
 	Tick    uint64
 	Players []Player
 	Fruits  []Fruit
@@ -153,7 +157,11 @@ func (w *World) Snapshot() Snapshot {
 	sort.Slice(players, func(i, j int) bool { return players[i].ID < players[j].ID })
 	fruits := make([]Fruit, len(w.fruits))
 	copy(fruits, w.fruits)
-	return Snapshot{Tick: w.tick, Players: players, Fruits: fruits}
+	ais := make([]AI, len(w.ais))
+	for i, ai := range w.ais {
+		ais[i] = ai.AI
+	}
+	return Snapshot{Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }

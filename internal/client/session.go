@@ -17,6 +17,7 @@ import (
 )
 
 type Update struct {
+	AIs        []protocol.AI
 	Fruits     []protocol.Fruit
 	ReceivedAt time.Time
 	Local      protocol.Player
@@ -182,7 +183,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 			}
 			return fmt.Errorf("connection lost: %w", err)
 		}
-		if message.Type != protocol.TypeSnapshot || message.Players == nil || message.Fruits == nil {
+		if message.Type != protocol.TypeSnapshot || message.Players == nil || message.Fruits == nil || message.AIs == nil {
 			return errors.New("server sent an unexpected message")
 		}
 		if message.Tick < lastTick {
@@ -192,6 +193,9 @@ func (s *Session) run(ctx context.Context, url string) error {
 			return err
 		}
 		if err := validateFruits(*message.Fruits); err != nil {
+			return err
+		}
+		if err := validateAIs(*message.AIs); err != nil {
 			return err
 		}
 		lastTick = message.Tick
@@ -218,7 +222,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 		}
 		s.predicted, s.predictionReady = local, true
 		s.inputMu.Unlock()
-		s.publish(Update{PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits})
+		s.publish(Update{PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits, AIs: *message.AIs})
 	}
 }
 
@@ -229,14 +233,8 @@ func validatePlayers(players []protocol.Player, localID string) error {
 			return errors.New("server sent invalid player IDs")
 		}
 		ids[player.ID] = true
-		stats := player.Stats
-		if stats.Level < 1 || stats.Level > simulation.MaxLevel || math.IsNaN(stats.XP) || math.IsInf(stats.XP, 0) ||
-			stats.XP < 0 || stats.HP <= 0 || stats.HP > simulation.MaxHP || math.IsNaN(stats.HP) ||
-			math.IsNaN(stats.Speed) || stats.Speed < simulation.PlayerSpeed || stats.Speed > simulation.PlayerSpeed+simulation.SpeedPerLevel*(simulation.MaxLevel-1) {
+		if !validStats(player.Stats, simulation.PlayerSpeed) {
 			return errors.New("server sent invalid player stats")
-		}
-		if stats.Level == simulation.MaxLevel && stats.XP != 0 || stats.Level < simulation.MaxLevel && stats.XP >= simulation.XPForNextLevel(stats.Level) {
-			return errors.New("server sent invalid level progress")
 		}
 		for _, value := range []float64{player.X, player.Y, player.Size} {
 			if math.IsNaN(value) || math.IsInf(value, 0) || math.Abs(value) > math.MaxFloat32 {
@@ -271,6 +269,44 @@ func validateFruits(fruits []protocol.Fruit) error {
 		if fruit.Size <= 0 || fruit.X < simulation.MapMin || fruit.Y < simulation.MapMin ||
 			fruit.X+fruit.Size > simulation.MapMax || fruit.Y+fruit.Size > simulation.MapMax {
 			return errors.New("server sent fruit outside the map")
+		}
+	}
+	return nil
+}
+
+func validStats(stats protocol.PlayerStats, baseSpeed float64) bool {
+	if stats.Level < 1 || stats.Level > simulation.MaxLevel || math.IsNaN(stats.XP) || math.IsInf(stats.XP, 0) ||
+		stats.XP < 0 || stats.HP <= 0 || stats.HP > simulation.MaxHP || math.IsNaN(stats.HP) ||
+		math.IsNaN(stats.Speed) || stats.Speed < baseSpeed || stats.Speed > baseSpeed+simulation.SpeedPerLevel*(simulation.MaxLevel-1) {
+		return false
+	}
+	if stats.Level == simulation.MaxLevel {
+		return stats.XP == 0
+	}
+	return stats.XP < simulation.XPForNextLevel(stats.Level)
+}
+
+func validateAIs(ais []protocol.AI) error {
+	if len(ais) > simulation.InitialAIs {
+		return errors.New("server sent too many AIs")
+	}
+	ids := make(map[string]bool, len(ais))
+	for _, ai := range ais {
+		if ai.ID == "" || ids[ai.ID] {
+			return errors.New("server sent invalid AI IDs")
+		}
+		ids[ai.ID] = true
+		if !validStats(ai.Stats, simulation.AISpeed) {
+			return errors.New("server sent invalid AI stats")
+		}
+		for _, v := range []float64{ai.X, ai.Y, ai.Size} {
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				return errors.New("server sent invalid AI coordinates")
+			}
+		}
+		if ai.Size <= 0 || ai.X < simulation.MapMin || ai.Y < simulation.MapMin ||
+			ai.X+ai.Size > simulation.MapMax || ai.Y+ai.Size > simulation.MapMax {
+			return errors.New("server sent an AI outside the map")
 		}
 	}
 	return nil
