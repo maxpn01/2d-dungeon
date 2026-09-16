@@ -60,12 +60,20 @@ func DecodeClientMessage(data []byte) (ClientMessage, error) {
 	return *message, nil
 }
 
+type PlayerStats struct {
+	Level int     `json:"level"`
+	XP    float64 `json:"xp"`
+	HP    float64 `json:"hp"`
+	Speed float64 `json:"speed"`
+}
+
 type Player struct {
-	InputSeq uint64  `json:"input_seq"`
-	ID       string  `json:"id"`
-	X        float64 `json:"x"`
-	Y        float64 `json:"y"`
-	Size     float64 `json:"size"`
+	Stats    PlayerStats `json:"stats"`
+	InputSeq uint64      `json:"input_seq"`
+	ID       string      `json:"id"`
+	X        float64     `json:"x"`
+	Y        float64     `json:"y"`
+	Size     float64     `json:"size"`
 }
 
 type Fruit struct {

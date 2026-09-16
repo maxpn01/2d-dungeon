@@ -125,7 +125,7 @@ func run(url string, direction *protocol.Direction, duration time.Duration) erro
 					fmt.Printf(" fruits=%d", len(*message.Fruits))
 				}
 				for _, player := range *message.Players {
-					fmt.Printf(" %s=(%.1f,%.1f)", player.ID, player.X, player.Y)
+					fmt.Printf(" %s=(%.1f,%.1f) lvl=%d xp=%.2f", player.ID, player.X, player.Y, player.Stats.Level, player.Stats.XP)
 				}
 				fmt.Println()
 				lastPrinted = time.Now()

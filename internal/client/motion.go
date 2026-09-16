@@ -43,8 +43,8 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 		m.local = target
 		return
 	}
-	speed := simulation.PlayerSpeed
-	if distance > 2*simulation.PlayerSpeed*simulation.StepSeconds {
+	speed := target.Stats.Speed
+	if distance > 2*speed*simulation.StepSeconds {
 		speed *= 2
 	}
 	if distance <= speed*dt || distance == 0 {
@@ -53,7 +53,7 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 	}
 	m.local.X += dx / distance * speed * dt
 	m.local.Y += dy / distance * speed * dt
-	m.local.ID, m.local.Size, m.local.InputSeq = target.ID, target.Size, target.InputSeq
+	m.local.ID, m.local.Size, m.local.InputSeq, m.local.Stats = target.ID, target.Size, target.InputSeq, target.Stats
 }
 
 func (m *Motion) Players(now time.Time) []protocol.Player {

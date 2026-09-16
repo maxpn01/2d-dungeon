@@ -157,7 +157,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 				sequence := s.sequence
 				s.pending = append(s.pending, sentInput{sequence, direction})
 				if s.predictionReady {
-					s.predicted.X, s.predicted.Y = simulation.Move(s.predicted.X, s.predicted.Y, simulation.Direction{X: direction.X, Y: direction.Y}, simulation.StepSeconds)
+					s.predicted.X, s.predicted.Y = simulation.Move(s.predicted.X, s.predicted.Y, simulation.Direction{X: direction.X, Y: direction.Y}, simulation.StepSeconds, s.predicted.Stats.Speed)
 				}
 				s.inputMu.Unlock()
 				writeCtx, finish := context.WithTimeout(ioCtx, 3*time.Second)
@@ -214,7 +214,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 		}
 		s.pending = s.pending[first:]
 		for _, input := range s.pending {
-			local.X, local.Y = simulation.Move(local.X, local.Y, simulation.Direction{X: input.direction.X, Y: input.direction.Y}, simulation.StepSeconds)
+			local.X, local.Y = simulation.Move(local.X, local.Y, simulation.Direction{X: input.direction.X, Y: input.direction.Y}, simulation.StepSeconds, local.Stats.Speed)
 		}
 		s.predicted, s.predictionReady = local, true
 		s.inputMu.Unlock()
@@ -229,6 +229,15 @@ func validatePlayers(players []protocol.Player, localID string) error {
 			return errors.New("server sent invalid player IDs")
 		}
 		ids[player.ID] = true
+		stats := player.Stats
+		if stats.Level < 1 || stats.Level > simulation.MaxLevel || math.IsNaN(stats.XP) || math.IsInf(stats.XP, 0) ||
+			stats.XP < 0 || stats.HP <= 0 || stats.HP > simulation.MaxHP || math.IsNaN(stats.HP) ||
+			math.IsNaN(stats.Speed) || stats.Speed < simulation.PlayerSpeed || stats.Speed > simulation.PlayerSpeed+simulation.SpeedPerLevel*(simulation.MaxLevel-1) {
+			return errors.New("server sent invalid player stats")
+		}
+		if stats.Level == simulation.MaxLevel && stats.XP != 0 || stats.Level < simulation.MaxLevel && stats.XP >= simulation.XPForNextLevel(stats.Level) {
+			return errors.New("server sent invalid level progress")
+		}
 		for _, value := range []float64{player.X, player.Y, player.Size} {
 			if math.IsNaN(value) || math.IsInf(value, 0) || math.Abs(value) > math.MaxFloat32 {
 				return errors.New("server sent an invalid player position or size")

@@ -57,7 +57,12 @@ func (h *Hub) Run(ctx context.Context) {
 			snapshot := world.Snapshot()
 			players := make([]protocol.Player, 0, len(snapshot.Players))
 			for _, state := range snapshot.Players {
-				players = append(players, protocol.Player{ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq})
+				players = append(players, protocol.Player{
+					ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
+					Stats: protocol.PlayerStats{
+						Level: state.Stats.Level, XP: state.Stats.XP, HP: state.Stats.HP, Speed: state.Stats.Speed,
+					},
+				})
 			}
 			fruits := make([]protocol.Fruit, 0, len(snapshot.Fruits))
 			for _, fruit := range snapshot.Fruits {

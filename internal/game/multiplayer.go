@@ -7,6 +7,7 @@ import (
 
 	"raylib-2d-sandbox/internal/client"
 	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -93,7 +94,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	}
 	for _, player := range m.rendered {
 		tint := rl.SkyBlue
-		label := player.ID
+		label := fmt.Sprintf("%s Lv.%d", player.ID, player.Stats.Level)
 		if player.ID == m.view.PlayerID {
 			tint = rl.Red
 			label += " (you)"
@@ -102,7 +103,19 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		rl.DrawText(label, int32(player.X), int32(player.Y)-22, 18, rl.RayWhite)
 	}
 	rl.EndMode2D()
-	rl.DrawRectangle(0, 0, window.width, 88, rl.Fade(rl.Black, .8))
+	rl.DrawRectangle(0, 0, window.width, 122, rl.Fade(rl.Black, .8))
 	rl.DrawText(fmt.Sprintf("Multiplayer | %s | Players: %d | Fruit: %d", m.view.PlayerID, len(m.view.Players), len(m.view.Fruits)), 24, 20, 22, rl.RayWhite)
-	rl.DrawText("WASD to move | Esc to leave", 24, 52, 20, rl.LightGray)
+	for _, player := range m.view.Players {
+		if player.ID != m.view.PlayerID {
+			continue
+		}
+		stats := player.Stats
+		progress := fmt.Sprintf("XP %.2f / %.2f", stats.XP, simulation.XPForNextLevel(stats.Level))
+		if stats.Level == simulation.MaxLevel {
+			progress = "MAX LEVEL"
+		}
+		rl.DrawText(fmt.Sprintf("Level %d | %s | HP %.2f | Speed %.2f", stats.Level, progress, stats.HP, stats.Speed), 24, 52, 20, rl.RayWhite)
+		break
+	}
+	rl.DrawText("WASD to move | Eat yellow fruit to grow | Esc to leave", 24, 84, 20, rl.LightGray)
 }

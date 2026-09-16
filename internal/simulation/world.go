@@ -29,6 +29,7 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
+	Stats    Stats
 	InputSeq uint64
 	ID       string
 	X, Y     float64
@@ -70,7 +71,7 @@ func (w *World) Join(id string) {
 	slot := w.nextSpawn % 400
 	w.nextSpawn++
 	w.players[id] = &playerState{Player: Player{
-		ID: id, X: 300 + float64(slot%20)*60, Y: 300 + float64(slot/20)*60,
+		Stats: NewStats(), ID: id, X: 300 + float64(slot%20)*60, Y: 300 + float64(slot/20)*60,
 	}}
 }
 
@@ -101,13 +102,12 @@ func (w *World) Command(id string, direction Direction, sequence uint64, now tim
 	return true
 }
 
-// Move is shared by server simulation and client prediction.
-func Move(x, y float64, d Direction, seconds float64) (float64, float64) {
+func Move(x, y float64, d Direction, seconds, speed float64) (float64, float64) {
 	length := math.Hypot(d.X, d.Y)
 	if length == 0 || !d.Valid() || seconds <= 0 {
 		return x, y
 	}
-	distance := PlayerSpeed * seconds
+	distance := speed * seconds
 	return max(MinPosition, min(MaxPosition, x+d.X/length*distance)), max(MinPosition, min(MaxPosition, y+d.Y/length*distance))
 }
 
@@ -116,7 +116,9 @@ func (w *World) Step(now time.Time) {
 	if w.tick%fruitSpawnTicks == 0 {
 		w.spawnFruit()
 	}
-	for _, player := range w.players {
+	previous := make(map[string]position, len(w.players))
+	for id, player := range w.players {
+		previous[id] = position{player.X, player.Y}
 		if now.Sub(player.lastInput) >= InputTimeout {
 			player.direction = Direction{}
 			player.commands = nil
@@ -132,8 +134,9 @@ func (w *World) Step(now time.Time) {
 				player.InputSeq = next.sequence
 			}
 		}
-		player.X, player.Y = Move(player.X, player.Y, direction, StepSeconds)
+		player.X, player.Y = Move(player.X, player.Y, direction, StepSeconds, player.Stats.Speed)
 	}
+	w.consumeFruits(previous)
 }
 
 type Snapshot struct {
