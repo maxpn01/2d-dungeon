@@ -1,7 +1,12 @@
 package main
 
-import "raylib-2d-sandbox/internal/game"
+import (
+	"flag"
+	"raylib-2d-sandbox/internal/game"
+)
 
 func main() {
-	game.Run()
+	serverURL := flag.String("server", "ws://localhost:8080/ws", "multiplayer WebSocket server URL")
+	flag.Parse()
+	game.RunWithServer(*serverURL)
 }

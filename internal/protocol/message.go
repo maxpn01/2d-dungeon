@@ -22,6 +22,7 @@ type Direction struct {
 }
 
 type ClientMessage struct {
+	Sequence  uint64     `json:"sequence,omitempty"`
 	Type      string     `json:"type"`
 	Direction *Direction `json:"direction,omitempty"`
 	Message   string     `json:"message,omitempty"`
@@ -50,7 +51,7 @@ func DecodeClientMessage(data []byte) (ClientMessage, error) {
 			return ClientMessage{}, errors.New("direction components must be between -1 and 1")
 		}
 	case TypeEcho, "": // Preserve the original echo client format.
-		if message.Direction != nil {
+		if message.Direction != nil || message.Sequence != 0 {
 			return ClientMessage{}, errors.New("echo cannot contain direction")
 		}
 	default:
@@ -60,10 +61,11 @@ func DecodeClientMessage(data []byte) (ClientMessage, error) {
 }
 
 type Player struct {
-	ID   string  `json:"id"`
-	X    float64 `json:"x"`
-	Y    float64 `json:"y"`
-	Size float64 `json:"size"`
+	InputSeq uint64  `json:"input_seq"`
+	ID       string  `json:"id"`
+	X        float64 `json:"x"`
+	Y        float64 `json:"y"`
+	Size     float64 `json:"size"`
 }
 
 type Message struct {

@@ -16,7 +16,9 @@ const (
 	InputTimeout = 500 * time.Millisecond
 )
 
-type Direction struct{ X, Y float64 }
+type Direction struct {
+	X, Y float64
+}
 
 func (d Direction) Valid() bool {
 	return !math.IsNaN(d.X) && !math.IsNaN(d.Y) &&
@@ -25,14 +27,22 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
-	ID   string
-	X, Y float64
+	InputSeq uint64
+	ID       string
+	X, Y     float64
+}
+
+type command struct {
+	direction Direction
+	sequence  uint64
 }
 
 type playerState struct {
 	Player
-	direction Direction
-	lastInput time.Time
+	direction    Direction
+	lastInput    time.Time
+	commands     []command
+	lastSequence uint64
 }
 
 type World struct {
@@ -57,12 +67,41 @@ func (w *World) Join(id string) {
 func (w *World) Leave(id string) { delete(w.players, id) }
 
 func (w *World) Input(id string, direction Direction, now time.Time) bool {
+	return w.Command(id, direction, 0, now)
+}
+
+// Sequenced clients predict exactly one fixed step per command. The server
+// consumes at most one per tick: extra packets never grant extra movement.
+// Sequence zero retains the original demo client's held-input behavior.
+func (w *World) Command(id string, direction Direction, sequence uint64, now time.Time) bool {
 	player, exists := w.players[id]
 	if !exists || !direction.Valid() {
 		return false
 	}
-	player.direction, player.lastInput = direction, now
+	if sequence == 0 {
+		if player.lastSequence != 0 {
+			return false
+		}
+		player.direction = direction
+	} else {
+		if sequence != player.lastSequence+1 || len(player.commands) >= 32 {
+			return false
+		}
+		player.lastSequence = sequence
+		player.commands = append(player.commands, command{direction, sequence})
+	}
+	player.lastInput = now
 	return true
+}
+
+// Move is shared by server simulation and client prediction.
+func Move(x, y float64, d Direction, seconds float64) (float64, float64) {
+	length := math.Hypot(d.X, d.Y)
+	if length == 0 || !d.Valid() || seconds <= 0 {
+		return x, y
+	}
+	distance := PlayerSpeed * seconds
+	return max(MinPosition, min(MaxPosition, x+d.X/length*distance)), max(MinPosition, min(MaxPosition, y+d.Y/length*distance))
 }
 
 func (w *World) Step(now time.Time) {
@@ -70,15 +109,21 @@ func (w *World) Step(now time.Time) {
 	for _, player := range w.players {
 		if now.Sub(player.lastInput) >= InputTimeout {
 			player.direction = Direction{}
+			player.commands = nil
+			// Expired commands are acknowledged as discarded, so prediction can recover.
+			player.InputSeq = player.lastSequence
 		}
-		d := player.direction
-		length := math.Hypot(d.X, d.Y)
-		if length == 0 {
-			continue
+		direction := player.direction
+		if player.lastSequence != 0 {
+			direction = Direction{}
+			if len(player.commands) > 0 {
+				next := player.commands[0]
+				player.commands = player.commands[1:]
+				direction = next.direction
+				player.InputSeq = next.sequence
+			}
 		}
-		distance := PlayerSpeed * StepSeconds
-		player.X = max(MinPosition, min(MaxPosition, player.X+d.X/length*distance))
-		player.Y = max(MinPosition, min(MaxPosition, player.Y+d.Y/length*distance))
+		player.X, player.Y = Move(player.X, player.Y, direction, StepSeconds)
 	}
 }
 

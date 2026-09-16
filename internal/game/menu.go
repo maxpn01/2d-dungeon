@@ -12,6 +12,8 @@ const (
 	ActionNone Action = iota
 	ActionPlay
 	ActionExit
+	ActionMultiplayer
+	ActionMenu
 )
 
 type MenuButton struct {

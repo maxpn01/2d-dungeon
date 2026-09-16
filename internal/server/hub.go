@@ -57,7 +57,7 @@ func (h *Hub) Run(ctx context.Context) {
 			tick, states := world.Snapshot()
 			players := make([]protocol.Player, 0, len(states))
 			for _, state := range states {
-				players = append(players, protocol.Player{ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize})
+				players = append(players, protocol.Player{ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq})
 			}
 			message := protocol.Message{Type: protocol.TypeSnapshot, Tick: tick, Players: &players}
 			dropped := false
@@ -103,7 +103,10 @@ func (h *Hub) Run(ctx context.Context) {
 			}
 			if event.message.Type == protocol.TypeInput {
 				d := event.message.Direction
-				world.Input(event.client.id, simulation.Direction{X: d.X, Y: d.Y}, time.Now())
+				if !world.Command(event.client.id, simulation.Direction{X: d.X, Y: d.Y}, event.message.Sequence, time.Now()) {
+					remove(event.client)
+					broadcast()
+				}
 				continue
 			}
 			reply := protocol.Message{Type: protocol.TypeEcho, Message: "received: " + event.message.Message}
