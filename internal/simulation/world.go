@@ -156,8 +156,9 @@ func (w *World) Step(now time.Time) {
 		previousAIs[i] = position{ai.X, ai.Y}
 	}
 	w.updateAIs()
-	w.resolvePredation(previous, previousAIs)
-	w.consumeFruits(previous, previousAIs)
+	eaters := w.eaters(previous, previousAIs)
+	w.resolvePredation(eaters)
+	w.consumeFruits(eaters)
 }
 
 type Snapshot struct {

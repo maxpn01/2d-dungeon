@@ -1,6 +1,9 @@
 package simulation
 
-import "math"
+import (
+	"math"
+	"sort"
+)
 
 type position struct{ x, y float64 }
 
@@ -9,29 +12,59 @@ type eater struct {
 	start, end position
 	size       float64
 	stats      *Stats
+	player     *playerState
+	ai         *aiState
 }
 
-func (w *World) consumeFruits(previous map[string]position, previousAIs []position) {
+func (w *World) eaters(previous map[string]position, previousAIs []position) []eater {
 	eaters := make([]eater, 0, len(w.players)+len(w.ais))
 	for id, player := range w.players {
 		if player.Dead {
 			continue
 		}
-		eaters = append(eaters, eater{id: id, start: previous[id], end: position{player.X, player.Y}, size: PlayerSize, stats: &player.Stats})
+		eaters = append(eaters, eater{id: id, start: previous[id], end: position{player.X, player.Y}, size: PlayerSize, stats: &player.Stats, player: player})
 	}
+	sort.Slice(eaters, func(i, j int) bool { return eaters[i].id < eaters[j].id })
 	for i := range w.ais {
 		ai := &w.ais[i]
 		if ai.respawnTick != 0 {
 			continue
 		}
-		eaters = append(eaters, eater{id: ai.ID, start: previousAIs[i], end: position{ai.X, ai.Y}, size: AISize, stats: &ai.Stats})
+		eaters = append(eaters, eater{id: ai.ID, start: previousAIs[i], end: position{ai.X, ai.Y}, size: AISize, stats: &ai.Stats, ai: ai})
 	}
+	return eaters
+}
+
+func (e eater) dead() bool {
+	if e.player != nil {
+		return e.player.Dead
+	}
+	return e.ai.respawnTick != 0
+}
+
+func (e eater) die(killer string, tick uint64) {
+	if e.player == nil {
+		e.ai.respawnTick = tick + 3*TickRate
+		return
+	}
+	e.player.Dead = true
+	e.player.KilledBy = killer
+	e.player.direction = Direction{}
+	e.player.commands = nil
+	e.player.InputSeq = e.player.lastSequence
+}
+
+func (w *World) consumeFruits(eaters []eater) {
 	remaining := w.fruits[:0]
 	for _, fruit := range w.fruits {
 		winner := -1
 		earliest := math.Inf(1)
 		for i, actor := range eaters {
-			contact, hit := fruitContact(actor.start.x, actor.start.y, actor.end.x, actor.end.y, actor.size, fruit)
+			if actor.dead() {
+				continue
+			}
+			location := position{fruit.X, fruit.Y}
+			contact, hit := eatingContact(actor.start, actor.end, actor.size, location, location, fruit.Size)
 			if hit && (contact < earliest || contact == earliest && (winner < 0 || actor.id < eaters[winner].id)) {
 				winner, earliest = i, contact
 			}
@@ -45,9 +78,9 @@ func (w *World) consumeFruits(previous map[string]position, previousAIs []positi
 	w.fruits = remaining
 }
 
-func fruitContact(x, y, endX, endY, size float64, fruit Fruit) (float64, bool) {
+func eatingContact(start, end position, size float64, targetStart, targetEnd position, targetSize float64) (float64, bool) {
 	enter, exit := 0.0, 1.0
-	for _, axis := range [][4]float64{{x, endX - x, fruit.X - size, fruit.X + fruit.Size}, {y, endY - y, fruit.Y - size, fruit.Y + fruit.Size}} {
+	for _, axis := range [][4]float64{{start.x, end.x - start.x - (targetEnd.x - targetStart.x), targetStart.x - size, targetStart.x + targetSize}, {start.y, end.y - start.y - (targetEnd.y - targetStart.y), targetStart.y - size, targetStart.y + targetSize}} {
 		start, delta, lo, hi := axis[0], axis[1], axis[2], axis[3]
 		if delta == 0 {
 			if start <= lo || start >= hi {

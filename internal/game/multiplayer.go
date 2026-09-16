@@ -129,5 +129,5 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		rl.DrawText(fmt.Sprintf("Level %d | %s | HP %.2f | Speed %.2f", stats.Level, progress, stats.HP, stats.Speed), 24, 52, 20, rl.RayWhite)
 		break
 	}
-	rl.DrawText("WASD to move | Eat fruit and weaker AIs to grow | Esc to leave", 24, 84, 20, rl.LightGray)
+	rl.DrawText("WASD to move | Eat fruit, weaker players and AIs to grow | Esc to leave", 24, 84, 20, rl.LightGray)
 }

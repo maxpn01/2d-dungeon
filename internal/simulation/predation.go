@@ -6,28 +6,21 @@ import (
 )
 
 type encounter struct {
-	player     *playerState
-	ai         *aiState
-	time       float64
-	playerWins bool
+	first, second eater
+	time          float64
+	firstWins     bool
 }
 
-func (w *World) resolvePredation(previous map[string]position, previousAIs []position) {
+func (w *World) resolvePredation(eaters []eater) {
 	contacts := make([]encounter, 0)
-	for id, player := range w.players {
-		if player.Dead {
-			continue
-		}
-		p := previous[id]
-		for i := range w.ais {
-			ai := &w.ais[i]
-			if ai.respawnTick != 0 || player.Stats.HP == ai.Stats.HP {
+	for i, first := range eaters {
+		for _, second := range eaters[i+1:] {
+			if first.player == nil && second.player == nil || first.stats.HP == second.stats.HP {
 				continue
 			}
-			a := previousAIs[i]
-			contact, hit := fruitContact(p.x, p.y, player.X-(ai.X-a.x), player.Y-(ai.Y-a.y), PlayerSize, Fruit{X: a.x, Y: a.y, Size: AISize})
+			contact, hit := eatingContact(first.start, first.end, first.size, second.start, second.end, second.size)
 			if hit {
-				contacts = append(contacts, encounter{player: player, ai: ai, time: contact, playerWins: player.Stats.HP > ai.Stats.HP})
+				contacts = append(contacts, encounter{first: first, second: second, time: contact, firstWins: first.stats.HP > second.stats.HP})
 			}
 		}
 	}
@@ -36,27 +29,21 @@ func (w *World) resolvePredation(previous map[string]position, previousAIs []pos
 		if a.time != b.time {
 			return a.time < b.time
 		}
-		if a.player.ID != b.player.ID {
-			return a.player.ID < b.player.ID
+		if a.first.id != b.first.id {
+			return a.first.id < b.first.id
 		}
-		return a.ai.ID < b.ai.ID
+		return a.second.id < b.second.id
 	})
 	for _, hit := range contacts {
-		player, ai := hit.player, hit.ai
-		if player.Dead || ai.respawnTick != 0 {
+		if hit.first.dead() || hit.second.dead() {
 			continue
 		}
-		if hit.playerWins {
-			player.Stats.GainXP(float64(ai.Stats.Level))
-			ai.respawnTick = w.tick + 3*TickRate
-		} else {
-			ai.Stats.GainXP(float64(player.Stats.Level))
-			player.Dead = true
-			player.KilledBy = ai.ID
-			player.direction = Direction{}
-			player.commands = nil
-			player.InputSeq = player.lastSequence
+		predator, prey := hit.first, hit.second
+		if !hit.firstWins {
+			predator, prey = prey, predator
 		}
+		predator.stats.GainXP(float64(prey.stats.Level))
+		prey.die(predator.id, w.tick)
 	}
 }
 
