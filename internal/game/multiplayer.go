@@ -21,6 +21,7 @@ type multiplayer struct {
 	gameMap     *Map
 	errorText   string
 	chat        chatBox
+	eating      *eatingScene
 }
 
 func newMultiplayer(url, name string) *multiplayer {
@@ -48,6 +49,9 @@ func (m *multiplayer) poll() {
 				m.errorText = "Could not join the server. Check that it is running."
 			}
 			return
+		}
+		if update.Local.Dead && m.eating == nil {
+			m.eating = newEatingScene(time.Now(), update, m.rendered, m.renderedAIs)
 		}
 		m.view = update
 		m.motion.Apply(update)
@@ -79,9 +83,15 @@ func (m *multiplayer) readInput(dt float32) {
 	}
 	m.rendered = m.motion.Players(now)
 	m.renderedAIs = m.motion.AIs(now)
+	if m.eating != nil {
+		m.rendered, m.renderedAIs = m.eating.apply(now, m.rendered, m.renderedAIs)
+	}
 }
 
 func (m *multiplayer) follow(camera *rl.Camera2D) {
+	if m.eating != nil {
+		return
+	}
 	for _, player := range m.rendered {
 		if player.ID == m.view.PlayerID {
 			camera.Target = rl.NewVector2(float32(player.X+player.Size/2), float32(player.Y+player.Size/2))
@@ -108,7 +118,9 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 			label += " (you)"
 		}
 		rl.DrawRectangleV(rl.NewVector2(float32(player.X), float32(player.Y)), rl.NewVector2(float32(player.Size), float32(player.Size)), tint)
-		rl.DrawText(label, int32(player.X), int32(player.Y)-22, 18, rl.RayWhite)
+		if !player.Dead {
+			rl.DrawText(label, int32(player.X), int32(player.Y)-22, 18, rl.RayWhite)
+		}
 	}
 	rl.EndMode2D()
 	drawDungeonLocation(camera.Target.X, camera.Target.Y, window.width, window.height)

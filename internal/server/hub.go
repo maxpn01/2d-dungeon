@@ -103,10 +103,7 @@ func (h *Hub) Run(ctx context.Context) {
 			return
 		case <-ticker.C:
 			world.Step(time.Now())
-			tick := world.Tick()
-			if tick%2 == 0 {
-				broadcast()
-			}
+			broadcast()
 		case c := <-h.join:
 			nextID++
 			c.id = fmt.Sprintf("p%d", nextID)

@@ -2,6 +2,9 @@ package game
 
 import (
 	"image/color"
+	"time"
+
+	"raylib-2d-sandbox/internal/client"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -151,7 +154,7 @@ func (g *Game) run() {
 		case screenMultiplayer:
 			m := g.multiplayer
 			switch {
-			case m.view.Local.Dead:
+			case m.view.Local.Dead && m.eating.finished(time.Now()):
 				action = g.multiplayerGameOver.draw()
 			case m.errorText != "":
 				action = g.connectionMenu.draw()
@@ -186,8 +189,13 @@ func (g *Game) run() {
 			g.cameraFollowPlayer()
 			current = screenSinglePlayer
 		case ActionMultiplayer:
+			var history []client.ChatEntry
+			if g.multiplayer != nil {
+				history = g.multiplayer.session.Chat()
+			}
 			g.leaveMultiplayer()
 			g.multiplayer = newMultiplayer(g.serverURL, g.settings.PlayerName)
+			g.multiplayer.session.RestoreChat(history)
 			current = screenMultiplayer
 		case ActionMenu:
 			g.leaveMultiplayer()

@@ -19,12 +19,14 @@ const (
 )
 
 type chatBox struct {
-	draft string
-	open  bool
+	draft      string
+	open       bool
+	openingKey bool
 }
 
 func (c *chatBox) close() {
 	c.open = false
+	c.openingKey = false
 	c.draft = ""
 }
 
@@ -36,6 +38,7 @@ func (c *chatBox) update(m *multiplayer) {
 	if !c.open {
 		if m.view.Ready && m.errorText == "" && !m.view.Local.Dead && rl.IsWindowFocused() && rl.IsKeyPressed(rl.KeyT) {
 			c.open = true
+			c.openingKey = true
 			c.draft = ""
 			for rl.GetCharPressed() != 0 {
 			}
@@ -43,9 +46,15 @@ func (c *chatBox) update(m *multiplayer) {
 		return
 	}
 	for character := rl.GetCharPressed(); character != 0; character = rl.GetCharPressed() {
+		if c.openingKey && (character == 't' || character == 'T') {
+			continue
+		}
 		if character >= 32 && character <= 126 && len(c.draft) < protocol.MaxChatMessageLength {
 			c.draft += string(rune(character))
 		}
+	}
+	if !rl.IsKeyDown(rl.KeyT) {
+		c.openingKey = false
 	}
 	if (rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)) && rl.IsKeyPressed(rl.KeyA) {
 		c.draft = ""

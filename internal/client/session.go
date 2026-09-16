@@ -1,4 +1,3 @@
-// Package client keeps networking independent from raylib's drawing thread.
 package client
 
 import (
@@ -97,7 +96,6 @@ func (s *Session) SetInput(direction protocol.Direction) {
 	s.inputMu.Unlock()
 }
 
-// SendChat queues a chat line for the next writer tick.
 func (s *Session) SendChat(text string) {
 	text = protocol.NormalizeChatMessage(text)
 	if text == "" {
@@ -110,11 +108,20 @@ func (s *Session) SendChat(text string) {
 	}
 }
 
-// Chat returns a copy of the chat log, oldest first.
 func (s *Session) Chat() []ChatEntry {
 	s.chatMu.Lock()
 	defer s.chatMu.Unlock()
 	return append([]ChatEntry(nil), s.chat...)
+}
+
+func (s *Session) RestoreChat(entries []ChatEntry) {
+	s.chatMu.Lock()
+	defer s.chatMu.Unlock()
+	history := append([]ChatEntry(nil), entries...)
+	s.chat = append(history, s.chat...)
+	if len(s.chat) > maxChatEntries {
+		s.chat = append([]ChatEntry(nil), s.chat[len(s.chat)-maxChatEntries:]...)
+	}
 }
 
 func (s *Session) appendChat(entry ChatEntry) {

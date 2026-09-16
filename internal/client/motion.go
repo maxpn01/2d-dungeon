@@ -8,16 +8,38 @@ import (
 	"raylib-2d-sandbox/internal/simulation"
 )
 
-const interpolationDelay = 100 * time.Millisecond
+const (
+	maxExtrapolation  = 100 * time.Millisecond
+	correctionSeconds = 0.05
+	teleportDistance  = 200
+	playerBufferTicks = 2.0
+)
+
+type motionCorrection struct {
+	x, y float64
+	at   time.Time
+}
+
+func (c motionCorrection) offset(now time.Time) (float64, float64) {
+	decay := math.Exp(-max(0, now.Sub(c.at).Seconds()) / correctionSeconds)
+	return c.x * decay, c.y * decay
+}
 
 type Motion struct {
-	frames []Update
-	local  protocol.Player
+	frames        []Update
+	local         protocol.Player
+	playerTick    float64
+	playerClock   time.Time
+	aiCorrections map[string]motionCorrection
 }
 
 func (m *Motion) Apply(update Update) {
+	now := update.ReceivedAt
+	previousAIs := indexAIs(m.AIs(now))
 	if len(m.frames) == 0 {
 		m.local = update.Local
+		m.playerTick = float64(update.Tick) - playerBufferTicks
+		m.playerClock = now
 	}
 
 	n := len(m.frames)
@@ -26,10 +48,26 @@ func (m *Motion) Apply(update Update) {
 		m.frames[n-1] = update
 	} else {
 		m.frames = append(m.frames, update)
-		if len(m.frames) > 16 {
-			m.frames = m.frames[len(m.frames)-16:]
+		if len(m.frames) > 32 {
+			m.frames = m.frames[len(m.frames)-32:]
 		}
 	}
+	m.aiCorrections = nil
+	ais := m.AIs(now)
+	m.aiCorrections = make(map[string]motionCorrection, len(ais))
+	for _, ai := range ais {
+		if previous, ok := previousAIs[ai.ID]; ok {
+			m.aiCorrections[ai.ID] = newCorrection(previous.X, previous.Y, ai.X, ai.Y, now)
+		}
+	}
+}
+
+func newCorrection(oldX, oldY, x, y float64, now time.Time) motionCorrection {
+	dx, dy := oldX-x, oldY-y
+	if math.Hypot(dx, dy) > teleportDistance {
+		return motionCorrection{}
+	}
+	return motionCorrection{x: dx, y: dy, at: now}
 }
 
 func (m *Motion) Advance(target protocol.Player, dt float64) {
@@ -61,28 +99,69 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 		return nil
 	}
 	latest := m.frames[len(m.frames)-1]
-	before, after, alpha := m.framesAt(now)
-	beforeByID, afterByID := indexPlayers(before.Players), indexPlayers(after.Players)
-	positions := make([]protocol.Player, 0, len(latest.Players))
-	for _, player := range latest.Players {
-		if player.Dead {
-			continue
-		}
+	before, after, alpha := m.playerFramesAt(now)
+	afterByID := indexPlayers(after.Players)
+	positions := make([]protocol.Player, 0, len(before.Players))
+	for _, player := range before.Players {
 		if player.ID == latest.PlayerID {
+			if latest.Local.Dead {
+				continue
+			}
 			player = m.local
 			player.X = max(simulation.MinPosition, min(simulation.MaxPosition, player.X))
 			player.Y = min(simulation.MaxPosition, player.Y)
-		} else {
-			a, okA := beforeByID[player.ID]
-			b, okB := afterByID[player.ID]
-			if okA && okB {
-				player.X = a.X + (b.X-a.X)*alpha
-				player.Y = a.Y + (b.Y-a.Y)*alpha
+			positions = append(positions, player)
+			continue
+		}
+		if player.Dead {
+			continue
+		}
+		if next, ok := afterByID[player.ID]; ok {
+			if math.Hypot(next.X-player.X, next.Y-player.Y) <= teleportDistance {
+				player.X, player.Y = interpolatePosition(player.X, player.Y, next.X, next.Y, alpha)
 			}
 		}
 		positions = append(positions, player)
 	}
 	return positions
+}
+
+func (m *Motion) playerFramesAt(now time.Time) (Update, Update, float64) {
+	latest := m.frames[len(m.frames)-1]
+	if now.After(m.playerClock) {
+		dt := now.Sub(m.playerClock).Seconds()
+		buffered := float64(latest.Tick) - m.playerTick
+		rate := 1.0
+		if buffered > playerBufferTicks+1 {
+			rate = 1.05
+		}
+		if buffered < playerBufferTicks-1 {
+			rate = 0.95
+		}
+		m.playerTick = min(float64(latest.Tick), m.playerTick+dt*simulation.TickRate*rate)
+		m.playerClock = now
+	}
+	before := m.frames[0]
+	for _, after := range m.frames {
+		if float64(after.Tick) > m.playerTick {
+			span := float64(after.Tick - before.Tick)
+			if span == 0 {
+				return before, before, 0
+			}
+			return before, after, max(0, min(1, (m.playerTick-float64(before.Tick))/span))
+		}
+		before = after
+	}
+	return before, before, 0
+}
+
+func interpolatePosition(ax, ay, bx, by, alpha float64) (float64, float64) {
+	dx, dy := (bx-ax)*alpha, (by-ay)*alpha
+	distance := math.Hypot(dx, dy)
+	if distance == 0 {
+		return ax, ay
+	}
+	return simulation.Move(ax, ay, simulation.Direction{X: dx / distance, Y: dy / distance}, 1, distance)
 }
 
 func indexPlayers(players []protocol.Player) map[string]protocol.Player {
@@ -93,21 +172,18 @@ func indexPlayers(players []protocol.Player) map[string]protocol.Player {
 	return byID
 }
 
-func (m *Motion) framesAt(now time.Time) (Update, Update, float64) {
-	target := now.Add(-interpolationDelay)
-	before, after := m.frames[0], m.frames[0]
-	for _, frame := range m.frames {
-		after = frame
-		if !frame.ReceivedAt.Before(target) {
-			break
-		}
-		before = frame
+func (m *Motion) aiFramesAt(now time.Time) (Update, Update, float64) {
+	after := m.frames[len(m.frames)-1]
+	if len(m.frames) < 2 {
+		return after, after, 1
 	}
-	alpha := 0.0
-	if span := after.ReceivedAt.Sub(before.ReceivedAt); span > 0 {
-		alpha = max(0, min(1, float64(target.Sub(before.ReceivedAt))/float64(span)))
+	before := m.frames[len(m.frames)-2]
+	span := float64(after.Tick-before.Tick) * simulation.StepSeconds
+	if span <= 0 {
+		return after, after, 1
 	}
-	return before, after, alpha
+	elapsed := max(0, min(now.Sub(after.ReceivedAt).Seconds(), maxExtrapolation.Seconds()))
+	return before, after, 1 + elapsed/span
 }
 
 func (m *Motion) AIs(now time.Time) []protocol.AI {
@@ -115,7 +191,7 @@ func (m *Motion) AIs(now time.Time) []protocol.AI {
 		return nil
 	}
 	latest := m.frames[len(m.frames)-1]
-	before, after, alpha := m.framesAt(now)
+	before, after, alpha := m.aiFramesAt(now)
 	beforeByID := indexAIs(before.AIs)
 	afterByID := indexAIs(after.AIs)
 	ais := make([]protocol.AI, 0, len(latest.AIs))
@@ -123,9 +199,11 @@ func (m *Motion) AIs(now time.Time) []protocol.AI {
 		a, okA := beforeByID[ai.ID]
 		b, okB := afterByID[ai.ID]
 		if okA && okB {
-			ai.X = a.X + (b.X-a.X)*alpha
-			ai.Y = a.Y + (b.Y-a.Y)*alpha
+			ai.X, ai.Y = projectPosition(a.X, a.Y, b.X, b.Y, alpha)
 		}
+		dx, dy := m.aiCorrections[ai.ID].offset(now)
+		ai.X += dx
+		ai.Y += dy
 		ais = append(ais, ai)
 	}
 	return ais
@@ -137,4 +215,13 @@ func indexAIs(ais []protocol.AI) map[string]protocol.AI {
 		byID[ai.ID] = ai
 	}
 	return byID
+}
+
+func projectPosition(ax, ay, bx, by, alpha float64) (float64, float64) {
+	dx, dy := (bx-ax)*(alpha-1), (by-ay)*(alpha-1)
+	distance := math.Hypot(dx, dy)
+	if distance == 0 {
+		return bx, by
+	}
+	return simulation.Move(bx, by, simulation.Direction{X: dx / distance, Y: dy / distance}, 1, distance)
 }
