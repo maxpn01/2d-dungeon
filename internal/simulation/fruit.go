@@ -38,6 +38,12 @@ func (w *World) spawnFruit() {
 				break
 			}
 		}
+		for _, ai := range w.ais {
+			if x < ai.X+AISize && x+FruitSize > ai.X && y < ai.Y+AISize && y+FruitSize > ai.Y {
+				overlaps = true
+				break
+			}
+		}
 		if overlaps {
 			continue
 		}

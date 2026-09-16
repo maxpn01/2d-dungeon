@@ -7,9 +7,10 @@ import (
 )
 
 const (
-	InitialAIs = 5
-	AISize     = PlayerSize
-	AISpeed    = 500.0
+	InitialAIs        = 5
+	AISize            = PlayerSize
+	AISpeed           = 500.0
+	AIDetectionRadius = 300.0
 )
 
 type AI struct {
@@ -37,6 +38,18 @@ func (w *World) spawnAIs() {
 func (w *World) updateAIs() {
 	for i := range w.ais {
 		ai := &w.ais[i]
+		if target, found := w.nearestFruit(ai); found {
+			dx := target.X + target.Size/2 - (ai.X + AISize/2)
+			dy := target.Y + target.Size/2 - (ai.Y + AISize/2)
+			distance := math.Hypot(dx, dy)
+			if distance > 0 {
+				direction := Direction{X: dx / distance, Y: dy / distance}
+				seconds := min(StepSeconds, distance/ai.Stats.Speed)
+				ai.X, ai.Y = Move(ai.X, ai.Y, direction, seconds, ai.Stats.Speed)
+			}
+			ai.wanderTicks = 0
+			continue
+		}
 		if ai.wanderTicks == 0 {
 			directions := [8]Direction{{X: 1}, {X: -1}, {Y: 1}, {Y: -1}, {X: 1, Y: 1}, {X: 1, Y: -1}, {X: -1, Y: 1}, {X: -1, Y: -1}}
 			ai.direction = directions[rand.IntN(len(directions))]
@@ -59,4 +72,19 @@ func (w *World) updateAIs() {
 		ai.X, ai.Y = Move(ai.X, ai.Y, d, StepSeconds, ai.Stats.Speed)
 		ai.wanderTicks--
 	}
+}
+
+func (w *World) nearestFruit(ai *aiState) (Fruit, bool) {
+	var nearest Fruit
+	best := AIDetectionRadius * AIDetectionRadius
+	found := false
+	for _, fruit := range w.fruits {
+		dx := fruit.X + fruit.Size/2 - (ai.X + AISize/2)
+		dy := fruit.Y + fruit.Size/2 - (ai.Y + AISize/2)
+		distance := dx*dx + dy*dy
+		if distance <= best && (!found || distance < best || fruit.ID < nearest.ID) {
+			nearest, best, found = fruit, distance, true
+		}
+	}
+	return nearest, found
 }

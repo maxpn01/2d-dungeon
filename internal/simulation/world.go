@@ -59,10 +59,10 @@ type World struct {
 
 func NewWorld() *World {
 	w := &World{players: make(map[string]*playerState)}
+	w.spawnAIs()
 	for range InitialFruits {
 		w.spawnFruit()
 	}
-	w.spawnAIs()
 	return w
 }
 
@@ -138,8 +138,12 @@ func (w *World) Step(now time.Time) {
 		}
 		player.X, player.Y = Move(player.X, player.Y, direction, StepSeconds, player.Stats.Speed)
 	}
+	previousAIs := make([]position, len(w.ais))
+	for i, ai := range w.ais {
+		previousAIs[i] = position{ai.X, ai.Y}
+	}
 	w.updateAIs()
-	w.consumeFruits(previous)
+	w.consumeFruits(previous, previousAIs)
 }
 
 type Snapshot struct {
