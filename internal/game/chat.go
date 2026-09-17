@@ -91,8 +91,8 @@ func (c *chatBox) draw(window *Window, entries []client.ChatEntry) {
 		if entry.Mine {
 			tint = rl.SkyBlue
 		}
-		rl.DrawRectangle(chatMargin-8, y-4, rl.MeasureText(line, chatFontSize)+16, chatLineHeight, rl.Fade(rl.Black, 0.5*alpha))
-		rl.DrawText(line, chatMargin, y, chatFontSize, rl.Fade(tint, alpha))
+		rl.DrawRectangle(chatMargin-8, y-4, measureText(line, chatFontSize)+16, chatLineHeight, rl.Fade(rl.Black, 0.5*alpha))
+		drawText(line, chatMargin, y, chatFontSize, rl.Fade(tint, alpha))
 	}
 	if !c.open {
 		return
@@ -100,9 +100,9 @@ func (c *chatBox) draw(window *Window, entries []client.ChatEntry) {
 	bounds := rl.NewRectangle(chatMargin, inputTop, float32(window.width)-2*chatMargin, 34)
 	rl.DrawRectangleRec(bounds, rl.Fade(rl.Black, 0.7))
 	rl.DrawRectangleLinesEx(bounds, 2, rl.RayWhite)
-	rl.DrawText(c.draft, int32(bounds.X)+10, int32(bounds.Y)+8, chatFontSize, rl.RayWhite)
+	drawText(c.draft, int32(bounds.X)+10, int32(bounds.Y)+8, chatFontSize, rl.RayWhite)
 	if int(rl.GetTime()*2)%2 == 0 {
-		rl.DrawRectangle(int32(bounds.X)+10+rl.MeasureText(c.draft, chatFontSize), int32(bounds.Y)+7, 2, chatFontSize+2, rl.RayWhite)
+		rl.DrawRectangle(int32(bounds.X)+10+measureText(c.draft, chatFontSize), int32(bounds.Y)+7, 2, chatFontSize+2, rl.RayWhite)
 	}
-	rl.DrawText("Enter to send | Esc to cancel", chatMargin, int32(inputTop)-chatLineHeight*int32(chatVisibleLines)-34, 16, rl.LightGray)
+	drawText("Enter to send | Esc to cancel", chatMargin, int32(inputTop)-chatLineHeight*int32(chatVisibleLines)-34, 16, rl.LightGray)
 }

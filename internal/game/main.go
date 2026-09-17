@@ -90,6 +90,7 @@ func (g *Game) leaveMultiplayer() {
 func (g *Game) run() {
 	g.window.initWindow()
 	defer g.window.close()
+	defer unloadTextFonts()
 	defer g.leaveMultiplayer()
 	g.cameraFollowPlayer()
 	current := screenMenu
@@ -236,7 +237,7 @@ func (g *Game) run() {
 }
 
 func drawCenteredText(text string, y, size int32, tint color.RGBA) {
-	rl.DrawText(text, (int32(rl.GetScreenWidth())-rl.MeasureText(text, size))/2, y, size, tint)
+	drawText(text, (int32(rl.GetScreenWidth())-measureText(text, size))/2, y, size, tint)
 }
 
 func (g *Game) restart() {

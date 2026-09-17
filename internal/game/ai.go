@@ -120,7 +120,7 @@ func (ai *AI) draw() {
 		return
 	}
 	rl.DrawRectangleV(ai.pos, ai.size, ai.color)
-	rl.DrawText(fmt.Sprintf("AI Lv.%d %s", ai.stats.lvl, ai.actionState), int32(ai.pos.X), int32(ai.pos.Y)-22, 18, rl.RayWhite)
+	drawTextAt(fmt.Sprintf("AI Lv.%d %s", ai.stats.lvl, ai.actionState), rl.NewVector2(ai.pos.X, ai.pos.Y-22), 18, rl.RayWhite)
 }
 
 func (ai *AI) checkDangers(p *Player) {

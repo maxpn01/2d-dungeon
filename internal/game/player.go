@@ -73,7 +73,7 @@ func (p *Player) update(w *World, dt float32) {
 
 func (p *Player) draw() {
 	rl.DrawRectangleV(p.pos, p.size, p.color)
-	rl.DrawText(fmt.Sprintf("%s Lv.%d (you)", p.name, p.stats.lvl), int32(p.pos.X), int32(p.pos.Y)-22, 18, rl.RayWhite)
+	drawTextAt(fmt.Sprintf("%s Lv.%d (you)", p.name, p.stats.lvl), rl.NewVector2(p.pos.X, p.pos.Y-22), 18, rl.RayWhite)
 }
 
 func (p *Player) readInput() {

@@ -98,19 +98,19 @@ func (s *Settings) draw() Action {
 			s.name = s.name[:len(s.name)-1]
 		}
 	}
-	rl.DrawText("player name", int32(bounds.X), int32(bounds.Y)-30, 22, rl.RayWhite)
+	drawText("player name", int32(bounds.X), int32(bounds.Y)-30, 22, rl.RayWhite)
 	tint := rl.Gray
 	if s.focused {
 		tint = rl.RayWhite
 	}
 	rl.DrawRectangleLinesEx(bounds, 2, tint)
 	fontSize := int32(24)
-	for rl.MeasureText(s.name, fontSize) > int32(bounds.Width)-28 && fontSize > 12 {
+	for measureText(s.name, fontSize) > int32(bounds.Width)-28 && fontSize > 12 {
 		fontSize--
 	}
-	rl.DrawText(s.name, int32(bounds.X)+12, int32(bounds.Y)+(int32(bounds.Height)-fontSize)/2, fontSize, rl.RayWhite)
+	drawText(s.name, int32(bounds.X)+12, int32(bounds.Y)+(int32(bounds.Height)-fontSize)/2, fontSize, rl.RayWhite)
 	if s.focused && int(rl.GetTime()*2)%2 == 0 {
-		x := int32(bounds.X) + 12 + rl.MeasureText(s.name, fontSize)
+		x := int32(bounds.X) + 12 + measureText(s.name, fontSize)
 		rl.DrawRectangle(x, int32(bounds.Y)+12, 2, 28, rl.RayWhite)
 	}
 	drawCenteredText("Up to 20 characters | Ctrl+A to clear", int32(top)+280, 18, rl.LightGray)

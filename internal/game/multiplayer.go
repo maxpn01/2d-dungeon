@@ -119,7 +119,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	}
 	for _, ai := range m.renderedAIs {
 		rl.DrawRectangleV(rl.NewVector2(float32(ai.X), float32(ai.Y)), rl.NewVector2(float32(ai.Size), float32(ai.Size)), rl.Green)
-		rl.DrawText(fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior), int32(ai.X), int32(ai.Y)-22, 18, rl.RayWhite)
+		drawTextAt(fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior), rl.NewVector2(float32(ai.X), float32(ai.Y)-22), 18, rl.RayWhite)
 	}
 	for _, player := range m.rendered {
 		tint := rl.SkyBlue
@@ -130,7 +130,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		}
 		rl.DrawRectangleV(rl.NewVector2(float32(player.X), float32(player.Y)), rl.NewVector2(float32(player.Size), float32(player.Size)), tint)
 		if !player.Dead {
-			rl.DrawText(label, int32(player.X), int32(player.Y)-22, 18, rl.RayWhite)
+			drawTextAt(label, rl.NewVector2(float32(player.X), float32(player.Y)-22), 18, rl.RayWhite)
 		}
 	}
 	rl.EndMode2D()

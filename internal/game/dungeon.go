@@ -126,8 +126,8 @@ func drawDungeonLocation(x, y float32, width, height int32) {
 		}
 	}
 	rl.DrawRectangle(0, height-70, width, 70, rl.Fade(rl.Black, .8))
-	rl.DrawText(name, 24, height-57, 20, runeColor)
-	rl.DrawText(hint, 24, height-29, 16, rl.LightGray)
+	drawText(name, 24, height-57, 20, runeColor)
+	drawText(hint, 24, height-29, 16, rl.LightGray)
 }
 
 // Keep the coping inside the blocked pool footprint so its edge matches collision.

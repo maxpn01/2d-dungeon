@@ -50,13 +50,13 @@ func drawPlayerHUD(p playerHUD, windowWidth int32) {
 	rl.DrawRectangle(x+12, y+10, 36, 36, color.RGBA{48, 48, 48, 255})
 	rl.DrawRectangle(x+18, y+16, 24, 24, p.avatar)
 	name := protocol.NormalizePlayerName(p.name)
-	fontSize := int32(18)
-	for fontSize > 10 && rl.MeasureText(name, fontSize) > width-138 {
+	fontSize := int32(20)
+	for fontSize > 10 && measureText(name, fontSize) > width-138 {
 		fontSize--
 	}
-	rl.DrawText(name, x+58, y+28-fontSize/2, fontSize, rl.RayWhite)
+	drawText(name, x+58, y+28-fontSize/2, fontSize, rl.RayWhite)
 	level := fmt.Sprintf("LV %d", p.level)
-	rl.DrawText(level, x+width-12-rl.MeasureText(level, 16), y+20, 16, rl.RayWhite)
+	drawText(level, x+width-12-measureText(level, 20), y+18, 20, rl.RayWhite)
 
 	barWidth := width - 24
 	drawHUDMeter(x+12, y+58, barWidth, "HP", fmt.Sprintf("%.2f / %.0f", p.hp, p.maxHP), p.hp, p.maxHP, color.RGBA{230, 0, 18, 255})
@@ -70,24 +70,24 @@ func drawPlayerHUD(p playerHUD, windowWidth int32) {
 	cx, cy := x+19, y+157
 	rl.DrawCircleLines(cx, cy, 7, muted)
 	rl.DrawLine(cx, cy, cx+4, cy-4, rl.RayWhite)
-	rl.DrawText(fmt.Sprintf("SPEED %.2f", p.speed), x+34, y+150, 14, muted)
+	drawText(fmt.Sprintf("SPEED %.2f", p.speed), x+34, y+148, 18, muted)
 
 	counts := fmt.Sprintf("Fruit: %d    AIs: %d", p.fruit, p.ais)
 	if p.players > 0 {
 		counts += fmt.Sprintf("    Players: %d", p.players)
 	}
 	countsX := x + width
-	countsWidth := rl.MeasureText(counts, 18) + 24
+	countsWidth := measureText(counts, 18) + 24
 	if countsX+countsWidth <= windowWidth-220 {
 		rl.DrawRectangle(countsX, y, countsWidth, 38, background)
-		rl.DrawText(counts, countsX+12, y+10, 18, rl.RayWhite)
+		drawText(counts, countsX+12, y+10, 18, rl.RayWhite)
 	}
 }
 
 func drawHUDMeter(x, y, width int32, label, value string, current, maximum float32, tint color.RGBA) {
-	rl.DrawText(label, x, y, 14, rl.RayWhite)
-	rl.DrawText(value, x+width-rl.MeasureText(value, 14), y, 14, rl.RayWhite)
-	track := rl.NewRectangle(float32(x), float32(y+18), float32(width), 16)
+	drawText(label, x, y, 18, rl.RayWhite)
+	drawText(value, x+width-measureText(value, 18), y, 18, rl.RayWhite)
+	track := rl.NewRectangle(float32(x), float32(y+22), float32(width), 16)
 	rl.DrawRectangleRec(track, color.RGBA{40, 40, 40, 255})
 	fraction := float32(0)
 	if maximum > 0 {
