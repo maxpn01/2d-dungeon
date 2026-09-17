@@ -97,7 +97,7 @@ func (ai *aiState) approach(x, y float64) {
 	dx, dy := x-ai.X, y-ai.Y
 	distance := math.Hypot(dx, dy)
 	if distance > 0 {
-		ai.X, ai.Y = Move(ai.X, ai.Y, Direction{X: dx / distance, Y: dy / distance}, min(StepSeconds, distance/ai.Stats.Speed), ai.Stats.Speed)
+		ai.X, ai.Y = Move(ai.X, ai.Y, Direction{X: dx / distance, Y: dy / distance}, min(StepSeconds, distance/(ai.Stats.Speed*SpeedScale)), ai.Stats.Speed)
 	}
 	ai.wanderTicks = 0
 }

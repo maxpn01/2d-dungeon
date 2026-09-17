@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"image/color"
+	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/terrain"
 	"slices"
 
@@ -95,7 +96,7 @@ func (p *Player) readInput() {
 
 func (p *Player) move(gameMap *Map, dt float32) {
 	move := p.input.Direction
-	speed := p.stats.speed
+	speed := p.stats.speed * simulation.SpeedScale
 
 	if p.input.Sprint {
 		speed *= p.stats.sprintMultiplier

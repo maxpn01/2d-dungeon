@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"math/rand"
+	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/terrain"
 	"slices"
 
@@ -150,13 +151,12 @@ func (ai *AI) flee(p *Player, gameMap *Map, dt float32) {
 
 	move := rl.Vector2Normalize(direction)
 
-	ai.pos.X += move.X * ai.stats.speed * dt
-	ai.pos.Y += move.Y * ai.stats.speed * dt
+	ai.pos.X += move.X * ai.stats.speed * simulation.SpeedScale * dt
+	ai.pos.Y += move.Y * ai.stats.speed * simulation.SpeedScale * dt
 
 	ai.resolveMovement(origin)
 }
 
-/* arigato ai bish for this corner case checking */
 func (ai *AI) chooseFleeDirection(gameMap *Map, away rl.Vector2, dt float32) rl.Vector2 {
 	direction := away
 	if direction.X == 0 && direction.Y == 0 {
@@ -219,9 +219,9 @@ func (ai *AI) seekFood(fs *FruitSpawner, p *Player, gameMap *Map, dt float32) {
 	targetPos, targetSize, targetFound := ai.chooseFoodTarget(fs, p)
 
 	if targetFound {
-		ai.move(targetPos, targetSize, gameMap, dt)
+		ai.move(targetPos, targetSize, dt)
 	} else {
-		ai.wander(gameMap, dt)
+		ai.wander(dt)
 	}
 
 	ai.handleFoodInteractions(fs, p)
@@ -285,18 +285,18 @@ func (ai *AI) canEatPlayer(p *Player) bool {
 	return ai.stats.hp > p.stats.hp
 }
 
-func (ai *AI) move(targetPos, targetSize rl.Vector2, gameMap *Map, dt float32) {
+func (ai *AI) move(targetPos, targetSize rl.Vector2, dt float32) {
 	origin := ai.pos
 	target := rl.NewVector2(
 		targetPos.X+targetSize.X/2-ai.size.X/2,
 		targetPos.Y+targetSize.Y/2-ai.size.Y/2,
 	)
-	ai.pos = rl.Vector2MoveTowards(ai.pos, target, ai.stats.speed*dt)
+	ai.pos = rl.Vector2MoveTowards(ai.pos, target, ai.stats.speed*simulation.SpeedScale*dt)
 
 	ai.resolveMovement(origin)
 }
 
-func (ai *AI) wander(gameMap *Map, dt float32) {
+func (ai *AI) wander(dt float32) {
 	origin := ai.pos
 	if ai.wanderDirection.X == 0 && ai.wanderDirection.Y == 0 {
 		ai.wanderDirection = rl.NewVector2(
@@ -309,8 +309,8 @@ func (ai *AI) wander(gameMap *Map, dt float32) {
 
 	move := rl.Vector2Normalize(direction)
 
-	ai.pos.X += move.X * ai.stats.speed * dt
-	ai.pos.Y += move.Y * ai.stats.speed * dt
+	ai.pos.X += move.X * ai.stats.speed * simulation.SpeedScale * dt
+	ai.pos.Y += move.Y * ai.stats.speed * simulation.SpeedScale * dt
 
 	attemptedPos := ai.pos
 

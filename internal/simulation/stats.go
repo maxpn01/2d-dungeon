@@ -6,7 +6,7 @@ const (
 	MaxLevel       = 100
 	MaxHP          = 100.0
 	HPPerLevel     = 0.25
-	SpeedPerLevel  = 0.25
+	SpeedPerLevel  = 0.25 / SpeedScale
 	FruitNutrition = 0.25
 )
 

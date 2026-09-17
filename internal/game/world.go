@@ -13,11 +13,12 @@ type GameObject interface {
 }
 
 type World struct {
-	gameMap      *Map
-	player       *Player
-	fruitSpawner *FruitSpawner
-	ais          []*AI
-	entities     []GameObject
+	gameMap        *Map
+	player         *Player
+	fruitSpawner   *FruitSpawner
+	ais            []*AI
+	entities       []GameObject
+	aiSpawnSeconds float32
 }
 
 func NewDefaultAI(mapSize rl.Vector2) *AI {
@@ -32,13 +33,13 @@ func NewDefaultAI(mapSize rl.Vector2) *AI {
 		AIStats{
 			lvl:    1,
 			hp:     1,
-			speed:  500,
+			speed:  simulation.AISpeed,
 			maxLvl: 100,
 			maxHP:  100,
 		},
 		AIGrowthStats{
 			HPPerLevel:    0.25,
-			SpeedPerLevel: 0.25,
+			SpeedPerLevel: simulation.SpeedPerLevel,
 			ExpAsleep:     0.001,
 			HPAsleep:      0.001,
 		},
@@ -49,7 +50,7 @@ func NewDefaultAI(mapSize rl.Vector2) *AI {
 }
 
 func NewWorld() *World {
-	w := &World{}
+	w := &World{aiSpawnSeconds: simulation.InitialAISpawnDelay}
 	w.gameMap = NewMap(
 		rl.NewVector2(200, 200),
 		rl.NewVector2(10, 10),
@@ -62,20 +63,17 @@ func NewWorld() *World {
 		PlayerStats{
 			lvl:              1,
 			hp:               1,
-			speed:            600,
+			speed:            simulation.PlayerSpeed,
 			sprintMultiplier: simulation.SprintMultiplier,
 			maxLvl:           100,
 			maxHP:            100,
 		},
 		PlayerGrowthStats{
 			HPPerLevel:    0.25,
-			SpeedPerLevel: 0.25,
+			SpeedPerLevel: simulation.SpeedPerLevel,
 		},
 		1,
 	)
-	for range simulation.InitialAIs {
-		w.ais = append(w.ais, NewDefaultAI(w.gameMap.size))
-	}
 	w.fruitSpawner = NewFruitSpawner(
 		rl.NewVector2(15, 15),
 		rl.Yellow,
@@ -84,9 +82,6 @@ func NewWorld() *World {
 	)
 
 	w.entities = []GameObject{w.player, w.fruitSpawner}
-	for _, ai := range w.ais {
-		w.entities = append(w.entities, ai)
-	}
 	w.gameMap.exploration.reveal(entityCenter(w.player.pos, w.player.size))
 	return w
 }
@@ -96,6 +91,17 @@ const maxSimulationStep float32 = 1.0 / 120
 func (w *World) update(dt float32) {
 	for dt > 0 && !w.player.isDeadFlag {
 		step := min(dt, maxSimulationStep)
+
+		if w.aiSpawnSeconds > 0 {
+			w.aiSpawnSeconds = max(0, w.aiSpawnSeconds-step)
+			if w.aiSpawnSeconds == 0 {
+				for range simulation.InitialAIs {
+					ai := NewDefaultAI(w.gameMap.size)
+					w.ais = append(w.ais, ai)
+					w.entities = append(w.entities, ai)
+				}
+			}
+		}
 
 		for _, entity := range w.entities {
 			if w.player.isDeadFlag {

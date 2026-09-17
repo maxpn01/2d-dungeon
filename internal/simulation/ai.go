@@ -7,10 +7,11 @@ import (
 )
 
 const (
-	InitialAIs        = 5
-	AISize            = PlayerSize
-	AISpeed           = 500.0
-	AIDetectionRadius = 300.0
+	InitialAIs          = 5
+	InitialAISpawnDelay = 10
+	AISize              = PlayerSize
+	AISpeed             = PlayerSpeed
+	AIDetectionRadius   = 300.0
 )
 
 type AI struct {

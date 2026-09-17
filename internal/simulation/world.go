@@ -11,7 +11,8 @@ const (
 	TickRate         = 30
 	StepSeconds      = 1.0 / TickRate
 	PlayerSize       = 30.0
-	PlayerSpeed      = 600.0
+	SpeedScale       = 100.0
+	PlayerSpeed      = 6.0
 	SprintMultiplier = 1.5
 	MapMin           = 10.0
 	MapMax           = 1990.0
@@ -54,18 +55,18 @@ type playerState struct {
 }
 
 type World struct {
-	ais       []aiState
-	nextAI    uint64
-	fruits    []Fruit
-	nextFruit uint64
-	players   map[string]*playerState
-	nextSpawn uint64
-	tick      uint64
+	ais          []aiState
+	nextAI       uint64
+	fruits       []Fruit
+	nextFruit    uint64
+	players      map[string]*playerState
+	nextSpawn    uint64
+	tick         uint64
+	aiSpawnTicks int
 }
 
 func NewWorld() *World {
-	w := &World{players: make(map[string]*playerState)}
-	w.spawnAIs()
+	w := &World{players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
 	for range InitialFruits {
 		w.spawnFruit()
 	}
@@ -117,19 +118,33 @@ func (w *World) Command(id string, direction Direction, sequence uint64, now tim
 }
 
 func Move(x, y float64, d Direction, seconds, speed float64) (float64, float64) {
-	length := math.Hypot(d.X, d.Y)
-	if length == 0 || !d.Valid() || seconds <= 0 {
+	if seconds <= 0 {
 		return x, y
 	}
 	if d.Sprint {
 		speed *= SprintMultiplier
 	}
-	distance := speed * seconds
+	return MoveBy(x, y, d, speed*SpeedScale*seconds)
+}
+
+// MoveBy slides an entity by a distance already expressed in world units,
+// resolving terrain collisions along the way.
+func MoveBy(x, y float64, d Direction, distance float64) (float64, float64) {
+	length := math.Hypot(d.X, d.Y)
+	if length == 0 || !d.Valid() || distance <= 0 {
+		return x, y
+	}
 	return terrain.Move(x, y, d.X/length*distance, d.Y/length*distance, PlayerSize, PlayerSize)
 }
 
 func (w *World) Step(now time.Time) {
 	w.tick++
+	if w.aiSpawnTicks > 0 && len(w.players) > 0 {
+		w.aiSpawnTicks--
+		if w.aiSpawnTicks == 0 {
+			w.spawnAIs()
+		}
+	}
 	w.respawnAIs()
 	if w.tick%fruitSpawnTicks == 0 {
 		w.spawnFruit()

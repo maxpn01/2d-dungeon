@@ -81,7 +81,7 @@ func (m *Motion) Advance(target protocol.Player, dt float64, sprint bool) {
 		m.local = target
 		return
 	}
-	speed := target.Stats.Speed
+	speed := target.Stats.Speed * simulation.SpeedScale
 	if sprint {
 		speed *= simulation.SprintMultiplier
 	}
@@ -164,7 +164,7 @@ func interpolatePosition(ax, ay, bx, by, alpha float64) (float64, float64) {
 	if distance == 0 {
 		return ax, ay
 	}
-	return simulation.Move(ax, ay, simulation.Direction{X: dx / distance, Y: dy / distance}, 1, distance)
+	return simulation.MoveBy(ax, ay, simulation.Direction{X: dx / distance, Y: dy / distance}, distance)
 }
 
 func indexPlayers(players []protocol.Player) map[string]protocol.Player {
@@ -226,5 +226,5 @@ func projectPosition(ax, ay, bx, by, alpha float64) (float64, float64) {
 	if distance == 0 {
 		return bx, by
 	}
-	return simulation.Move(bx, by, simulation.Direction{X: dx / distance, Y: dy / distance}, 1, distance)
+	return simulation.MoveBy(bx, by, simulation.Direction{X: dx / distance, Y: dy / distance}, distance)
 }
