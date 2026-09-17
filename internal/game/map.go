@@ -18,6 +18,7 @@ type EdgePos struct {
 }
 
 type Map struct {
+	exploration mapExploration
 	sizeInCells rl.Vector2
 	cellSize    rl.Vector2
 	size        rl.Vector2

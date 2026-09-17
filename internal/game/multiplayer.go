@@ -59,10 +59,12 @@ func (m *multiplayer) poll() {
 	}
 }
 
-func (m *multiplayer) readInput(dt float32) {
-	m.chat.update(m)
+func (m *multiplayer) readInput(dt float32, mapOpen bool) {
+	if !mapOpen {
+		m.chat.update(m)
+	}
 	direction := protocol.Direction{}
-	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.open {
+	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.open && !mapOpen {
 		direction.Sprint = rl.IsKeyDown(rl.KeyLeftShift)
 		if rl.IsKeyDown(rl.KeyW) {
 			direction.Y--
@@ -84,6 +86,14 @@ func (m *multiplayer) readInput(dt float32) {
 	}
 	m.rendered = m.motion.Players(now)
 	m.renderedAIs = m.motion.AIs(now)
+	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" {
+		for _, player := range m.rendered {
+			if player.ID == m.view.PlayerID {
+				m.gameMap.exploration.reveal(rl.NewVector2(float32(player.X+player.Size/2), float32(player.Y+player.Size/2)))
+				break
+			}
+		}
+	}
 	if m.eating != nil {
 		m.rendered, m.renderedAIs = m.eating.apply(now, m.rendered, m.renderedAIs)
 	}
@@ -145,7 +155,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		statsLine = fmt.Sprintf("Level %d | %s | HP %.2f | Speed %.2f", stats.Level, progress, stats.HP, stats.Speed)
 		break
 	}
-	drawStatusPanel(title, statsLine, "WASD to move | Shift to sprint | T to chat | Eat fruit, weaker players and AIs to grow | Esc to leave", window.width)
+	drawStatusPanel(title, statsLine, "WASD to move | Shift to sprint | M for map | T to chat | Eat fruit, weaker players and AIs to grow | Esc to leave", window.width)
 	m.drawMinimap(window.width)
 	m.chat.draw(window, m.session.Chat())
 }

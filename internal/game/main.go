@@ -93,40 +93,61 @@ func (g *Game) run() {
 	defer g.leaveMultiplayer()
 	g.cameraFollowPlayer()
 	current := screenMenu
+	mapOpen := false
 	exitRequested := false
 	for !rl.WindowShouldClose() && !exitRequested {
 		dt := rl.GetFrameTime()
 		if rl.IsKeyPressed(rl.KeyEscape) {
-			switch current {
-			case screenSettings:
-				current = screenMenu
-			case screenMultiplayer:
-				if g.multiplayer.chat.open {
-					g.multiplayer.chat.close()
-				} else {
-					g.leaveMultiplayer()
+			if mapOpen {
+				mapOpen = false
+			} else {
+				switch current {
+				case screenSettings:
 					current = screenMenu
+				case screenMultiplayer:
+					if g.multiplayer.chat.open {
+						g.multiplayer.chat.close()
+					} else {
+						g.leaveMultiplayer()
+						current = screenMenu
+					}
+				case screenSinglePlayer:
+					if !g.world.player.isDeadFlag {
+						current = screenMenu
+					}
+				case screenMenu:
+					if !g.world.player.isDeadFlag {
+						current = screenSinglePlayer
+					}
 				}
+			}
+		}
+		if rl.IsKeyPressed(rl.KeyM) && !rl.IsKeyPressed(rl.KeyEscape) && rl.IsWindowFocused() {
+			switch current {
 			case screenSinglePlayer:
 				if !g.world.player.isDeadFlag {
-					current = screenMenu
+					mapOpen = !mapOpen
 				}
-			case screenMenu:
-				if !g.world.player.isDeadFlag {
-					current = screenSinglePlayer
+			case screenMultiplayer:
+				m := g.multiplayer
+				if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && !m.chat.open {
+					mapOpen = !mapOpen
 				}
 			}
 		}
 		switch current {
 		case screenSinglePlayer:
-			if !g.world.player.isDeadFlag {
+			if !g.world.player.isDeadFlag && !mapOpen {
 				g.world.player.readInput()
 				g.world.update(dt)
 				g.cameraFollowPlayer()
 			}
 		case screenMultiplayer:
 			g.multiplayer.poll()
-			g.multiplayer.readInput(dt)
+			if g.multiplayer.view.Local.Dead || g.multiplayer.errorText != "" {
+				mapOpen = false
+			}
+			g.multiplayer.readInput(dt, mapOpen)
 			if g.multiplayer.view.Ready {
 				g.multiplayer.follow(&g.camera)
 			}
@@ -143,6 +164,8 @@ func (g *Game) run() {
 		case screenSinglePlayer:
 			if g.world.player.isDeadFlag {
 				action = g.gameOver.draw()
+			} else if mapOpen {
+				g.drawFullMap(false)
 			} else {
 				rl.BeginMode2D(g.camera)
 				g.world.draw(RenderContext{Camera: g.camera, WindowWidth: g.window.width, WindowHeight: g.window.height})
@@ -167,11 +190,17 @@ func (g *Game) run() {
 			case !m.view.Ready:
 				drawCenteredText("Connecting...", g.window.height/2-30, 30, rl.RayWhite)
 				drawCenteredText("Esc to cancel", g.window.height/2+20, 20, rl.LightGray)
+			case mapOpen:
+				g.drawFullMap(true)
 			default:
 				m.draw(g.camera, g.window)
 			}
 		}
 		rl.EndDrawing()
+
+		if action != ActionNone {
+			mapOpen = false
+		}
 
 		// Screen transitions happen after drawing, on the same thread as raylib.
 		switch action {

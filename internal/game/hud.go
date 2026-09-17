@@ -27,7 +27,7 @@ func (h *HUD) draw() {
 	drawStatusPanel(
 		fmt.Sprintf("Single player | %s | Fruit: %d | AIs: %d", protocol.NormalizePlayerName(w.player.name), len(w.fruitSpawner.fruits), len(w.ais)),
 		fmt.Sprintf("Level %d | %s | HP %.2f | Speed %.2f", stats.lvl, progress, stats.hp, stats.speed),
-		"WASD to move | Shift to sprint | Eat fruit and weaker AIs to grow | Esc for menu",
+		"WASD to move | Shift to sprint | M for map | Eat fruit and weaker AIs to grow | Esc for menu",
 		h.window.width,
 	)
 }

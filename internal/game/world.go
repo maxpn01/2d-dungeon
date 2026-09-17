@@ -87,6 +87,7 @@ func NewWorld() *World {
 	for _, ai := range w.ais {
 		w.entities = append(w.entities, ai)
 	}
+	w.gameMap.exploration.reveal(entityCenter(w.player.pos, w.player.size))
 	return w
 }
 
@@ -110,6 +111,7 @@ func (w *World) update(dt float32) {
 			}
 		}
 
+		w.gameMap.exploration.reveal(entityCenter(w.player.pos, w.player.size))
 		dt -= step
 	}
 }
