@@ -33,7 +33,7 @@ func (h *HUD) draw() {
 	drawPlayerHUD(playerHUD{
 		name: w.player.name, avatar: w.player.color,
 		level: s.lvl, maxLevel: s.maxLvl,
-		hp: s.hp, maxHP: s.maxHP, xp: s.exp, nextXP: calcExpForNextLvl(s.lvl),
+		hp: s.hp, maxHP: s.maxHP, xp: float32(s.exp), nextXP: calcExpForNextLvl(s.lvl),
 		speed: s.speed, fruit: len(w.fruitSpawner.fruits), ais: len(w.ais),
 	}, h.window.width)
 }
@@ -60,7 +60,7 @@ func drawPlayerHUD(p playerHUD, windowWidth int32) {
 
 	barWidth := width - 24
 	drawHUDMeter(x+12, y+58, barWidth, "HP", fmt.Sprintf("%.2f / %.0f", p.hp, p.maxHP), p.hp, p.maxHP, color.RGBA{230, 0, 18, 255})
-	xpLabel := fmt.Sprintf("%.2f / %.0f", p.xp, p.nextXP)
+	xpLabel := fmt.Sprintf("%.2f / %.2f", p.xp, p.nextXP)
 	xp, nextXP := p.xp, p.nextXP
 	if p.level >= p.maxLevel {
 		xpLabel, xp, nextXP = "MAX LEVEL", 1, 1

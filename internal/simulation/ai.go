@@ -9,6 +9,9 @@ import (
 const (
 	InitialAIs          = 5
 	InitialAISpawnDelay = 10
+	AIRespawnSeconds    = 3
+	AIAwakeSeconds      = 120
+	AIAsleepSeconds     = 60
 	AISize              = PlayerSize
 	AISpeed             = PlayerSpeed
 	AIDetectionRadius   = 300.0
@@ -26,6 +29,8 @@ type aiState struct {
 	direction       Direction
 	wanderTicks     int
 	respawnTick     uint64
+	awakeTicks      int
+	asleepTicks     int
 	escapeTicks     int
 	escapeDirection Direction
 }
@@ -35,7 +40,7 @@ func (w *World) spawnAIs() {
 		w.nextAI++
 		stats := NewStats()
 		stats.Speed = AISpeed
-		w.ais = append(w.ais, aiState{AI: AI{
+		w.ais = append(w.ais, aiState{awakeTicks: AIAwakeSeconds * TickRate, AI: AI{
 			ID: fmt.Sprintf("ai-%d", w.nextAI), X: 600 + float64(i%3)*450, Y: 400 + float64(i/3)*650, Stats: stats, Behavior: "wandering",
 		}})
 	}
@@ -47,7 +52,11 @@ func (w *World) updateAIs() {
 		if ai.respawnTick != 0 {
 			continue
 		}
-		if threat, _ := w.nearestPlayer(ai, true); threat != nil {
+		threat, _ := w.nearestPlayer(ai, true)
+		if ai.updateSleep(threat != nil) {
+			continue
+		}
+		if threat != nil {
 			ai.Behavior = "fleeing"
 			ai.flee(threat)
 			continue
@@ -117,6 +126,29 @@ func (w *World) respawnAIs() {
 		w.nextAI++
 		stats := NewStats()
 		stats.Speed = AISpeed
-		*ai = aiState{AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "wandering"}}
+		*ai = aiState{awakeTicks: AIAwakeSeconds * TickRate, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "wandering"}}
 	}
+}
+
+func (ai *aiState) updateSleep(threat bool) bool {
+	if threat {
+		ai.awakeTicks = max(0, ai.awakeTicks-1)
+		return false
+	}
+	if ai.Behavior == "sleeping" {
+		ai.asleepTicks--
+		if ai.asleepTicks > 0 {
+			return true
+		}
+		ai.awakeTicks = AIAwakeSeconds * TickRate
+		return false
+	}
+	ai.awakeTicks = max(0, ai.awakeTicks-1)
+	if ai.awakeTicks == 0 {
+		ai.Behavior = "sleeping"
+		ai.asleepTicks = AIAsleepSeconds * TickRate
+		ai.wanderTicks, ai.escapeTicks = 0, 0
+		return true
+	}
+	return false
 }

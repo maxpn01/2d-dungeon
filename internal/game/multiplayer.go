@@ -22,6 +22,7 @@ type multiplayer struct {
 	errorText   string
 	chat        chatBox
 	eating      *eatingScene
+	otherEating []*eatingScene
 }
 
 func newMultiplayer(url, name string) *multiplayer {
@@ -50,9 +51,7 @@ func (m *multiplayer) poll() {
 			}
 			return
 		}
-		if update.Local.Dead && m.eating == nil {
-			m.eating = newEatingScene(time.Now(), update, m.rendered, m.renderedAIs)
-		}
+		m.startEatingScenes(time.Now(), update)
 		m.view = update
 		m.motion.Apply(update)
 	default:
@@ -94,6 +93,14 @@ func (m *multiplayer) readInput(dt float32, mapOpen bool) {
 			}
 		}
 	}
+	active := m.otherEating[:0]
+	for _, scene := range m.otherEating {
+		if !scene.finished(now) {
+			m.rendered, m.renderedAIs = scene.apply(now, m.rendered, m.renderedAIs)
+			active = append(active, scene)
+		}
+	}
+	m.otherEating = active
 	if m.eating != nil {
 		m.rendered, m.renderedAIs = m.eating.apply(now, m.rendered, m.renderedAIs)
 	}
@@ -149,10 +156,29 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	drawPlayerHUD(playerHUD{
 		name: m.view.Local.Name, avatar: rl.Red,
 		level: stats.Level, maxLevel: simulation.MaxLevel,
-		hp: hp, maxHP: simulation.MaxHP,
+		hp: hp, maxHP: float32(simulation.MaxHPForLevel(stats.Level)),
 		xp: float32(stats.XP), nextXP: float32(simulation.XPForNextLevel(stats.Level)),
 		speed: float32(stats.Speed), fruit: len(m.view.Fruits), ais: len(m.view.AIs), players: alive,
 	}, window.width)
 	m.drawMinimap(window.width)
 	m.chat.draw(window, m.session.Chat())
+}
+
+func (m *multiplayer) startEatingScenes(now time.Time, update client.Update) {
+	if update.Local.Dead && m.eating == nil {
+		m.eating = newEatingScene(now, update, m.rendered, m.renderedAIs)
+	}
+	for _, prey := range update.Players {
+		if !prey.Dead || prey.ID == update.PlayerID {
+			continue
+		}
+		for _, previous := range m.view.Players {
+			if previous.ID == prey.ID && !previous.Dead {
+				death := update
+				death.Local, death.PlayerID = prey, prey.ID
+				m.otherEating = append(m.otherEating, newEatingScene(now, death, m.rendered, m.renderedAIs))
+				break
+			}
+		}
+	}
 }

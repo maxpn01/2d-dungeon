@@ -378,8 +378,8 @@ func validateFruits(fruits []protocol.Fruit) error {
 
 func validStats(stats protocol.PlayerStats, baseSpeed float64) bool {
 	if stats.Level < 1 || stats.Level > simulation.MaxLevel || math.IsNaN(stats.XP) || math.IsInf(stats.XP, 0) ||
-		stats.XP < 0 || stats.HP <= 0 || stats.HP > simulation.MaxHP || math.IsNaN(stats.HP) ||
-		math.IsNaN(stats.Speed) || stats.Speed < baseSpeed || stats.Speed > baseSpeed+simulation.SpeedPerLevel*(simulation.MaxLevel-1) {
+		stats.XP < 0 || stats.HP <= 0 || stats.HP > simulation.MaxHPForLevel(stats.Level) || math.IsNaN(stats.HP) ||
+		stats.Speed != baseSpeed {
 		return false
 	}
 	if stats.Level == simulation.MaxLevel {

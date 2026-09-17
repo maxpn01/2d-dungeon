@@ -42,7 +42,10 @@ func (w *World) resolvePredation(eaters []eater) {
 		if !hit.firstWins {
 			predator, prey = prey, predator
 		}
-		predator.stats.GainXP(float64(prey.stats.Level))
+		if predator.ai != nil && predator.ai.Behavior == "sleeping" {
+			continue
+		}
+		predator.stats.Eat(prey.stats.HP*ActorHPFraction, prey.stats.HP)
 		prey.die(predator.id, w.tick)
 	}
 }

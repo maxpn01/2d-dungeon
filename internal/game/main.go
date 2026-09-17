@@ -163,7 +163,7 @@ func (g *Game) run() {
 		case screenMenu:
 			action = g.menu.draw()
 		case screenSinglePlayer:
-			if g.world.player.isDeadFlag {
+			if g.world.player.isDeadFlag && (g.world.eating == nil || g.world.eating.finished(time.Now())) {
 				action = g.gameOver.draw()
 			} else if mapOpen {
 				g.drawFullMap(false)

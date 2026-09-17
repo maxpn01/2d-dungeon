@@ -44,7 +44,7 @@ func (e eater) dead() bool {
 
 func (e eater) die(killer string, tick uint64) {
 	if e.player == nil {
-		e.ai.respawnTick = tick + 3*TickRate
+		e.ai.respawnTick = tick + AIRespawnSeconds*TickRate
 		return
 	}
 	e.player.Dead = true
@@ -60,7 +60,7 @@ func (w *World) consumeFruits(eaters []eater) {
 		winner := -1
 		earliest := math.Inf(1)
 		for i, actor := range eaters {
-			if actor.dead() {
+			if actor.dead() || actor.ai != nil && actor.ai.Behavior == "sleeping" {
 				continue
 			}
 			location := position{fruit.X, fruit.Y}
@@ -72,7 +72,7 @@ func (w *World) consumeFruits(eaters []eater) {
 		if winner < 0 {
 			remaining = append(remaining, fruit)
 		} else {
-			eaters[winner].stats.GainXP(FruitNutrition)
+			eaters[winner].stats.Eat(FruitHP, FruitXP)
 		}
 	}
 	w.fruits = remaining

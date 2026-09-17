@@ -2,6 +2,7 @@ package game
 
 import (
 	"math/rand"
+	"raylib-2d-sandbox/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -31,7 +32,7 @@ func clamp(min float32, targetPos *float32, targetSize *float32, max float32) {
 }
 
 func calcExpForNextLvl(lvl int) float32 {
-	return float32(lvl * lvl)
+	return float32(simulation.XPForNextLevel(lvl))
 }
 
 func randomBetween[T int | float32](min, max T) T {

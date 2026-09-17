@@ -1,6 +1,7 @@
 package game
 
 import (
+	"math"
 	"time"
 
 	"raylib-2d-sandbox/internal/client"
@@ -49,6 +50,17 @@ func newEatingScene(now time.Time, update client.Update, players []protocol.Play
 	for _, ai := range ais {
 		if ai.ID == scene.killer.ID {
 			scene.killerStart.X, scene.killerStart.Y = ai.X, ai.Y
+		}
+	}
+	if scene.killer.ID != "" {
+		dx := scene.killer.X + scene.killer.Size/2 - (scene.prey.X + scene.prey.Size/2)
+		dy := scene.killer.Y + scene.killer.Size/2 - (scene.prey.Y + scene.prey.Size/2)
+		distance := math.Max(math.Abs(dx), math.Abs(dy))
+		contact := (scene.killer.Size + scene.prey.Size) / 2
+		if distance >= contact && distance > 0 {
+			scale := contact * .95 / distance
+			scene.killer.X = scene.prey.X + scene.prey.Size/2 + dx*scale - scene.killer.Size/2
+			scene.killer.Y = scene.prey.Y + scene.prey.Size/2 + dy*scale - scene.killer.Size/2
 		}
 	}
 	return scene

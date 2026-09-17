@@ -20,24 +20,7 @@ const (
 	ActionSleeping
 )
 
-type AIStats struct {
-	lvl int
-	exp float32
-
-	hp    float32
-	speed float32
-
-	maxLvl int
-	maxHP  float32
-}
-
-type AIGrowthStats struct {
-	HPPerLevel    float32
-	SpeedPerLevel float32
-
-	ExpAsleep float32
-	HPAsleep  float32
-}
+type AIStats = PlayerStats
 
 type AI struct {
 	pos   rl.Vector2
@@ -46,8 +29,6 @@ type AI struct {
 
 	stats AIStats
 
-	growth AIGrowthStats
-
 	actionState AIActionState
 
 	awakeSeconds       float32
@@ -55,15 +36,14 @@ type AI struct {
 	awakeTimerSeconds  float32
 	asleepTimerSeconds float32
 
-	nutritionalFactor float32
-
 	detectionRadius float32
 
 	wanderDirection rl.Vector2
 	escapeDirection rl.Vector2
 	escapeTimer     float32
 
-	isDeadFlag bool
+	isDeadFlag     bool
+	respawnSeconds float32
 }
 
 func NewAI(
@@ -71,8 +51,6 @@ func NewAI(
 	size rl.Vector2,
 	color color.RGBA,
 	stats AIStats,
-	growth AIGrowthStats,
-	nutritionalFactor float32,
 	detectionRadius float32,
 	awake, asleep float32,
 ) *AI {
@@ -81,8 +59,6 @@ func NewAI(
 		size:               size,
 		color:              color,
 		stats:              stats,
-		growth:             growth,
-		nutritionalFactor:  nutritionalFactor,
 		detectionRadius:    detectionRadius,
 		wanderDirection:    rl.Vector2{},
 		isDeadFlag:         false,
@@ -103,17 +79,13 @@ func (ai *AI) update(w *World, dt float32) {
 
 	switch ai.actionState {
 	case ActionSearchingFood:
-		ai.seekFood(w.fruitSpawner, w.player, w.gameMap, dt)
+		ai.seekFood(w.fruitSpawner, w.player, dt)
 	case ActionEating:
 		ai.actionState = ActionSearchingFood
 	case ActionFleeing:
 		ai.flee(w.player, w.gameMap, dt)
 		ai.handleFoodInteractions(w.fruitSpawner, w.player)
-	case ActionSleeping:
-		ai.sleep(dt)
 	}
-
-	ai.handleLevelUp()
 }
 
 func (ai *AI) draw() {
@@ -215,7 +187,7 @@ func (ai *AI) chooseFleeDirection(gameMap *Map, away rl.Vector2, dt float32) rl.
 	return direction
 }
 
-func (ai *AI) seekFood(fs *FruitSpawner, p *Player, gameMap *Map, dt float32) {
+func (ai *AI) seekFood(fs *FruitSpawner, p *Player, dt float32) {
 	targetPos, targetSize, targetFound := ai.chooseFoodTarget(fs, p)
 
 	if targetFound {
@@ -327,14 +299,14 @@ func (ai *AI) handleFoodInteractions(fs *FruitSpawner, p *Player) {
 	hasAICollidedWithFruit, fruitIndex := ai.checkFruitCollision(fs)
 
 	if hasAICollidedWithFruit && fruitIndex >= 0 && fruitIndex < len(fs.fruits) {
-		ai.eatFood(fs.fruits[fruitIndex].nutritionalValue)
+		ai.eatFood(simulation.FruitHP, simulation.FruitXP)
 		fs.despawnFruit(fruitIndex)
 	}
 
 	hasAICollidedWithPlayer := checkCollisions(ai.pos, ai.size, p.pos, p.size)
 
 	if hasAICollidedWithPlayer && ai.canEatPlayer(p) {
-		ai.eatFood(p.nutritionalValue())
+		ai.eatFood(p.stats.hp*simulation.ActorHPFraction, p.stats.hp)
 		p.markPlayerDeath()
 	}
 }
@@ -351,12 +323,8 @@ func (ai *AI) checkFruitCollision(fs *FruitSpawner) (bool, int) {
 	return false, -1
 }
 
-func (ai *AI) nutritionalValue() float32 {
-	return ai.nutritionalFactor * float32(ai.stats.lvl)
-}
-
-func (ai *AI) eatFood(nutrition float32) {
-	ai.stats.exp += nutrition
+func (ai *AI) eatFood(hp, xp float32) {
+	ai.stats.eatFood(hp, xp)
 	if ai.actionState != ActionFleeing {
 		ai.actionState = ActionEating
 	}
@@ -364,6 +332,7 @@ func (ai *AI) eatFood(nutrition float32) {
 
 func (ai *AI) markAIDeath() {
 	ai.isDeadFlag = true
+	ai.respawnSeconds = simulation.AIRespawnSeconds
 }
 
 func (ai *AI) updateAwakenessStatus(dt float32) {
@@ -382,24 +351,6 @@ func (ai *AI) updateAwakenessStatus(dt float32) {
 			ai.actionState = ActionSearchingFood
 			ai.awakeTimerSeconds = ai.awakeSeconds
 		}
-	}
-}
-
-func (ai *AI) sleep(dt float32) {
-	ai.stats.exp += ai.growth.ExpAsleep * dt
-
-	if ai.stats.hp < ai.stats.maxHP {
-		ai.stats.hp = min(ai.stats.hp+ai.growth.HPAsleep*dt, ai.stats.maxHP)
-	}
-}
-
-func (ai *AI) handleLevelUp() {
-	for ai.stats.lvl < ai.stats.maxLvl && ai.stats.exp >= calcExpForNextLvl(ai.stats.lvl) {
-		ai.stats.exp -= calcExpForNextLvl(ai.stats.lvl)
-		ai.stats.lvl++
-
-		ai.stats.hp = min(ai.stats.hp+ai.growth.HPPerLevel, ai.stats.maxHP)
-		ai.stats.speed += ai.growth.SpeedPerLevel
 	}
 }
 

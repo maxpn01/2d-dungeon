@@ -2,7 +2,10 @@ package game
 
 import (
 	"math/rand"
+	"raylib-2d-sandbox/internal/client"
+	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
+	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -19,6 +22,8 @@ type World struct {
 	ais            []*AI
 	entities       []GameObject
 	aiSpawnSeconds float32
+	eating         *eatingScene
+	eatingAI       *AI
 }
 
 func NewDefaultAI(mapSize rl.Vector2) *AI {
@@ -32,20 +37,13 @@ func NewDefaultAI(mapSize rl.Vector2) *AI {
 		rl.Green,
 		AIStats{
 			lvl:    1,
-			hp:     1,
+			hp:     simulation.StartingHP,
 			speed:  simulation.AISpeed,
-			maxLvl: 100,
-			maxHP:  100,
+			maxLvl: simulation.MaxLevel,
+			maxHP:  simulation.StartingMaxHP,
 		},
-		AIGrowthStats{
-			HPPerLevel:    0.25,
-			SpeedPerLevel: simulation.SpeedPerLevel,
-			ExpAsleep:     0.001,
-			HPAsleep:      0.001,
-		},
-		1,
 		300,
-		120, 60,
+		simulation.AIAwakeSeconds, simulation.AIAsleepSeconds,
 	)
 }
 
@@ -62,22 +60,16 @@ func NewWorld() *World {
 		rl.Red,
 		PlayerStats{
 			lvl:              1,
-			hp:               1,
+			hp:               simulation.StartingHP,
 			speed:            simulation.PlayerSpeed,
 			sprintMultiplier: simulation.SprintMultiplier,
-			maxLvl:           100,
-			maxHP:            100,
+			maxLvl:           simulation.MaxLevel,
+			maxHP:            simulation.StartingMaxHP,
 		},
-		PlayerGrowthStats{
-			HPPerLevel:    0.25,
-			SpeedPerLevel: simulation.SpeedPerLevel,
-		},
-		1,
 	)
 	w.fruitSpawner = NewFruitSpawner(
 		rl.NewVector2(15, 15),
 		rl.Yellow,
-		0.25,
 		1, 20,
 	)
 
@@ -108,12 +100,25 @@ func (w *World) update(dt float32) {
 				return
 			}
 
+			var aiStart rl.Vector2
+			if ai, ok := entity.(*AI); ok {
+				aiStart = ai.pos
+			}
 			entity.update(w, step)
+			if w.player.isDeadFlag {
+				if ai, ok := entity.(*AI); ok {
+					w.startEating(ai, aiStart)
+				}
+				return
+			}
 		}
 
 		for _, ai := range w.ais {
 			if ai.isDeadFlag {
-				*ai = *NewDefaultAI(w.gameMap.size)
+				ai.respawnSeconds = max(0, ai.respawnSeconds-step)
+				if ai.respawnSeconds == 0 {
+					*ai = *NewDefaultAI(w.gameMap.size)
+				}
 			}
 		}
 
@@ -126,6 +131,28 @@ func (w *World) draw(ctx RenderContext) {
 	w.gameMap.draw(ctx)
 
 	for _, entity := range w.entities {
+		if w.eating != nil && (entity == w.player || entity == w.eatingAI) {
+			continue
+		}
 		entity.draw()
 	}
+	if w.eating != nil {
+		prey, killer := w.eating.actors(time.Now())
+		ai := *w.eatingAI
+		ai.pos = rl.NewVector2(float32(killer.X), float32(killer.Y))
+		ai.draw()
+		if prey.Size > 0 {
+			rl.DrawRectangleV(rl.NewVector2(float32(prey.X), float32(prey.Y)), rl.NewVector2(float32(prey.Size), float32(prey.Size)), w.player.color)
+		}
+	}
+}
+
+func (w *World) startEating(ai *AI, start rl.Vector2) {
+	p := w.player
+	prey := protocol.Player{ID: "player", KilledBy: "ai", Dead: true, X: float64(p.pos.X), Y: float64(p.pos.Y), Size: float64(p.size.X)}
+	killer := protocol.AI{ID: "ai", X: float64(ai.pos.X), Y: float64(ai.pos.Y), Size: float64(ai.size.X)}
+	previous := killer
+	previous.X, previous.Y = float64(start.X), float64(start.Y)
+	w.eating = newEatingScene(time.Now(), client.Update{Local: prey, PlayerID: prey.ID, AIs: []protocol.AI{killer}}, []protocol.Player{prey}, []protocol.AI{previous})
+	w.eatingAI = ai
 }

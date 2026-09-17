@@ -12,7 +12,7 @@ import (
 
 type PlayerStats struct {
 	lvl int
-	exp float32
+	exp float64
 
 	hp               float32
 	speed            float32
@@ -20,11 +20,6 @@ type PlayerStats struct {
 
 	maxLvl int
 	maxHP  float32
-}
-
-type PlayerGrowthStats struct {
-	HPPerLevel    float32
-	SpeedPerLevel float32
 }
 
 type PlayerInput struct {
@@ -41,10 +36,6 @@ type Player struct {
 
 	stats PlayerStats
 
-	growth PlayerGrowthStats
-
-	nutritionalFactor float32
-
 	isDeadFlag bool
 }
 
@@ -52,24 +43,19 @@ func NewPlayer(
 	pos, size rl.Vector2,
 	color color.RGBA,
 	stats PlayerStats,
-	growth PlayerGrowthStats,
-	nutritionalFactor float32,
 ) *Player {
 	return &Player{
-		pos:               pos,
-		size:              size,
-		color:             color,
-		stats:             stats,
-		growth:            growth,
-		nutritionalFactor: nutritionalFactor,
-		isDeadFlag:        false,
+		pos:        pos,
+		size:       size,
+		color:      color,
+		stats:      stats,
+		isDeadFlag: false,
 	}
 }
 
 func (p *Player) update(w *World, dt float32) {
-	p.move(w.gameMap, dt)
+	p.move(dt)
 	p.handleFoodCollision(w.fruitSpawner, w.ais)
-	p.handleLevelUp()
 }
 
 func (p *Player) draw() {
@@ -94,7 +80,7 @@ func (p *Player) readInput() {
 	p.input = input
 }
 
-func (p *Player) move(gameMap *Map, dt float32) {
+func (p *Player) move(dt float32) {
 	move := p.input.Direction
 	speed := p.stats.speed * simulation.SpeedScale
 
@@ -119,7 +105,7 @@ func (p *Player) handleFoodCollision(fs *FruitSpawner, ais []*AI) {
 		hasPlayerCollidedWithAI := checkCollisions(p.pos, p.size, ai.pos, ai.size)
 
 		if hasPlayerCollidedWithAI && p.canEatAI(ai) {
-			p.eatFood(ai.nutritionalValue())
+			p.stats.eatFood(ai.stats.hp*simulation.ActorHPFraction, ai.stats.hp)
 			ai.markAIDeath()
 		}
 	}
@@ -134,30 +120,19 @@ func (p *Player) handleFruitCollision(fs *FruitSpawner) {
 		hasPlayerCollidedWithFruit := checkCollisions(p.pos, p.size, v.pos, v.size)
 
 		if hasPlayerCollidedWithFruit {
-			p.eatFood(v.nutritionalValue)
+			p.stats.eatFood(simulation.FruitHP, simulation.FruitXP)
 			fs.despawnFruit(i)
 		}
 	}
-}
-
-func (p *Player) nutritionalValue() float32 {
-	return p.nutritionalFactor * float32(p.stats.lvl)
-}
-
-func (p *Player) eatFood(nutrition float32) {
-	p.stats.exp += nutrition
 }
 
 func (p *Player) markPlayerDeath() {
 	p.isDeadFlag = true
 }
 
-func (p *Player) handleLevelUp() {
-	for p.stats.lvl < p.stats.maxLvl && p.stats.exp >= calcExpForNextLvl(p.stats.lvl) {
-		p.stats.exp -= calcExpForNextLvl(p.stats.lvl)
-		p.stats.lvl++
-
-		p.stats.hp = min(p.stats.hp+p.growth.HPPerLevel, p.stats.maxHP)
-		p.stats.speed += p.growth.SpeedPerLevel
-	}
+func (s *PlayerStats) eatFood(hp, xp float32) {
+	stats := simulation.Stats{Level: s.lvl, XP: s.exp, HP: float64(s.hp), Speed: float64(s.speed)}
+	stats.Eat(float64(hp), float64(xp))
+	s.lvl, s.exp, s.hp = stats.Level, stats.XP, float32(stats.HP)
+	s.maxHP = float32(simulation.MaxHPForLevel(stats.Level))
 }
