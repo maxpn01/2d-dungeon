@@ -141,21 +141,18 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 			alive++
 		}
 	}
-	title := fmt.Sprintf("Multiplayer | %s | Players: %d | Fruit: %d | AIs: %d", protocol.NormalizePlayerName(m.view.Local.Name), alive, len(m.view.Fruits), len(m.view.AIs))
-	statsLine := ""
-	for _, player := range m.view.Players {
-		if player.ID != m.view.PlayerID {
-			continue
-		}
-		stats := player.Stats
-		progress := fmt.Sprintf("XP %.2f / %.2f", stats.XP, simulation.XPForNextLevel(stats.Level))
-		if stats.Level == simulation.MaxLevel {
-			progress = "MAX LEVEL"
-		}
-		statsLine = fmt.Sprintf("Level %d | %s | HP %.2f | Speed %.2f", stats.Level, progress, stats.HP, stats.Speed)
-		break
+	stats := m.view.Local.Stats
+	hp := float32(stats.HP)
+	if m.view.Local.Dead {
+		hp = 0
 	}
-	drawStatusPanel(title, statsLine, "WASD to move | Shift to sprint | M for map | T to chat | Eat fruit, weaker players and AIs to grow | Esc to leave", window.width)
+	drawPlayerHUD(playerHUD{
+		name: m.view.Local.Name, avatar: rl.Red,
+		level: stats.Level, maxLevel: simulation.MaxLevel,
+		hp: hp, maxHP: simulation.MaxHP,
+		xp: float32(stats.XP), nextXP: float32(simulation.XPForNextLevel(stats.Level)),
+		speed: float32(stats.Speed), fruit: len(m.view.Fruits), ais: len(m.view.AIs), players: alive,
+	}, window.width)
 	m.drawMinimap(window.width)
 	m.chat.draw(window, m.session.Chat())
 }

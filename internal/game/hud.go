@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"image/color"
 
 	"raylib-2d-sandbox/internal/protocol"
 
@@ -17,36 +18,83 @@ func NewHUD(world *World, window *Window) *HUD {
 	return &HUD{world: world, window: window}
 }
 
-func (h *HUD) draw() {
-	w := h.world
-	stats := w.player.stats
-	progress := fmt.Sprintf("XP %.2f / %.2f", stats.exp, calcExpForNextLvl(stats.lvl))
-	if stats.lvl == stats.maxLvl {
-		progress = "MAX LEVEL"
-	}
-	drawStatusPanel(
-		fmt.Sprintf("Single player | %s | Fruit: %d | AIs: %d", protocol.NormalizePlayerName(w.player.name), len(w.fruitSpawner.fruits), len(w.ais)),
-		fmt.Sprintf("Level %d | %s | HP %.2f | Speed %.2f", stats.lvl, progress, stats.hp, stats.speed),
-		"WASD to move | Shift to sprint | M for map | Eat fruit and weaker AIs to grow | Esc for menu",
-		h.window.width,
-	)
+type playerHUD struct {
+	name                  string
+	avatar                color.RGBA
+	level, maxLevel       int
+	hp, maxHP, xp, nextXP float32
+	speed                 float32
+	fruit, ais, players   int
 }
 
-func drawStatusPanel(title, stats, controls string, windowWidth int32) {
-	width := windowWidth - 268
-	rl.DrawRectangle(0, 0, width, 122, rl.Fade(rl.Black, .8))
-	for i, line := range []string{title, stats, controls} {
-		size := int32(20)
-		if i == 0 {
-			size = 22
-		}
-		for size > 10 && rl.MeasureText(line, size) > width-48 {
-			size--
-		}
-		tint := rl.RayWhite
-		if i == 2 {
-			tint = rl.LightGray
-		}
-		rl.DrawText(line, 24, int32(20+i*32), size, tint)
+func (h *HUD) draw() {
+	w := h.world
+	s := w.player.stats
+	drawPlayerHUD(playerHUD{
+		name: w.player.name, avatar: w.player.color,
+		level: s.lvl, maxLevel: s.maxLvl,
+		hp: s.hp, maxHP: s.maxHP, xp: s.exp, nextXP: calcExpForNextLvl(s.lvl),
+		speed: s.speed, fruit: len(w.fruitSpawner.fruits), ais: len(w.ais),
+	}, h.window.width)
+}
+
+func drawPlayerHUD(p playerHUD, windowWidth int32) {
+	const x, y int32 = 0, 0
+	width := min(int32(320), windowWidth-220)
+	if width <= 0 {
+		return
+	}
+	background := rl.Fade(rl.Black, .8)
+	rl.DrawRectangle(x, y, width, 176, background)
+
+	rl.DrawRectangle(x+12, y+10, 36, 36, color.RGBA{48, 48, 48, 255})
+	rl.DrawRectangle(x+18, y+16, 24, 24, p.avatar)
+	name := protocol.NormalizePlayerName(p.name)
+	fontSize := int32(18)
+	for fontSize > 10 && rl.MeasureText(name, fontSize) > width-138 {
+		fontSize--
+	}
+	rl.DrawText(name, x+58, y+28-fontSize/2, fontSize, rl.RayWhite)
+	level := fmt.Sprintf("LV %d", p.level)
+	rl.DrawText(level, x+width-12-rl.MeasureText(level, 16), y+20, 16, rl.RayWhite)
+
+	barWidth := width - 24
+	drawHUDMeter(x+12, y+58, barWidth, "HP", fmt.Sprintf("%.2f / %.0f", p.hp, p.maxHP), p.hp, p.maxHP, color.RGBA{230, 0, 18, 255})
+	xpLabel := fmt.Sprintf("%.2f / %.0f", p.xp, p.nextXP)
+	xp, nextXP := p.xp, p.nextXP
+	if p.level >= p.maxLevel {
+		xpLabel, xp, nextXP = "MAX LEVEL", 1, 1
+	}
+	drawHUDMeter(x+12, y+100, barWidth, "EXP", xpLabel, xp, nextXP, rl.Yellow)
+	muted := color.RGBA{160, 170, 180, 255}
+	cx, cy := x+19, y+157
+	rl.DrawCircleLines(cx, cy, 7, muted)
+	rl.DrawLine(cx, cy, cx+4, cy-4, rl.RayWhite)
+	rl.DrawText(fmt.Sprintf("SPEED %.2f", p.speed), x+34, y+150, 14, muted)
+
+	counts := fmt.Sprintf("Fruit: %d    AIs: %d", p.fruit, p.ais)
+	if p.players > 0 {
+		counts += fmt.Sprintf("    Players: %d", p.players)
+	}
+	countsX := x + width
+	countsWidth := rl.MeasureText(counts, 18) + 24
+	if countsX+countsWidth <= windowWidth-220 {
+		rl.DrawRectangle(countsX, y, countsWidth, 38, background)
+		rl.DrawText(counts, countsX+12, y+10, 18, rl.RayWhite)
+	}
+}
+
+func drawHUDMeter(x, y, width int32, label, value string, current, maximum float32, tint color.RGBA) {
+	rl.DrawText(label, x, y, 14, rl.RayWhite)
+	rl.DrawText(value, x+width-rl.MeasureText(value, 14), y, 14, rl.RayWhite)
+	track := rl.NewRectangle(float32(x), float32(y+18), float32(width), 16)
+	rl.DrawRectangleRec(track, color.RGBA{40, 40, 40, 255})
+	fraction := float32(0)
+	if maximum > 0 {
+		fraction = max(float32(0), min(float32(1), current/maximum))
+	}
+	if fraction > 0 {
+		track.Width *= fraction
+		rl.DrawRectangleRec(track, tint)
 	}
 }
