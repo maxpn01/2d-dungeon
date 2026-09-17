@@ -70,7 +70,7 @@ func newCorrection(oldX, oldY, x, y float64, now time.Time) motionCorrection {
 	return motionCorrection{x: dx, y: dy, at: now}
 }
 
-func (m *Motion) Advance(target protocol.Player, dt float64) {
+func (m *Motion) Advance(target protocol.Player, dt float64, sprint bool) {
 	if len(m.frames) == 0 {
 		return
 	}
@@ -82,6 +82,9 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 		return
 	}
 	speed := target.Stats.Speed
+	if sprint {
+		speed *= simulation.SprintMultiplier
+	}
 	if distance > 2*speed*simulation.StepSeconds {
 		speed *= 2
 	}

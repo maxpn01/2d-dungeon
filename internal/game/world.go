@@ -2,6 +2,7 @@ package game
 
 import (
 	"math/rand"
+	"raylib-2d-sandbox/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -15,7 +16,7 @@ type World struct {
 	gameMap      *Map
 	player       *Player
 	fruitSpawner *FruitSpawner
-	ai           *AI
+	ais          []*AI
 	entities     []GameObject
 }
 
@@ -62,7 +63,7 @@ func NewWorld() *World {
 			lvl:              1,
 			hp:               1,
 			speed:            600,
-			sprintMultiplier: 1.5,
+			sprintMultiplier: simulation.SprintMultiplier,
 			maxLvl:           100,
 			maxHP:            100,
 		},
@@ -72,7 +73,9 @@ func NewWorld() *World {
 		},
 		1,
 	)
-	w.ai = NewDefaultAI(w.gameMap.size)
+	for range simulation.InitialAIs {
+		w.ais = append(w.ais, NewDefaultAI(w.gameMap.size))
+	}
 	w.fruitSpawner = NewFruitSpawner(
 		rl.NewVector2(15, 15),
 		rl.Yellow,
@@ -80,7 +83,10 @@ func NewWorld() *World {
 		1, 20,
 	)
 
-	w.entities = []GameObject{w.player, w.fruitSpawner, w.ai}
+	w.entities = []GameObject{w.player, w.fruitSpawner}
+	for _, ai := range w.ais {
+		w.entities = append(w.entities, ai)
+	}
 	return w
 }
 
@@ -98,8 +104,10 @@ func (w *World) update(dt float32) {
 			entity.update(w, step)
 		}
 
-		if w.ai.isDeadFlag {
-			*w.ai = *NewDefaultAI(w.gameMap.size)
+		for _, ai := range w.ais {
+			if ai.isDeadFlag {
+				*ai = *NewDefaultAI(w.gameMap.size)
+			}
 		}
 
 		dt -= step

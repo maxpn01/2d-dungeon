@@ -63,6 +63,7 @@ func (m *multiplayer) readInput(dt float32) {
 	m.chat.update(m)
 	direction := protocol.Direction{}
 	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.open {
+		direction.Sprint = rl.IsKeyDown(rl.KeyLeftShift)
 		if rl.IsKeyDown(rl.KeyW) {
 			direction.Y--
 		}
@@ -79,7 +80,7 @@ func (m *multiplayer) readInput(dt float32) {
 	m.session.SetInput(direction)
 	now := time.Now()
 	if predicted, ready := m.session.PredictedPlayer(); ready {
-		m.motion.Advance(predicted, float64(dt))
+		m.motion.Advance(predicted, float64(dt), direction.Sprint)
 	}
 	m.rendered = m.motion.Players(now)
 	m.renderedAIs = m.motion.AIs(now)
@@ -124,14 +125,14 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	}
 	rl.EndMode2D()
 	drawDungeonLocation(camera.Target.X, camera.Target.Y, window.width, window.height)
-	rl.DrawRectangle(0, 0, window.width, 122, rl.Fade(rl.Black, .8))
 	alive := 0
 	for _, player := range m.view.Players {
 		if !player.Dead {
 			alive++
 		}
 	}
-	rl.DrawText(fmt.Sprintf("Multiplayer | %s | Players: %d | Fruit: %d | AIs: %d", protocol.NormalizePlayerName(m.view.Local.Name), alive, len(m.view.Fruits), len(m.view.AIs)), 24, 20, 22, rl.RayWhite)
+	title := fmt.Sprintf("Multiplayer | %s | Players: %d | Fruit: %d | AIs: %d", protocol.NormalizePlayerName(m.view.Local.Name), alive, len(m.view.Fruits), len(m.view.AIs))
+	statsLine := ""
 	for _, player := range m.view.Players {
 		if player.ID != m.view.PlayerID {
 			continue
@@ -141,9 +142,10 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		if stats.Level == simulation.MaxLevel {
 			progress = "MAX LEVEL"
 		}
-		rl.DrawText(fmt.Sprintf("Level %d | %s | HP %.2f | Speed %.2f", stats.Level, progress, stats.HP, stats.Speed), 24, 52, 20, rl.RayWhite)
+		statsLine = fmt.Sprintf("Level %d | %s | HP %.2f | Speed %.2f", stats.Level, progress, stats.HP, stats.Speed)
 		break
 	}
-	rl.DrawText("WASD to move | T to chat | Eat fruit, weaker players and AIs to grow | Esc to leave", 24, 84, 20, rl.LightGray)
+	drawStatusPanel(title, statsLine, "WASD to move | Shift to sprint | T to chat | Eat fruit, weaker players and AIs to grow | Esc to leave", window.width)
+	m.drawMinimap(window.width)
 	m.chat.draw(window, m.session.Chat())
 }

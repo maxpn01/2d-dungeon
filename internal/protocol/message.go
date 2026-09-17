@@ -18,8 +18,9 @@ const (
 )
 
 type Direction struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
+	Sprint bool    `json:"sprint,omitempty"`
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
 }
 
 type ClientMessage struct {

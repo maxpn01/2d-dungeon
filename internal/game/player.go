@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"image/color"
 	"raylib-2d-sandbox/internal/terrain"
 	"slices"
@@ -66,13 +67,13 @@ func NewPlayer(
 
 func (p *Player) update(w *World, dt float32) {
 	p.move(w.gameMap, dt)
-	p.handleFoodCollision(w.fruitSpawner, w.ai)
+	p.handleFoodCollision(w.fruitSpawner, w.ais)
 	p.handleLevelUp()
 }
 
 func (p *Player) draw() {
 	rl.DrawRectangleV(p.pos, p.size, p.color)
-	rl.DrawText(p.name, int32(p.pos.X), int32(p.pos.Y)-22, 18, rl.RayWhite)
+	rl.DrawText(fmt.Sprintf("%s Lv.%d (you)", p.name, p.stats.lvl), int32(p.pos.X), int32(p.pos.Y)-22, 18, rl.RayWhite)
 }
 
 func (p *Player) readInput() {
@@ -110,14 +111,16 @@ func (p *Player) move(gameMap *Map, dt float32) {
 
 }
 
-func (p *Player) handleFoodCollision(fs *FruitSpawner, ai *AI) {
+func (p *Player) handleFoodCollision(fs *FruitSpawner, ais []*AI) {
 	p.handleFruitCollision(fs)
 
-	hasPlayerCollidedWithAI := checkCollisions(p.pos, p.size, ai.pos, ai.size)
+	for _, ai := range ais {
+		hasPlayerCollidedWithAI := checkCollisions(p.pos, p.size, ai.pos, ai.size)
 
-	if hasPlayerCollidedWithAI && p.canEatAI(ai) {
-		p.eatFood(ai.nutritionalValue())
-		ai.markAIDeath()
+		if hasPlayerCollidedWithAI && p.canEatAI(ai) {
+			p.eatFood(ai.nutritionalValue())
+			ai.markAIDeath()
+		}
 	}
 }
 

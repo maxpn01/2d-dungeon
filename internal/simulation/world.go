@@ -8,19 +8,21 @@ import (
 )
 
 const (
-	TickRate     = 30
-	StepSeconds  = 1.0 / TickRate
-	PlayerSize   = 30.0
-	PlayerSpeed  = 600.0
-	MapMin       = 10.0
-	MapMax       = 1990.0
-	MinPosition  = MapMin
-	MaxPosition  = MapMax - PlayerSize
-	InputTimeout = 500 * time.Millisecond
+	TickRate         = 30
+	StepSeconds      = 1.0 / TickRate
+	PlayerSize       = 30.0
+	PlayerSpeed      = 600.0
+	SprintMultiplier = 1.5
+	MapMin           = 10.0
+	MapMax           = 1990.0
+	MinPosition      = MapMin
+	MaxPosition      = MapMax - PlayerSize
+	InputTimeout     = 500 * time.Millisecond
 )
 
 type Direction struct {
-	X, Y float64
+	Sprint bool
+	X, Y   float64
 }
 
 func (d Direction) Valid() bool {
@@ -118,6 +120,9 @@ func Move(x, y float64, d Direction, seconds, speed float64) (float64, float64) 
 	length := math.Hypot(d.X, d.Y)
 	if length == 0 || !d.Valid() || seconds <= 0 {
 		return x, y
+	}
+	if d.Sprint {
+		speed *= SprintMultiplier
 	}
 	distance := speed * seconds
 	return terrain.Move(x, y, d.X/length*distance, d.Y/length*distance, PlayerSize, PlayerSize)

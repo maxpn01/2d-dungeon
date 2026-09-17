@@ -247,7 +247,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 				sequence := s.sequence
 				s.pending = append(s.pending, sentInput{sequence, direction})
 				if s.predictionReady {
-					s.predicted.X, s.predicted.Y = simulation.Move(s.predicted.X, s.predicted.Y, simulation.Direction{X: direction.X, Y: direction.Y}, simulation.StepSeconds, s.predicted.Stats.Speed)
+					s.predicted.X, s.predicted.Y = simulation.Move(s.predicted.X, s.predicted.Y, simulation.Direction{X: direction.X, Y: direction.Y, Sprint: direction.Sprint}, simulation.StepSeconds, s.predicted.Stats.Speed)
 				}
 				s.inputMu.Unlock()
 				writeCtx, finish := context.WithTimeout(ioCtx, 3*time.Second)
@@ -320,7 +320,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 			s.pending = nil
 		}
 		for _, input := range s.pending {
-			local.X, local.Y = simulation.Move(local.X, local.Y, simulation.Direction{X: input.direction.X, Y: input.direction.Y}, simulation.StepSeconds, local.Stats.Speed)
+			local.X, local.Y = simulation.Move(local.X, local.Y, simulation.Direction{X: input.direction.X, Y: input.direction.Y, Sprint: input.direction.Sprint}, simulation.StepSeconds, local.Stats.Speed)
 		}
 		s.predicted, s.predictionReady = local, !s.dead
 		s.inputMu.Unlock()

@@ -2,140 +2,51 @@ package game
 
 import (
 	"fmt"
-	"image/color"
+
+	"raylib-2d-sandbox/internal/protocol"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-type Text struct {
-	pos   rl.Vector2
-	color color.RGBA
-
-	text     string
-	fontSize int32
-}
-
-func (t *Text) draw() {
-	rl.DrawText(t.text, int32(t.pos.X), int32(t.pos.Y), t.fontSize, t.color)
-}
-
-type HUDText struct {
-	Text
-	label        string
-	getStatValue func() float32
-}
-
-func NewHUDText(pos rl.Vector2, fontSize int32, color color.RGBA, text string, getValue func() float32) *HUDText {
-	return &HUDText{
-		Text: Text{
-			pos:      pos,
-			fontSize: fontSize,
-			color:    color,
-		},
-		label:        text,
-		getStatValue: getValue,
-	}
-}
-
-func (h *HUDText) update(dt float32) {
-	h.text = fmt.Sprintf("%s %.2f", h.label, h.getStatValue())
-}
-
 type HUD struct {
-	texts []*HUDText
+	world  *World
+	window *Window
 }
 
 func NewHUD(world *World, window *Window) *HUD {
-	const (
-		fontSize  = 22
-		rowGap    = 10
-		rowHeight = fontSize + rowGap
-		top       = 20
-		playerX   = 30
-	)
-	aiX := float32(window.width - 200)
-
-	playerHpText := NewHUDText(
-		rl.NewVector2(playerX, top),
-		fontSize,
-		rl.RayWhite,
-		"hp:",
-		func() float32 { return world.player.stats.hp },
-	)
-	playerLvlText := NewHUDText(
-		rl.NewVector2(playerX, top+1*rowHeight),
-		fontSize,
-		rl.RayWhite,
-		"lvl:",
-		func() float32 { return float32(world.player.stats.lvl) },
-	)
-	playerExpText := NewHUDText(
-		rl.NewVector2(playerX, top+2*rowHeight),
-		fontSize,
-		rl.RayWhite,
-		"exp:",
-		func() float32 { return world.player.stats.exp },
-	)
-	playerSpeedText := NewHUDText(
-		rl.NewVector2(playerX, top+3*rowHeight),
-		fontSize,
-		rl.RayWhite,
-		"speed:",
-		func() float32 { return world.player.stats.speed },
-	)
-
-	aiHpText := NewHUDText(
-		rl.NewVector2(aiX, top),
-		fontSize,
-		rl.RayWhite,
-		"ai hp:",
-		func() float32 { return world.ai.stats.hp },
-	)
-	aiLvlText := NewHUDText(
-		rl.NewVector2(aiX, top+1*rowHeight),
-		fontSize,
-		rl.RayWhite,
-		"ai lvl:",
-		func() float32 { return float32(world.ai.stats.lvl) },
-	)
-	aiExpText := NewHUDText(
-		rl.NewVector2(aiX, top+2*rowHeight),
-		fontSize,
-		rl.RayWhite,
-		"ai exp:",
-		func() float32 { return world.ai.stats.exp },
-	)
-	aiSpeedText := NewHUDText(
-		rl.NewVector2(aiX, top+3*rowHeight),
-		fontSize,
-		rl.RayWhite,
-		"ai speed:",
-		func() float32 { return world.ai.stats.speed },
-	)
-
-	h := &HUD{texts: []*HUDText{
-		playerHpText,
-		playerLvlText,
-		playerExpText,
-		playerSpeedText,
-		aiHpText,
-		aiLvlText,
-		aiExpText,
-		aiSpeedText,
-	}}
-	h.update(0)
-
-	return h
-}
-
-func (h *HUD) update(dt float32) {
-	for _, text := range h.texts {
-		text.update(dt)
-	}
+	return &HUD{world: world, window: window}
 }
 
 func (h *HUD) draw() {
-	for _, text := range h.texts {
-		text.draw()
+	w := h.world
+	stats := w.player.stats
+	progress := fmt.Sprintf("XP %.2f / %.2f", stats.exp, calcExpForNextLvl(stats.lvl))
+	if stats.lvl == stats.maxLvl {
+		progress = "MAX LEVEL"
+	}
+	drawStatusPanel(
+		fmt.Sprintf("Single player | %s | Fruit: %d | AIs: %d", protocol.NormalizePlayerName(w.player.name), len(w.fruitSpawner.fruits), len(w.ais)),
+		fmt.Sprintf("Level %d | %s | HP %.2f | Speed %.2f", stats.lvl, progress, stats.hp, stats.speed),
+		"WASD to move | Shift to sprint | Eat fruit and weaker AIs to grow | Esc for menu",
+		h.window.width,
+	)
+}
+
+func drawStatusPanel(title, stats, controls string, windowWidth int32) {
+	width := windowWidth - 268
+	rl.DrawRectangle(0, 0, width, 122, rl.Fade(rl.Black, .8))
+	for i, line := range []string{title, stats, controls} {
+		size := int32(20)
+		if i == 0 {
+			size = 22
+		}
+		for size > 10 && rl.MeasureText(line, size) > width-48 {
+			size--
+		}
+		tint := rl.RayWhite
+		if i == 2 {
+			tint = rl.LightGray
+		}
+		rl.DrawText(line, 24, int32(20+i*32), size, tint)
 	}
 }

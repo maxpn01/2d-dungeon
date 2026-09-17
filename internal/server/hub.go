@@ -123,7 +123,7 @@ func (h *Hub) Run(ctx context.Context) {
 			}
 			if event.message.Type == protocol.TypeInput {
 				d := event.message.Direction
-				if !world.Command(event.client.id, simulation.Direction{X: d.X, Y: d.Y}, event.message.Sequence, time.Now()) {
+				if !world.Command(event.client.id, simulation.Direction{X: d.X, Y: d.Y, Sprint: d.Sprint}, event.message.Sequence, time.Now()) {
 					remove(event.client)
 					broadcast()
 				}

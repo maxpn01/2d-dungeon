@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"image/color"
 	"math/rand"
 	"raylib-2d-sandbox/internal/terrain"
@@ -115,7 +116,11 @@ func (ai *AI) update(w *World, dt float32) {
 }
 
 func (ai *AI) draw() {
+	if ai.isDeadFlag {
+		return
+	}
 	rl.DrawRectangleV(ai.pos, ai.size, ai.color)
+	rl.DrawText(fmt.Sprintf("AI Lv.%d %s", ai.stats.lvl, ai.actionState), int32(ai.pos.X), int32(ai.pos.Y)-22, 18, rl.RayWhite)
 }
 
 func (ai *AI) checkDangers(p *Player) {
@@ -401,4 +406,19 @@ func (ai *AI) handleLevelUp() {
 func (ai *AI) resolveMovement(origin rl.Vector2) {
 	x, y := terrain.Move(float64(origin.X), float64(origin.Y), float64(ai.pos.X-origin.X), float64(ai.pos.Y-origin.Y), float64(ai.size.X), float64(ai.size.Y))
 	ai.pos = rl.NewVector2(float32(x), float32(y))
+}
+
+func (state AIActionState) String() string {
+	switch state {
+	case ActionSearchingFood:
+		return "searching"
+	case ActionEating:
+		return "eating"
+	case ActionFleeing:
+		return "fleeing"
+	case ActionSleeping:
+		return "sleeping"
+	default:
+		return "unknown"
+	}
 }

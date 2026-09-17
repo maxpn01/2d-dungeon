@@ -5,6 +5,9 @@ import "math"
 const Tile = 40
 const North = -3800
 
+const DescentCircleX = 1000
+const DescentCircleY = -3620
+
 type Room struct {
 	X, Y, W, H int
 	Name       string

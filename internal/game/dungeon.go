@@ -95,7 +95,7 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 }
 
 func drawDescentCircle() {
-	center := rl.NewVector2(1000, -3620)
+	center := rl.NewVector2(terrain.DescentCircleX, terrain.DescentCircleY)
 	glow := float32(.65 + .15*math.Sin(rl.GetTime()*1.5))
 	for _, r := range []float32{82, 90, 116} {
 		rl.DrawCircleLines(int32(center.X), int32(center.Y), r, rl.Fade(runeColor, glow))

@@ -123,7 +123,6 @@ func (g *Game) run() {
 				g.world.player.readInput()
 				g.world.update(dt)
 				g.cameraFollowPlayer()
-				g.hud.update(dt)
 			}
 		case screenMultiplayer:
 			g.multiplayer.poll()
@@ -149,6 +148,7 @@ func (g *Game) run() {
 				g.world.draw(RenderContext{Camera: g.camera, WindowWidth: g.window.width, WindowHeight: g.window.height})
 				rl.EndMode2D()
 				g.hud.draw()
+				g.world.drawMinimap(g.window.width)
 				drawDungeonLocation(g.world.player.pos.X, g.world.player.pos.Y, g.window.width, g.window.height)
 			}
 		case screenMultiplayer:
