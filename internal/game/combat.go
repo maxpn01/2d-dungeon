@@ -52,8 +52,12 @@ func drawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 			trail.Y -= dir.Y * float32(i) * 13
 			rl.DrawRectangleRec(trail, rl.Fade(tint, 0.19/float32(i)))
 		}
-	case simulation.DashBumped:
-		p := phaseProgress(c.Remaining, simulation.BumpStun)
+	case simulation.DashBumped, simulation.DashRecoiling:
+		duration := simulation.BumpStun
+		if c.Phase == simulation.DashRecoiling {
+			duration = simulation.BossRecoilDuration
+		}
+		p := phaseProgress(c.Remaining, duration)
 		stretch = -0.28 * (1 - p)
 		offset = float32(math.Sin(float64(p)*math.Pi*4)) * 4 * (1 - p)
 	}
@@ -65,6 +69,10 @@ func drawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 	rl.DrawRectangleRec(shadow, rl.Fade(rl.Black, 0.35))
 	rl.DrawRectangleRec(body, tint)
 	rl.DrawRectangleLinesEx(body, 1, rl.Fade(rl.RayWhite, 0.3))
+	if c.HitGrace > 0 {
+		pulse := float32(.6 + .25*math.Sin(rl.GetTime()*20))
+		rl.DrawRing(center, bounds.Width*.75+4, bounds.Width*.75+7, 0, 360, 40, rl.Fade(rl.SkyBlue, pulse))
+	}
 	drawCombat(center, bounds.Width, c)
 	return bounds
 }
@@ -87,8 +95,12 @@ func drawCombat(center rl.Vector2, size float32, c simulation.CombatState) {
 		for _, side := range []float32{-1, 1} {
 			rl.DrawLineEx(point(-size/2-30, side*size*0.6), point(size/2, side*size*0.6), 2, rl.Fade(rl.RayWhite, 0.65))
 		}
-	case simulation.DashBumped:
-		p := phaseProgress(c.Remaining, simulation.BumpStun)
+	case simulation.DashBumped, simulation.DashRecoiling:
+		duration := simulation.BumpStun
+		if c.Phase == simulation.DashRecoiling {
+			duration = simulation.BossRecoilDuration
+		}
+		p := phaseProgress(c.Remaining, duration)
 		impact := point(size/2+simulation.BumpKnockback, 0)
 		for i := 0; i < 7; i++ {
 			angle := float64(i)*math.Pi/3 + float64(p)*0.4

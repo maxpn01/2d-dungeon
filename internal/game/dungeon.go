@@ -121,23 +121,7 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 			dungeonRect(px+15+int(math.Cos(a)*26), py+15+int(math.Sin(a)*26), 10, 10, color.RGBA{124, 91, 67, 255})
 		}
 	}
-	drawDescentCircle()
-}
 
-func drawDescentCircle() {
-	center := rl.NewVector2(terrain.DescentCircleX, terrain.DescentCircleY)
-	glow := float32(.65 + .15*math.Sin(rl.GetTime()*1.5))
-	for _, r := range []float32{82, 90, 116} {
-		rl.DrawCircleLines(int32(center.X), int32(center.Y), r, rl.Fade(runeColor, glow))
-	}
-	rl.DrawPolyLines(center, 6, 78, 30, rl.Fade(runeColor, glow))
-	rl.DrawPolyLines(center, 3, 72, -90, rl.Fade(runeColor, glow))
-	rl.DrawPolyLines(center, 3, 72, 90, rl.Fade(runeColor, glow))
-	for i := 0; i < 12; i++ {
-		a := float64(i) * math.Pi / 6
-		x, y := center.X+103*float32(math.Cos(a)), center.Y+103*float32(math.Sin(a))
-		rl.DrawPolyLines(rl.NewVector2(x, y), 4, 5, float32(i*30), runeColor)
-	}
 }
 
 func drawDungeonLocation(x, y float32, width, height int32) {
@@ -152,15 +136,19 @@ func drawDungeonLocation(x, y float32, width, height int32) {
 						hint = "Arcane veils confuse creatures. They do not stop attacks."
 					}
 					if tag == "boss" {
-						hint = "An empty arena. Its guardian has yet to arrive."
+						hint = "Enter together. The exits seal when the Devourer wakes."
 					}
 				}
 				break
 			}
 		}
 		if y < terrain.DescentCircleY+160 {
-			hint = "The circle is dormant. The deeper floors are yet to open."
+			hint = "The descent links the floors. Defeat the Devourer to awaken it."
 		}
+	}
+	if terrain.FloorTwo(float64(x), float64(y)) {
+		name = "II / THE FEAST"
+		hint = "Gather energy. Leave and re-enter the circle to return to floor I."
 	}
 	rl.DrawRectangle(0, height-70, width, 70, rl.Fade(rl.Black, .8))
 	drawText(name, 24, height-57, 20, runeColor)

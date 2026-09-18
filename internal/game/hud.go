@@ -72,7 +72,7 @@ func drawPlayerHUD(p playerHUD, windowWidth int32) {
 	rl.DrawLine(cx, cy, cx+4, cy-4, rl.RayWhite)
 	drawText(fmt.Sprintf("SPEED %.2f", p.speed), x+34, y+148, 18, muted)
 
-	drawText("SHIFT  Dash / dodge (-1 HP)", x+12, y+178, 16, muted)
+	drawText("SHIFT  Dash toward mouse (-1 HP)", x+12, y+178, 16, muted)
 
 	counts := fmt.Sprintf("Fruit: %d    AIs: %d", p.fruit, p.ais)
 	if p.players > 0 {

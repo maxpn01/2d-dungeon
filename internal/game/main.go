@@ -139,7 +139,7 @@ func (g *Game) run() {
 		switch current {
 		case screenSinglePlayer:
 			if !g.world.player.isDeadFlag && !mapOpen {
-				g.world.player.readInput()
+				g.world.player.readInput(g.camera)
 				g.world.update(dt)
 				g.cameraFollowPlayer()
 			}
@@ -148,7 +148,7 @@ func (g *Game) run() {
 			if g.multiplayer.view.Local.Dead || g.multiplayer.errorText != "" {
 				mapOpen = false
 			}
-			g.multiplayer.readInput(dt, mapOpen)
+			g.multiplayer.readInput(dt, mapOpen, g.camera)
 			if g.multiplayer.view.Ready {
 				g.multiplayer.follow(&g.camera)
 			}
@@ -172,6 +172,7 @@ func (g *Game) run() {
 				g.world.draw(RenderContext{Camera: g.camera, WindowWidth: g.window.width, WindowHeight: g.window.height})
 				rl.EndMode2D()
 				g.hud.draw()
+				drawBossHUD(g.world.snapshot.Boss, float64(g.world.player.pos.X), float64(g.world.player.pos.Y), g.window.width)
 				g.world.drawMinimap(g.window.width)
 				drawDungeonLocation(g.world.player.pos.X, g.world.player.pos.Y, g.window.width, g.window.height)
 			}

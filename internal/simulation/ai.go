@@ -80,6 +80,7 @@ func (w *World) updateAIs() {
 			ai.attackCooldown = AIAttackIntervalTicks
 		}
 		actor := Player{X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat}
+		actor.GatesClosed = w.boss.Phase == "fighting"
 		AdvancePlayer(&actor, input, StepSeconds)
 		ai.X, ai.Y, ai.Stats, ai.Combat = actor.X, actor.Y, actor.Stats, actor.Combat
 	}
@@ -185,7 +186,7 @@ func (w *World) nearestFruit(ai *aiState) (Fruit, bool) {
 	best := AIDetectionRadius * AIDetectionRadius
 	found := false
 	for _, fruit := range w.fruits {
-		if !ai.sees(fruit.X, fruit.Y) || !ai.inTerritory(fruit.X, fruit.Y) || ai.Stats.HP >= MaxHPForLevel(ai.Stats.Level) {
+		if !ai.sees(fruit.X, fruit.Y) || !ai.inTerritory(fruit.X, fruit.Y) || (ai.Stats.HP >= MaxHPForLevel(ai.Stats.Level) && ai.Stats.Level >= MaxLevel) {
 			continue
 		}
 		dx := fruit.X + fruit.Size/2 - (ai.X + AISize/2)

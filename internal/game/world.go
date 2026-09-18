@@ -61,7 +61,7 @@ func (w *World) update(dt float32) {
 	for w.accumulator >= simulation.StepSeconds && !w.player.isDeadFlag {
 		now := time.Now()
 		input := w.player.input
-		w.simulation.Input("player", simulation.Direction{X: float64(input.Direction.X), Y: float64(input.Direction.Y), Dash: input.Dash}, now)
+		w.simulation.Input("player", simulation.Direction{X: float64(input.Direction.X), Y: float64(input.Direction.Y), Dash: input.Dash, AimX: float64(input.Aim.X), AimY: float64(input.Aim.Y)}, now)
 		w.player.input.Dash = false
 		w.simulation.Step(now)
 		w.accumulator -= simulation.StepSeconds
@@ -141,6 +141,10 @@ func (w *World) draw(ctx RenderContext) {
 		}
 		entity.draw()
 	}
+	drawEncounter(w.snapshot.Boss, &w.gameMap.exploration)
+	for _, p := range w.snapshot.Players {
+		drawTeleportCharge(p.X, p.Y, p.TeleportCharge)
+	}
 	w.feedback.draw(time.Now(), &w.gameMap.exploration)
 	if w.eating != nil {
 		prey, killer := w.eating.actors(time.Now())
@@ -169,6 +173,9 @@ func (w *World) interpolateActors() {
 	}
 	alpha := w.accumulator / simulation.StepSeconds
 	interpolate := func(ax, ay, bx, by float64) rl.Vector2 {
+		if terrain.FloorTwo(ax, ay) != terrain.FloorTwo(bx, by) {
+			return rl.NewVector2(float32(bx), float32(by))
+		}
 		x, y := terrain.Move(ax, ay, (bx-ax)*alpha, (by-ay)*alpha, simulation.PlayerSize, simulation.PlayerSize)
 		return rl.NewVector2(float32(x), float32(y))
 	}

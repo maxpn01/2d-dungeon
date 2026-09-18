@@ -86,6 +86,9 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 	if target.Combat.Phase == simulation.DashRushing || m.local.Combat.Phase == simulation.DashRushing {
 		speed *= simulation.DashSpeedMultiplier
 	}
+	if target.Combat.Phase == simulation.DashRecoiling {
+		speed = max(speed, 2*simulation.BossRecoilDistance/(simulation.BossRecoilDuration-simulation.BossImpactHold))
+	}
 	if distance > 2*speed*simulation.StepSeconds {
 		speed *= 2
 	}

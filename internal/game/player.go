@@ -21,6 +21,7 @@ type PlayerStats struct {
 
 type PlayerInput struct {
 	Direction rl.Vector2
+	Aim       rl.Vector2
 	Dash      bool
 }
 
@@ -56,8 +57,12 @@ func (p *Player) draw() {
 	drawTextAt(fmt.Sprintf("%s Lv.%d (you)", p.name, p.stats.lvl), rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 }
 
-func (p *Player) readInput() {
+func (p *Player) readInput(camera rl.Camera2D) {
 	input := PlayerInput{Dash: p.input.Dash || rl.IsKeyPressed(rl.KeyLeftShift)}
+	input.Aim = mouseAim(camera, entityCenter(p.pos, p.size), p.combat.Facing)
+	if p.input.Dash {
+		input.Aim = p.input.Aim
+	}
 	if rl.IsKeyDown(rl.KeyW) {
 		input.Direction.Y -= 1
 	}
@@ -71,4 +76,17 @@ func (p *Player) readInput() {
 		input.Direction.X += 1
 	}
 	p.input = input
+}
+
+// Convert through the actual camera, so aim remains correct at any zoom.
+func mouseAim(camera rl.Camera2D, center rl.Vector2, fallback simulation.Direction) rl.Vector2 {
+	target := rl.GetScreenToWorld2D(rl.GetMousePosition(), camera)
+	delta := rl.Vector2Subtract(target, center)
+	if rl.Vector2Length(delta) > 1 {
+		return rl.Vector2Normalize(delta)
+	}
+	if fallback.X != 0 || fallback.Y != 0 {
+		return rl.NewVector2(float32(fallback.X), float32(fallback.Y))
+	}
+	return rl.NewVector2(1, 0)
 }

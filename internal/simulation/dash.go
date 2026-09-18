@@ -25,9 +25,20 @@ const (
 	DashRushing    DashPhase = "burst"
 	DashRecovering DashPhase = "recovery"
 	DashBumped     DashPhase = "bump"
+	DashRecoiling  DashPhase = "recoil"
+)
+
+const (
+	BossHitGrace       = 1.2
+	BossRecoilDuration = .26
+	BossImpactHold     = .07
+	BossRecoilDistance = 85.0
 )
 
 type CombatState struct {
+	RecoilX   float64   `json:"recoil_x,omitempty"`
+	RecoilY   float64   `json:"recoil_y,omitempty"`
+	HitGrace  float64   `json:"hit_grace,omitempty"`
 	Phase     DashPhase `json:"phase,omitempty"`
 	Remaining float64   `json:"remaining,omitempty"`
 	Facing    Direction `json:"facing"`
@@ -37,14 +48,19 @@ type CombatState struct {
 }
 
 func AdvancePlayer(p *Player, input Direction, dt float64) {
+	oldX, oldY := p.X, p.Y
+	defer func() { ConstrainArena(p, oldX, oldY) }()
 	c := &p.Combat
 	c.Attack = false
 	if p.Dead || !input.Valid() || dt <= 0 {
 		return
 	}
+	c.HitGrace = max(0, c.HitGrace-dt)
 	pressed := input.Dash && !c.Held
 	c.Held = input.Dash
-	if length := math.Hypot(input.X, input.Y); length > 0 {
+	if length := math.Hypot(input.AimX, input.AimY); length > 0 {
+		c.Facing = Direction{X: input.AimX / length, Y: input.AimY / length}
+	} else if length := math.Hypot(input.X, input.Y); length > 0 {
 		c.Facing = Direction{X: input.X / length, Y: input.Y / length}
 	}
 	if c.Facing.X == 0 && c.Facing.Y == 0 {
@@ -79,6 +95,18 @@ func AdvancePlayer(p *Player, input Direction, dt float64) {
 					return
 				}
 				distance -= travel
+			}
+		case DashRecoiling:
+			// Hold the point of contact briefly, then ease out into the bounce.
+			progress := func(elapsed float64) float64 {
+				t := max(0, min(1, (elapsed-BossImpactHold)/(BossRecoilDuration-BossImpactHold)))
+				return 1 - (1-t)*(1-t)
+			}
+			elapsed := BossRecoilDuration - c.Remaining
+			fraction := progress(elapsed+step) - progress(elapsed)
+			length := math.Hypot(c.RecoilX, c.RecoilY)
+			if length > 0 {
+				p.X, p.Y = MoveBy(p.X, p.Y, Direction{X: c.RecoilX / length, Y: c.RecoilY / length}, length*fraction)
 			}
 		case DashRecovering:
 			p.X, p.Y = Move(p.X, p.Y, input, step, p.Stats.Speed*0.35)

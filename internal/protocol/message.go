@@ -18,6 +18,8 @@ const (
 )
 
 type Direction struct {
+	AimX float64 `json:"aim_x,omitempty"`
+	AimY float64 `json:"aim_y,omitempty"`
 	Dash bool    `json:"dash,omitempty"`
 	X    float64 `json:"x"`
 	Y    float64 `json:"y"`
@@ -48,7 +50,7 @@ func DecodeClientMessage(data []byte) (ClientMessage, error) {
 		if message.Direction == nil || message.Message != "" {
 			return ClientMessage{}, errors.New("input requires a direction")
 		}
-		d := simulation.Direction{X: message.Direction.X, Y: message.Direction.Y}
+		d := simulation.Direction{X: message.Direction.X, Y: message.Direction.Y, AimX: message.Direction.AimX, AimY: message.Direction.AimY}
 		if !d.Valid() {
 			return ClientMessage{}, errors.New("direction components must be between -1 and 1")
 		}
@@ -77,16 +79,19 @@ type PlayerStats struct {
 }
 
 type Player struct {
-	Combat   simulation.CombatState `json:"combat"`
-	Name     string                 `json:"name"`
-	Dead     bool                   `json:"dead"`
-	KilledBy string                 `json:"killed_by,omitempty"`
-	Stats    PlayerStats            `json:"stats"`
-	InputSeq uint64                 `json:"input_seq"`
-	ID       string                 `json:"id"`
-	X        float64                `json:"x"`
-	Y        float64                `json:"y"`
-	Size     float64                `json:"size"`
+	GatesClosed    bool                   `json:"gates_closed,omitempty"`
+	InArena        bool                   `json:"in_arena,omitempty"`
+	TeleportCharge float64                `json:"teleport_charge,omitempty"`
+	Combat         simulation.CombatState `json:"combat"`
+	Name           string                 `json:"name"`
+	Dead           bool                   `json:"dead"`
+	KilledBy       string                 `json:"killed_by,omitempty"`
+	Stats          PlayerStats            `json:"stats"`
+	InputSeq       uint64                 `json:"input_seq"`
+	ID             string                 `json:"id"`
+	X              float64                `json:"x"`
+	Y              float64                `json:"y"`
+	Size           float64                `json:"size"`
 }
 
 type Fruit struct {
@@ -109,12 +114,13 @@ type AI struct {
 }
 
 type Message struct {
-	AIs      *[]AI     `json:"ais,omitempty"`
-	Fruits   *[]Fruit  `json:"fruits,omitempty"`
-	Type     string    `json:"type"`
-	PlayerID string    `json:"player_id,omitempty"`
-	Tick     uint64    `json:"tick"`
-	Players  *[]Player `json:"players,omitempty"`
-	Message  string    `json:"message,omitempty"`
-	Name     string    `json:"name,omitempty"`
+	Boss     simulation.Boss `json:"boss"`
+	AIs      *[]AI           `json:"ais,omitempty"`
+	Fruits   *[]Fruit        `json:"fruits,omitempty"`
+	Type     string          `json:"type"`
+	PlayerID string          `json:"player_id,omitempty"`
+	Tick     uint64          `json:"tick"`
+	Players  *[]Player       `json:"players,omitempty"`
+	Message  string          `json:"message,omitempty"`
+	Name     string          `json:"name,omitempty"`
 }

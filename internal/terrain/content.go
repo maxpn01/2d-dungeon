@@ -19,6 +19,8 @@ type Den struct {
 }
 
 var Patches = []FeedingPatch{
+	{"boss-west", 17, -127, 3, 14, 2}, {"boss-east", 32, -127, 3, 14, 2},
+	{"feast-west", 19, -181, 5, 100, 1}, {"feast-east", 30, -181, 5, 100, 1},
 	{"entry", 24, -14, 2, 6, 5}, {"entry-east", 28, -20, 2, 5, 6},
 	{"west-cloister", 8, -32, 2, 7, 9}, {"east-cloister", 41, -33, 2, 7, 9},
 	{"garden", -8, -32, 3, 4, 12}, {"roots", 58, -32, 3, 4, 12},
@@ -70,7 +72,10 @@ func CellPosition(x, y int, size float64) (float64, float64) {
 func Validate() error {
 	start := [2]int{24, -1}
 	seen := map[[2]int]bool{start: true}
-	queue := [][2]int{start}
+	// The second connected component is reached through the descent portal.
+	second := [2]int{ReturnCircleX / Tile, ReturnCircleY / Tile}
+	seen[second] = true
+	queue := [][2]int{start, second}
 	for len(queue) > 0 {
 		c := queue[0]
 		queue = queue[1:]

@@ -6,7 +6,7 @@ const Tile = 40
 const (
 	MinCellX     = -20
 	MaxCellX     = 70
-	MinCellY     = -146
+	MinCellY     = -192
 	SurfaceCells = 50
 	SurfaceMin   = 10
 	SurfaceMax   = SurfaceCells*Tile - 10
@@ -45,7 +45,13 @@ var Rooms = []Room{
 	{X: 40, Y: -117, W: 10, H: 20, Name: "RELIQUARY WALK", ID: "reliquary-walk", Tags: []string{"exploration"}},
 	{X: 12, Y: -134, W: 26, H: 16, Name: "THE CROWN / BOSS ARENA", ID: "the-crown-boss-arena", Tags: []string{"boss"}},
 	{X: 20, Y: -144, W: 10, H: 8, Name: "THE DESCENT", ID: "the-descent", Tags: []string{"descent"}},
+	{X: 13, Y: -190, W: 24, H: 24, Name: "FLOOR II / THE FEAST", ID: "floor-two", Tags: []string{"floor-two"}},
 }
+
+func FloorTwo(x, y float64) bool { return y < -160*Tile }
+
+const ReturnCircleX = 1000
+const ReturnCircleY = -6760
 
 var passages = []Room{
 	{X: -2, Y: -28, W: 7, H: 4}, {X: -2, Y: -58, W: 7, H: 4},

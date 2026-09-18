@@ -18,6 +18,7 @@ import (
 )
 
 type Update struct {
+	Boss       simulation.Boss
 	AIs        []protocol.AI
 	Fruits     []protocol.Fruit
 	ReceivedAt time.Time
@@ -92,6 +93,9 @@ func (s *Session) Close()                 { s.cancel() }
 
 func (s *Session) SetInput(direction protocol.Direction) {
 	s.inputMu.Lock()
+	if s.direction.Dash {
+		direction.AimX, direction.AimY = s.direction.AimX, s.direction.AimY
+	}
 	direction.Dash = direction.Dash || s.direction.Dash
 	s.direction, s.inputAt = direction, time.Now()
 	s.inputMu.Unlock()
@@ -297,6 +301,9 @@ func (s *Session) run(ctx context.Context, url string) error {
 		if err := validateFruits(*message.Fruits); err != nil {
 			return err
 		}
+		if err := validateBoss(message.Boss); err != nil {
+			return err
+		}
 		if err := validateAIs(*message.AIs); err != nil {
 			return err
 		}
@@ -328,7 +335,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 		}
 		s.predicted, s.predictionReady = local, !s.dead
 		s.inputMu.Unlock()
-		s.publish(Update{PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits, AIs: *message.AIs})
+		s.publish(Update{Boss: message.Boss, PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits, AIs: *message.AIs})
 	}
 }
 
@@ -426,12 +433,20 @@ func validateAIs(ais []protocol.AI) error {
 }
 
 func predictPlayer(player *protocol.Player, input protocol.Direction) {
-	p := simulation.Player{X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, Speed: player.Stats.Speed}}
-	simulation.AdvancePlayer(&p, simulation.Direction{X: input.X, Y: input.Y, Dash: input.Dash}, simulation.StepSeconds)
+	p := simulation.Player{GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, Speed: player.Stats.Speed}}
+	simulation.AdvancePlayer(&p, simulation.Direction{X: input.X, Y: input.Y, Dash: input.Dash, AimX: input.AimX, AimY: input.AimY}, simulation.StepSeconds)
 	player.X, player.Y, player.Combat, player.Stats.HP = p.X, p.Y, p.Combat, p.Stats.HP
 }
 
 func validCombat(c simulation.CombatState) bool {
+	for _, v := range []float64{c.RecoilX, c.RecoilY} {
+		if math.IsNaN(v) || math.IsInf(v, 0) || math.Abs(v) > simulation.BossRecoilDistance+.001 {
+			return false
+		}
+	}
+	if math.IsNaN(c.HitGrace) || math.IsInf(c.HitGrace, 0) || c.HitGrace < 0 || c.HitGrace > simulation.BossHitGrace {
+		return false
+	}
 	if !c.Facing.Valid() || !c.Direction.Valid() || c.Facing.Dash || c.Direction.Dash || math.IsNaN(c.Remaining) || math.IsInf(c.Remaining, 0) || c.Remaining < 0 {
 		return false
 	}
@@ -444,9 +459,51 @@ func validCombat(c simulation.CombatState) bool {
 		return c.Remaining <= simulation.DashBurst
 	case simulation.DashRecovering:
 		return c.Remaining <= simulation.DashRecovery
+	case simulation.DashRecoiling:
+		return c.Remaining <= simulation.BossRecoilDuration
 	case simulation.DashBumped:
 		return c.Remaining <= simulation.BumpStun
 	default:
 		return false
 	}
+}
+
+func validateBoss(b simulation.Boss) error {
+	// An empty phase permits older servers without the encounter extension.
+	if b.Phase == "" {
+		return nil
+	}
+	switch b.Phase {
+	case "waiting", "gathering", "fighting", "defeated":
+	default:
+		return errors.New("server sent invalid boss phase")
+	}
+	switch b.Behavior {
+	case "", "hunting", "winding", "rushing", "recovering", "feeding", "patrolling":
+	default:
+		return errors.New("server sent invalid boss behavior")
+	}
+	if b.XP < 0 || (b.Level == simulation.MaxLevel && b.XP != 0) || (b.Level < simulation.MaxLevel && b.XP >= simulation.XPForNextLevel(b.Level)) {
+		return errors.New("server sent invalid boss XP")
+	}
+	if b.Chain < 0 || b.Chain > 3 {
+		return errors.New("server sent invalid boss combo")
+	}
+	if len(b.Tail) > simulation.BossMaxTail || b.Level < 1 || b.Level > simulation.MaxLevel || b.HP < 0 || b.HP > b.MaxHP || b.MaxHP > simulation.BossMaxHP || b.MaxHP <= 0 || b.Countdown < 0 || b.Countdown > simulation.BossCountdown {
+		return errors.New("server sent invalid boss stats")
+	}
+	for _, v := range []float64{b.X, b.Y, b.HP, b.MaxHP, b.Countdown, b.XP, b.AttackTarget.X, b.AttackTarget.Y} {
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return errors.New("server sent invalid boss values")
+		}
+	}
+	if !simulation.InsideArena(b.X, b.Y, simulation.BossSize) {
+		return errors.New("server sent boss outside arena")
+	}
+	for _, segment := range b.Tail {
+		if math.IsNaN(segment.X) || math.IsNaN(segment.Y) || !simulation.InsideArena(segment.X, segment.Y, simulation.BossSize) {
+			return errors.New("server sent invalid boss tail")
+		}
+	}
+	return nil
 }

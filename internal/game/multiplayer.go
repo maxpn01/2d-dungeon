@@ -60,13 +60,22 @@ func (m *multiplayer) poll() {
 	}
 }
 
-func (m *multiplayer) readInput(dt float32, mapOpen bool) {
+func (m *multiplayer) readInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 	if !mapOpen {
 		m.chat.update(m)
 	}
 	direction := protocol.Direction{}
 	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.open && !mapOpen {
 		direction.Dash = rl.IsKeyPressed(rl.KeyLeftShift)
+		center := rl.NewVector2(float32(m.view.Local.X+m.view.Local.Size/2), float32(m.view.Local.Y+m.view.Local.Size/2))
+		for _, p := range m.rendered {
+			if p.ID == m.view.PlayerID {
+				center = rl.NewVector2(float32(p.X+p.Size/2), float32(p.Y+p.Size/2))
+				break
+			}
+		}
+		aim := mouseAim(camera, center, m.view.Local.Combat.Facing)
+		direction.AimX, direction.AimY = float64(aim.X), float64(aim.Y)
 		if rl.IsKeyDown(rl.KeyW) {
 			direction.Y--
 		}
@@ -151,6 +160,10 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 			drawTextAt(label, rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 		}
 	}
+	drawEncounter(m.view.Boss, &m.gameMap.exploration)
+	for _, p := range m.view.Players {
+		drawTeleportCharge(p.X, p.Y, p.TeleportCharge)
+	}
 	m.feedback.draw(time.Now(), &m.gameMap.exploration)
 	rl.EndMode2D()
 	drawDungeonLocation(camera.Target.X, camera.Target.Y, window.width, window.height)
@@ -172,6 +185,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		xp: float32(stats.XP), nextXP: float32(simulation.XPForNextLevel(stats.Level)),
 		speed: float32(stats.Speed), fruit: len(m.view.Fruits), ais: len(m.view.AIs), players: alive,
 	}, window.width)
+	drawBossHUD(m.view.Boss, m.view.Local.X, m.view.Local.Y, window.width)
 	m.drawMinimap(window.width)
 	m.chat.draw(window, m.session.Chat())
 }

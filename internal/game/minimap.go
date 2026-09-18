@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"math"
 
+	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/terrain"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -166,6 +167,7 @@ func (w *World) drawRadar(v radarView) {
 			v.marker(entityCenter(ai.pos, ai.size), 3, rl.Green)
 		}
 	}
+	v.bossMarker(w.snapshot.Boss)
 	v.end(entityCenter(w.player.pos, w.player.size))
 }
 
@@ -201,7 +203,14 @@ func (m *multiplayer) drawRadar(windowWidth, windowHeight int32) {
 				v.marker(center(player.X, player.Y, player.Size), 3, rl.SkyBlue)
 			}
 		}
+		v.bossMarker(m.view.Boss)
 		v.end(center(local.X, local.Y, local.Size))
 		return
+	}
+}
+
+func (v radarView) bossMarker(b simulation.Boss) {
+	if b.Phase != "defeated" && b.Phase != "" {
+		v.marker(rl.NewVector2(float32(b.X+simulation.BossSize/2), float32(b.Y+simulation.BossSize/2)), 5, rl.Gold)
 	}
 }

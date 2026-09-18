@@ -21,24 +21,30 @@ const (
 )
 
 type Direction struct {
-	Dash bool
-	X, Y float64
+	Dash       bool
+	AimX, AimY float64
+	X, Y       float64
 }
 
 func (d Direction) Valid() bool {
 	return !math.IsNaN(d.X) && !math.IsNaN(d.Y) &&
 		!math.IsInf(d.X, 0) && !math.IsInf(d.Y, 0) &&
+		!math.IsNaN(d.AimX) && !math.IsNaN(d.AimY) && !math.IsInf(d.AimX, 0) && !math.IsInf(d.AimY, 0) && math.Abs(d.AimX) <= 1 && math.Abs(d.AimY) <= 1 &&
 		math.Abs(d.X) <= 1 && math.Abs(d.Y) <= 1
 }
 
 type Player struct {
-	Combat   CombatState
-	Dead     bool
-	KilledBy string
-	Stats    Stats
-	InputSeq uint64
-	ID       string
-	X, Y     float64
+	GatesClosed    bool
+	InArena        bool
+	TeleportCharge float64
+	portalCooldown int
+	Combat         CombatState
+	Dead           bool
+	KilledBy       string
+	Stats          Stats
+	InputSeq       uint64
+	ID             string
+	X, Y           float64
 }
 
 type command struct {
@@ -55,6 +61,8 @@ type playerState struct {
 }
 
 type World struct {
+	boss           Boss
+	bossHitUntil   map[string]uint64
 	ais            []aiState
 	nextAI         uint64
 	fruits         []Fruit
@@ -68,7 +76,7 @@ type World struct {
 }
 
 func NewWorld() *World {
-	w := &World{patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
+	w := &World{boss: newBoss(), bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
 	for _, p := range terrain.Patches {
 		for range p.Capacity {
 			w.spawnPatchFruit(p)
@@ -85,7 +93,7 @@ func (w *World) Join(id string) {
 	x, y := w.spawnPosition(w.nextSpawn)
 	w.nextSpawn++
 	w.players[id] = &playerState{Player: Player{
-		Stats: NewStats(), ID: id, X: x, Y: y,
+		Stats: NewStats(), ID: id, X: x, Y: y, GatesClosed: w.boss.Phase == "fighting",
 	}}
 }
 
@@ -144,7 +152,7 @@ func (w *World) Step(now time.Time) {
 			delete(w.protectedUntil, id)
 		}
 	}
-	if w.aiSpawnTicks > 0 && len(w.players) > 0 {
+	if w.aiSpawnTicks > 0 {
 		w.aiSpawnTicks--
 		if w.aiSpawnTicks == 0 {
 			w.spawnAIs()
@@ -182,8 +190,13 @@ func (w *World) Step(now time.Time) {
 		previousAIs[i] = position{ai.X, ai.Y}
 	}
 	w.updateAIs()
+	w.updateBoss(previous)
 	eaters := w.eaters(previous, previousAIs)
 	w.resolvePredation(eaters)
+	for id, p := range w.players {
+		old := previous[id]
+		ConstrainArena(&p.Player, old.x, old.y)
+	}
 	for i := range eaters {
 		e := &eaters[i]
 		if e.player != nil {
@@ -193,9 +206,11 @@ func (w *World) Step(now time.Time) {
 		}
 	}
 	w.consumeFruits(eaters)
+	w.updatePortals()
 }
 
 type Snapshot struct {
+	Boss    Boss
 	AIs     []AI
 	Tick    uint64
 	Players []Player
@@ -217,7 +232,9 @@ func (w *World) Snapshot() Snapshot {
 		}
 		ais = append(ais, ai.AI)
 	}
-	return Snapshot{Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	boss := w.boss
+	boss.Tail = append([]Point(nil), boss.Tail...)
+	return Snapshot{Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }
