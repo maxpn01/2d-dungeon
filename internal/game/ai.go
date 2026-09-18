@@ -33,9 +33,8 @@ func (ai *AI) draw() {
 	if ai.isDeadFlag {
 		return
 	}
-	rl.DrawRectangleV(ai.pos, ai.size, ai.color)
-	drawCombat(float64(ai.pos.X), float64(ai.pos.Y), float64(ai.size.X), ai.combat)
-	drawTextAt(fmt.Sprintf("AI Lv.%d %s", ai.stats.lvl, ai.actionState), rl.NewVector2(ai.pos.X, ai.pos.Y-22), 18, rl.RayWhite)
+	bounds := drawActor(float64(ai.pos.X), float64(ai.pos.Y), float64(ai.size.X), float64(ai.stats.hp), ai.combat, ai.color)
+	drawTextAt(fmt.Sprintf("AI Lv.%d %s", ai.stats.lvl, ai.actionState), rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 }
 
 func (state AIActionState) String() string {

@@ -15,6 +15,7 @@ type GameObject interface {
 }
 
 type World struct {
+	feedback         combatFeedback
 	gameMap          *Map
 	player           *Player
 	fruitSpawner     *FruitSpawner
@@ -76,6 +77,7 @@ func gameStats(s simulation.Stats) PlayerStats {
 
 func (w *World) syncSimulation() {
 	snapshot := w.simulation.Snapshot()
+	w.feedback.snapshot(time.Now(), snapshot)
 	w.previousSnapshot, w.snapshot = w.snapshot, snapshot
 	p := snapshot.Players[0]
 	previous := make(map[string]rl.Vector2)
@@ -111,7 +113,7 @@ func (w *World) syncSimulation() {
 	}
 	w.fruitSpawner.fruits = nil
 	for _, fruit := range snapshot.Fruits {
-		w.fruitSpawner.fruits = append(w.fruitSpawner.fruits, Fruit{pos: rl.NewVector2(float32(fruit.X), float32(fruit.Y)), size: rl.NewVector2(float32(fruit.Size), float32(fruit.Size)), color: massColor(fruit.Source, "player")})
+		w.fruitSpawner.fruits = append(w.fruitSpawner.fruits, Fruit{mass: fruit.Source != "", pos: rl.NewVector2(float32(fruit.X), float32(fruit.Y)), size: rl.NewVector2(float32(fruit.Size), float32(fruit.Size)), color: massColor(fruit.Source, "player")})
 	}
 }
 
@@ -124,21 +126,22 @@ func (w *World) draw(ctx RenderContext) {
 		}
 		entity.draw()
 	}
+	w.feedback.draw(time.Now())
 	if w.eating != nil {
 		prey, killer := w.eating.actors(time.Now())
 		ai := *w.eatingAI
 		ai.pos = rl.NewVector2(float32(killer.X), float32(killer.Y))
 		ai.draw()
 		if prey.Size > 0 {
-			rl.DrawRectangleV(rl.NewVector2(float32(prey.X), float32(prey.Y)), rl.NewVector2(float32(prey.Size), float32(prey.Size)), w.player.color)
+			drawActor(prey.X, prey.Y, prey.Size, prey.Stats.HP, simulation.CombatState{}, w.player.color)
 		}
 	}
 }
 
 func (w *World) startEating(ai *AI, start rl.Vector2) {
 	p := w.player
-	prey := protocol.Player{ID: "player", KilledBy: "ai", Dead: true, X: float64(p.pos.X), Y: float64(p.pos.Y), Size: float64(p.size.X)}
-	killer := protocol.AI{ID: "ai", X: float64(ai.pos.X), Y: float64(ai.pos.Y), Size: float64(ai.size.X)}
+	prey := protocol.Player{ID: "player", KilledBy: "ai", Dead: true, X: float64(p.pos.X), Y: float64(p.pos.Y), Size: float64(p.size.X), Stats: protocol.PlayerStats{HP: float64(p.stats.hp)}}
+	killer := protocol.AI{ID: "ai", X: float64(ai.pos.X), Y: float64(ai.pos.Y), Size: float64(ai.size.X), Stats: protocol.PlayerStats{HP: float64(ai.stats.hp)}}
 	previous := killer
 	previous.X, previous.Y = float64(start.X), float64(start.Y)
 	w.eating = newEatingScene(time.Now(), client.Update{Local: prey, PlayerID: prey.ID, AIs: []protocol.AI{killer}}, []protocol.Player{prey}, []protocol.AI{previous})

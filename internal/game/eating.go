@@ -6,6 +6,7 @@ import (
 
 	"raylib-2d-sandbox/internal/client"
 	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/simulation"
 )
 
 const (
@@ -36,7 +37,7 @@ func newEatingScene(now time.Time, update client.Update, players []protocol.Play
 	}
 	for _, ai := range update.AIs {
 		if ai.ID == update.Local.KilledBy {
-			scene.killer = protocol.Player{ID: ai.ID, X: ai.X, Y: ai.Y, Size: ai.Size}
+			scene.killer = protocol.Player{ID: ai.ID, X: ai.X, Y: ai.Y, Size: ai.Size, Stats: ai.Stats}
 			scene.killerAI = true
 			scene.killerBot = ai
 		}
@@ -74,11 +75,14 @@ func (s *eatingScene) actors(now time.Time) (protocol.Player, protocol.Player) {
 	elapsed := max(time.Duration(0), now.Sub(s.started))
 	contact := min(1, float64(elapsed)/float64(eatingContactTime))
 	prey, killer := s.prey, s.killer
+	prey.Stats = s.preyStart.Stats
+	prey.Combat = simulation.CombatState{}
 	prey.X = s.preyStart.X + (prey.X-s.preyStart.X)*contact
 	prey.Y = s.preyStart.Y + (prey.Y-s.preyStart.Y)*contact
 	killer.X = s.killerStart.X + (killer.X-s.killerStart.X)*contact
 	killer.Y = s.killerStart.Y + (killer.Y-s.killerStart.Y)*contact
 	shrink := max(0, min(1, float64(elapsed-eatingContactTime)/float64(eatingShrinkTime)))
+	shrink = shrink * shrink * (3 - 2*shrink)
 	centerX, centerY := prey.X+prey.Size/2, prey.Y+prey.Size/2
 	if killer.ID != "" {
 		centerX += (killer.X + killer.Size/2 - centerX) * shrink

@@ -52,9 +52,8 @@ func NewPlayer(
 }
 
 func (p *Player) draw() {
-	rl.DrawRectangleV(p.pos, p.size, p.color)
-	drawCombat(float64(p.pos.X), float64(p.pos.Y), float64(p.size.X), p.combat)
-	drawTextAt(fmt.Sprintf("%s Lv.%d (you)", p.name, p.stats.lvl), rl.NewVector2(p.pos.X, p.pos.Y-22), 18, rl.RayWhite)
+	bounds := drawActor(float64(p.pos.X), float64(p.pos.Y), float64(p.size.X), float64(p.stats.hp), p.combat, p.color)
+	drawTextAt(fmt.Sprintf("%s Lv.%d (you)", p.name, p.stats.lvl), rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 }
 
 func (p *Player) readInput() {

@@ -13,6 +13,7 @@ import (
 )
 
 type multiplayer struct {
+	feedback    combatFeedback
 	renderedAIs []protocol.AI
 	motion      client.Motion
 	rendered    []protocol.Player
@@ -51,6 +52,7 @@ func (m *multiplayer) poll() {
 			}
 			return
 		}
+		m.feedback.multiplayer(time.Now(), update.Players, update.AIs, update.Fruits, update.PlayerID)
 		m.startEatingScenes(time.Now(), update)
 		m.view = update
 		m.motion.Apply(update)
@@ -122,12 +124,11 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	rl.BeginMode2D(camera)
 	m.gameMap.draw(RenderContext{Camera: camera, WindowWidth: window.width, WindowHeight: window.height})
 	for _, fruit := range m.view.Fruits {
-		rl.DrawRectangleV(rl.NewVector2(float32(fruit.X), float32(fruit.Y)), rl.NewVector2(float32(fruit.Size), float32(fruit.Size)), massColor(fruit.Source, m.view.PlayerID))
+		drawFruit(float32(fruit.X), float32(fruit.Y), float32(fruit.Size), massColor(fruit.Source, m.view.PlayerID), fruit.Source != "")
 	}
 	for _, ai := range m.renderedAIs {
-		drawCombat(ai.X, ai.Y, ai.Size, ai.Combat)
-		rl.DrawRectangleV(rl.NewVector2(float32(ai.X), float32(ai.Y)), rl.NewVector2(float32(ai.Size), float32(ai.Size)), rl.Green)
-		drawTextAt(fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior), rl.NewVector2(float32(ai.X), float32(ai.Y)-22), 18, rl.RayWhite)
+		bounds := drawActor(ai.X, ai.Y, ai.Size, ai.Stats.HP, ai.Combat, rl.Green)
+		drawTextAt(fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior), rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 	}
 	for _, player := range m.rendered {
 		tint := rl.SkyBlue
@@ -136,18 +137,17 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 			tint = rl.Red
 			label += " (you)"
 		}
-		rl.DrawRectangleV(rl.NewVector2(float32(player.X), float32(player.Y)), rl.NewVector2(float32(player.Size), float32(player.Size)), tint)
+		bounds := drawActor(player.X, player.Y, player.Size, player.Stats.HP, player.Combat, tint)
 		if !player.Dead {
-			drawCombat(player.X, player.Y, player.Size, player.Combat)
-			drawTextAt(label, rl.NewVector2(float32(player.X), float32(player.Y)-22), 18, rl.RayWhite)
+			drawTextAt(label, rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 		}
 	}
+	m.feedback.draw(time.Now())
 	rl.EndMode2D()
 	drawDungeonLocation(camera.Target.X, camera.Target.Y, window.width, window.height)
 	alive := 0
 	for _, player := range m.view.Players {
 		if !player.Dead {
-			drawCombat(player.X, player.Y, player.Size, player.Combat)
 			alive++
 		}
 	}
