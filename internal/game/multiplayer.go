@@ -125,6 +125,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		rl.DrawRectangleV(rl.NewVector2(float32(fruit.X), float32(fruit.Y)), rl.NewVector2(float32(fruit.Size), float32(fruit.Size)), massColor(fruit.Source, m.view.PlayerID))
 	}
 	for _, ai := range m.renderedAIs {
+		drawCombat(ai.X, ai.Y, ai.Size, ai.Combat)
 		rl.DrawRectangleV(rl.NewVector2(float32(ai.X), float32(ai.Y)), rl.NewVector2(float32(ai.Size), float32(ai.Size)), rl.Green)
 		drawTextAt(fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior), rl.NewVector2(float32(ai.X), float32(ai.Y)-22), 18, rl.RayWhite)
 	}

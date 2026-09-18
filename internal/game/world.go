@@ -88,8 +88,12 @@ func (w *World) syncSimulation() {
 	w.ais = nil
 	w.entities = []GameObject{w.player, w.fruitSpawner}
 	for _, state := range snapshot.AIs {
-		ai := &AI{id: state.ID, pos: rl.NewVector2(float32(state.X), float32(state.Y)), size: rl.NewVector2(simulation.AISize, simulation.AISize), color: rl.Green, stats: gameStats(state.Stats)}
+		ai := &AI{combat: state.Combat, id: state.ID, pos: rl.NewVector2(float32(state.X), float32(state.Y)), size: rl.NewVector2(simulation.AISize, simulation.AISize), color: rl.Green, stats: gameStats(state.Stats)}
 		switch state.Behavior {
+		case "attacking":
+			ai.actionState = ActionAttacking
+		case "evading":
+			ai.actionState = ActionEvading
 		case "sleeping":
 			ai.actionState = ActionSleeping
 		case "fleeing":

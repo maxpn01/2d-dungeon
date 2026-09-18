@@ -407,6 +407,9 @@ func validateAIs(ais []protocol.AI) error {
 			return errors.New("server sent invalid AI IDs")
 		}
 		ids[ai.ID] = true
+		if !validCombat(ai.Combat) {
+			return errors.New("server sent invalid AI combat state")
+		}
 		if !validStats(ai.Stats, simulation.AISpeed) {
 			return errors.New("server sent invalid AI stats")
 		}

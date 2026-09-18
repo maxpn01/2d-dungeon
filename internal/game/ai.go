@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"image/color"
+	"raylib-2d-sandbox/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -14,9 +15,12 @@ const (
 	ActionEating
 	ActionFleeing
 	ActionSleeping
+	ActionAttacking
+	ActionEvading
 )
 
 type AI struct {
+	combat      simulation.CombatState
 	id          string
 	pos, size   rl.Vector2
 	color       color.RGBA
@@ -30,6 +34,7 @@ func (ai *AI) draw() {
 		return
 	}
 	rl.DrawRectangleV(ai.pos, ai.size, ai.color)
+	drawCombat(float64(ai.pos.X), float64(ai.pos.Y), float64(ai.size.X), ai.combat)
 	drawTextAt(fmt.Sprintf("AI Lv.%d %s", ai.stats.lvl, ai.actionState), rl.NewVector2(ai.pos.X, ai.pos.Y-22), 18, rl.RayWhite)
 }
 
@@ -41,6 +46,10 @@ func (state AIActionState) String() string {
 		return "eating"
 	case ActionFleeing:
 		return "fleeing"
+	case ActionAttacking:
+		return "attacking"
+	case ActionEvading:
+		return "evading"
 	case ActionSleeping:
 		return "sleeping"
 	default:

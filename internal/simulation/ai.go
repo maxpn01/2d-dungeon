@@ -18,6 +18,7 @@ const (
 )
 
 type AI struct {
+	Combat   CombatState
 	Behavior string
 	ID       string
 	X, Y     float64
@@ -33,6 +34,8 @@ type aiState struct {
 	asleepTicks     int
 	escapeTicks     int
 	escapeDirection Direction
+	evadeTicks      int
+	evadeDirection  Direction
 }
 
 func (w *World) spawnAIs() {
@@ -52,53 +55,86 @@ func (w *World) updateAIs() {
 		if ai.respawnTick != 0 {
 			continue
 		}
-		threat, _ := w.nearestPlayer(ai, true)
-		if ai.updateSleep(threat != nil) {
-			continue
-		}
-		if threat != nil {
-			ai.Behavior = "fleeing"
-			ai.flee(threat)
-			continue
-		}
-		ai.escapeTicks = 0
-		prey, preyDistance := w.nearestPlayer(ai, false)
-		fruit, found := w.nearestFruit(ai)
-		fruitX, fruitY := fruit.X+fruit.Size/2-AISize/2, fruit.Y+fruit.Size/2-AISize/2
-		fruitDistance := (fruitX-ai.X)*(fruitX-ai.X) + (fruitY-ai.Y)*(fruitY-ai.Y)
-		if prey != nil && (!found || preyDistance <= fruitDistance) {
-			ai.Behavior = "chasing"
-			ai.approach(prey.X, prey.Y)
-			continue
-		}
-		if found {
-			ai.Behavior = "seeking"
-			ai.approach(fruitX, fruitY)
-			continue
-		}
-		ai.Behavior = "wandering"
-		if ai.wanderTicks == 0 {
-			directions := [8]Direction{{X: 1}, {X: -1}, {Y: 1}, {Y: -1}, {X: 1, Y: 1}, {X: 1, Y: -1}, {X: -1, Y: 1}, {X: -1, Y: -1}}
-			ai.direction = directions[rand.IntN(len(directions))]
-			ai.wanderTicks = 2*TickRate + rand.IntN(2*TickRate+1)
-		}
-		d := ai.direction
-		if ai.X <= MapMin {
-			d.X = math.Abs(d.X)
-		}
-		if ai.X >= MapMax-AISize {
-			d.X = -math.Abs(d.X)
-		}
-		if ai.Y <= MapMin {
-			d.Y = math.Abs(d.Y)
-		}
-		if ai.Y >= MapMax-AISize {
-			d.Y = -math.Abs(d.Y)
-		}
-		ai.direction = d
-		ai.X, ai.Y = Move(ai.X, ai.Y, d, StepSeconds, ai.Stats.Speed)
-		ai.wanderTicks--
+		input := w.aiInput(ai)
+		actor := Player{X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat}
+		AdvancePlayer(&actor, input, StepSeconds)
+		ai.X, ai.Y, ai.Stats, ai.Combat = actor.X, actor.Y, actor.Stats, actor.Combat
 	}
+}
+
+func (w *World) aiInput(ai *aiState) Direction {
+	incoming := w.incomingDash(ai)
+	threat, _ := w.nearestPlayer(ai, true)
+	if ai.updateSleep(threat != nil || incoming != nil || ai.evadeTicks > 0 || ai.Combat.Phase != DashIdle) {
+		return Direction{}
+	}
+	if ai.evadeTicks > 0 {
+		ai.evadeTicks--
+		ai.Behavior = "evading"
+		return ai.evadeDirection
+	}
+	if incoming != nil {
+		ai.Behavior = "evading"
+		ai.wanderTicks, ai.escapeTicks = 0, 0
+		d := ai.evade(incoming)
+		duration := incoming.Combat.Remaining
+		if incoming.Combat.Phase == DashWinding {
+			duration += DashBurst
+		}
+		ai.evadeTicks = int(math.Ceil(duration/StepSeconds)) + 1
+		ai.evadeDirection = Direction{X: d.X, Y: d.Y}
+		return d
+	}
+	if threat != nil {
+		if ai.canAttack(threat) {
+			ai.Behavior = "attacking"
+			d := ai.approach(threat.X, threat.Y)
+			d.Dash = true
+			return d
+		}
+		ai.Behavior = "fleeing"
+		return ai.flee(threat)
+	}
+	ai.escapeTicks = 0
+	prey, preyDistance := w.nearestPlayer(ai, false)
+	fruit, found := w.nearestFruit(ai)
+	fruitX, fruitY := fruit.X+fruit.Size/2-AISize/2, fruit.Y+fruit.Size/2-AISize/2
+	fruitDistance := (fruitX-ai.X)*(fruitX-ai.X) + (fruitY-ai.Y)*(fruitY-ai.Y)
+	if prey != nil && (!found || preyDistance <= fruitDistance) {
+		ai.Behavior = "chasing"
+		d := ai.approach(prey.X, prey.Y)
+		d.Dash = ai.canAttack(prey)
+		if d.Dash {
+			ai.Behavior = "attacking"
+		}
+		return d
+	}
+	if found {
+		ai.Behavior = "seeking"
+		return ai.approach(fruitX, fruitY)
+	}
+	ai.Behavior = "wandering"
+	if ai.wanderTicks == 0 {
+		directions := [8]Direction{{X: 1}, {X: -1}, {Y: 1}, {Y: -1}, {X: 1, Y: 1}, {X: 1, Y: -1}, {X: -1, Y: 1}, {X: -1, Y: -1}}
+		ai.direction = directions[rand.IntN(len(directions))]
+		ai.wanderTicks = 2*TickRate + rand.IntN(2*TickRate+1)
+	}
+	d := ai.direction
+	if ai.X <= MapMin {
+		d.X = math.Abs(d.X)
+	}
+	if ai.X >= MapMax-AISize {
+		d.X = -math.Abs(d.X)
+	}
+	if ai.Y <= MapMin {
+		d.Y = math.Abs(d.Y)
+	}
+	if ai.Y >= MapMax-AISize {
+		d.Y = -math.Abs(d.Y)
+	}
+	ai.direction = d
+	ai.wanderTicks--
+	return d
 }
 
 func (w *World) nearestFruit(ai *aiState) (Fruit, bool) {

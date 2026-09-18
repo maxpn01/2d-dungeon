@@ -53,8 +53,8 @@ func (w *World) resolvePredation(eaters []eater) {
 			}
 			stopped[a.id] = true
 			a.setPosition(a.end.x, a.end.y)
-			a.player.Combat.Attack = false
-			a.player.Combat.Phase, a.player.Combat.Remaining = DashRecovering, DashRecovery
+			a.combat().Attack = false
+			a.combat().Phase, a.combat().Remaining = DashRecovering, DashRecovery
 			if a.stats.HP >= b.stats.HP && a.stats.HP > 0 {
 				a.stats.Eat(b.stats.HP*ActorHPFraction, b.stats.HP)
 				b.die(a.id, w.tick)
@@ -77,7 +77,14 @@ func (w *World) resolvePredation(eaters []eater) {
 	}
 }
 
-func (e eater) attacking() bool { return e.player != nil && e.player.Combat.Attack }
+func (e eater) combat() *CombatState {
+	if e.player != nil {
+		return &e.player.Combat
+	}
+	return &e.ai.Combat
+}
+
+func (e eater) attacking() bool { return e.combat().Attack }
 
 func (e eater) setPosition(x, y float64) {
 	if e.player != nil {
@@ -101,10 +108,8 @@ func (w *World) separate(a, b eater) {
 		x, y := MoveBy(e.end.x, e.end.y, Direction{X: sign * dx / length, Y: sign * dy / length}, PlayerSize)
 		e.setPosition(x, y)
 		w.protectedUntil[e.id] = w.tick + HitProtectionTicks
-		if e.player != nil {
-			e.player.Combat.Attack = false
-			e.player.Combat.Phase, e.player.Combat.Remaining = DashRecovering, DashRecovery
-		}
+		e.combat().Attack = false
+		e.combat().Phase, e.combat().Remaining = DashRecovering, DashRecovery
 	}
 }
 
@@ -162,7 +167,7 @@ func (w *World) nearestPlayer(ai *aiState, threat bool) (*playerState, float64) 
 	best := radius * radius
 	var selected *playerState
 	for _, player := range w.players {
-		if player.Dead || threat && player.Stats.HP <= ai.Stats.HP || !threat && player.Stats.HP >= ai.Stats.HP {
+		if player.Dead || threat && player.Stats.HP <= ai.Stats.HP || !threat && player.Stats.HP > ai.Stats.HP {
 			continue
 		}
 		dx, dy := player.X-ai.X, player.Y-ai.Y
@@ -174,16 +179,16 @@ func (w *World) nearestPlayer(ai *aiState, threat bool) (*playerState, float64) 
 	return selected, best
 }
 
-func (ai *aiState) approach(x, y float64) {
-	dx, dy := x-ai.X, y-ai.Y
-	distance := math.Hypot(dx, dy)
-	if distance > 0 {
-		ai.X, ai.Y = Move(ai.X, ai.Y, Direction{X: dx / distance, Y: dy / distance}, min(StepSeconds, distance/(ai.Stats.Speed*SpeedScale)), ai.Stats.Speed)
-	}
+func (ai *aiState) approach(x, y float64) Direction {
 	ai.wanderTicks = 0
+	dx, dy := x-ai.X, y-ai.Y
+	if distance := math.Hypot(dx, dy); distance > 0 {
+		return Direction{X: dx / distance, Y: dy / distance}
+	}
+	return Direction{}
 }
 
-func (ai *aiState) flee(player *playerState) {
+func (ai *aiState) flee(player *playerState) Direction {
 	dx, dy := ai.X-player.X, ai.Y-player.Y
 	length := math.Hypot(dx, dy)
 	d := Direction{X: 1}
@@ -210,6 +215,6 @@ func (ai *aiState) flee(player *playerState) {
 		}
 		ai.escapeDirection, ai.escapeTicks = d, 9
 	}
-	ai.X, ai.Y = Move(ai.X, ai.Y, d, StepSeconds, ai.Stats.Speed)
 	ai.wanderTicks = 0
+	return d
 }
