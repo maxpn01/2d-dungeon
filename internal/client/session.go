@@ -92,6 +92,7 @@ func (s *Session) Close()                 { s.cancel() }
 
 func (s *Session) SetInput(direction protocol.Direction) {
 	s.inputMu.Lock()
+	direction.Dash = direction.Dash || s.direction.Dash
 	s.direction, s.inputAt = direction, time.Now()
 	s.inputMu.Unlock()
 }
@@ -151,9 +152,12 @@ func (s *Session) input() protocol.Direction {
 	s.inputMu.Lock()
 	defer s.inputMu.Unlock()
 	if time.Since(s.inputAt) > 150*time.Millisecond {
+		s.direction = protocol.Direction{}
 		return protocol.Direction{}
 	}
-	return s.direction
+	direction := s.direction
+	s.direction.Dash = false
+	return direction
 }
 
 func (s *Session) publish(update Update) {
@@ -247,7 +251,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 				sequence := s.sequence
 				s.pending = append(s.pending, sentInput{sequence, direction})
 				if s.predictionReady {
-					s.predicted.X, s.predicted.Y = simulation.Move(s.predicted.X, s.predicted.Y, simulation.Direction{X: direction.X, Y: direction.Y, Sprint: direction.Sprint}, simulation.StepSeconds, s.predicted.Stats.Speed)
+					predictPlayer(&s.predicted, direction)
 				}
 				s.inputMu.Unlock()
 				writeCtx, finish := context.WithTimeout(ioCtx, 3*time.Second)
@@ -320,7 +324,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 			s.pending = nil
 		}
 		for _, input := range s.pending {
-			local.X, local.Y = simulation.Move(local.X, local.Y, simulation.Direction{X: input.direction.X, Y: input.direction.Y, Sprint: input.direction.Sprint}, simulation.StepSeconds, local.Stats.Speed)
+			predictPlayer(&local, input.direction)
 		}
 		s.predicted, s.predictionReady = local, !s.dead
 		s.inputMu.Unlock()
@@ -343,6 +347,9 @@ func validatePlayers(players []protocol.Player, localID string) error {
 				return errors.New("server sent an invalid player position or size")
 			}
 		}
+		if !validCombat(player.Combat) {
+			return errors.New("server sent invalid combat state")
+		}
 		if player.Size <= 0 {
 			return errors.New("server sent an invalid player size")
 		}
@@ -354,7 +361,7 @@ func validatePlayers(players []protocol.Player, localID string) error {
 }
 
 func validateFruits(fruits []protocol.Fruit) error {
-	if len(fruits) > simulation.MaxFruits {
+	if len(fruits) > simulation.MaxFruits+simulation.MaxMassDrops {
 		return errors.New("server sent too many fruits")
 	}
 	ids := make(map[string]bool, len(fruits))
@@ -368,8 +375,10 @@ func validateFruits(fruits []protocol.Fruit) error {
 				return errors.New("server sent invalid fruit coordinates")
 			}
 		}
-		if fruit.Size <= 0 || fruit.X < simulation.MapMin || fruit.Y < simulation.MapMin ||
-			fruit.X+fruit.Size > simulation.MapMax || fruit.Y+fruit.Size > simulation.MapMax {
+		if fruit.Source != "" && (math.IsNaN(fruit.HP) || fruit.HP <= 0 || fruit.HP > 1) {
+			return errors.New("server sent invalid mass pickup")
+		}
+		if fruit.Size <= 0 || !terrain.Walkable(fruit.X, fruit.Y, fruit.Size, fruit.Size) {
 			return errors.New("server sent fruit outside the map")
 		}
 	}
@@ -378,7 +387,7 @@ func validateFruits(fruits []protocol.Fruit) error {
 
 func validStats(stats protocol.PlayerStats, baseSpeed float64) bool {
 	if stats.Level < 1 || stats.Level > simulation.MaxLevel || math.IsNaN(stats.XP) || math.IsInf(stats.XP, 0) ||
-		stats.XP < 0 || stats.HP <= 0 || stats.HP > simulation.MaxHPForLevel(stats.Level) || math.IsNaN(stats.HP) ||
+		stats.XP < 0 || stats.HP < 0 || stats.HP > simulation.MaxHPForLevel(stats.Level) || math.IsNaN(stats.HP) ||
 		stats.Speed != baseSpeed {
 		return false
 	}
@@ -411,4 +420,30 @@ func validateAIs(ais []protocol.AI) error {
 		}
 	}
 	return nil
+}
+
+func predictPlayer(player *protocol.Player, input protocol.Direction) {
+	p := simulation.Player{X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, Speed: player.Stats.Speed}}
+	simulation.AdvancePlayer(&p, simulation.Direction{X: input.X, Y: input.Y, Dash: input.Dash}, simulation.StepSeconds)
+	player.X, player.Y, player.Combat, player.Stats.HP = p.X, p.Y, p.Combat, p.Stats.HP
+}
+
+func validCombat(c simulation.CombatState) bool {
+	if !c.Facing.Valid() || !c.Direction.Valid() || c.Facing.Dash || c.Direction.Dash || math.IsNaN(c.Remaining) || math.IsInf(c.Remaining, 0) || c.Remaining < 0 {
+		return false
+	}
+	switch c.Phase {
+	case simulation.DashIdle:
+		return c.Remaining == 0
+	case simulation.DashWinding:
+		return c.Remaining <= simulation.DashWindup
+	case simulation.DashRushing:
+		return c.Remaining <= simulation.DashBurst
+	case simulation.DashRecovering:
+		return c.Remaining <= simulation.DashRecovery
+	case simulation.DashBumped:
+		return c.Remaining <= simulation.BumpStun
+	default:
+		return false
+	}
 }

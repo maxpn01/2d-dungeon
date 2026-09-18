@@ -1,54 +1,36 @@
 package game
 
 import (
-	"math/rand"
 	"raylib-2d-sandbox/internal/client"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
+	"raylib-2d-sandbox/internal/terrain"
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type GameObject interface {
-	update(w *World, dt float32)
 	draw()
 }
 
 type World struct {
-	gameMap        *Map
-	player         *Player
-	fruitSpawner   *FruitSpawner
-	ais            []*AI
-	entities       []GameObject
-	aiSpawnSeconds float32
-	eating         *eatingScene
-	eatingAI       *AI
-}
-
-func NewDefaultAI(mapSize rl.Vector2) *AI {
-	size := rl.NewVector2(30, 30)
-	x := 10 + float32(rand.Intn(int(mapSize.X-size.X-20)))
-	y := 10 + float32(rand.Intn(int(mapSize.Y-size.Y-20)))
-
-	return NewAI(
-		rl.NewVector2(x, y),
-		size,
-		rl.Green,
-		AIStats{
-			lvl:    1,
-			hp:     simulation.StartingHP,
-			speed:  simulation.AISpeed,
-			maxLvl: simulation.MaxLevel,
-			maxHP:  simulation.StartingMaxHP,
-		},
-		300,
-		simulation.AIAwakeSeconds, simulation.AIAsleepSeconds,
-	)
+	gameMap          *Map
+	player           *Player
+	fruitSpawner     *FruitSpawner
+	ais              []*AI
+	entities         []GameObject
+	simulation       *simulation.World
+	accumulator      float64
+	previousSnapshot simulation.Snapshot
+	snapshot         simulation.Snapshot
+	eating           *eatingScene
+	eatingAI         *AI
 }
 
 func NewWorld() *World {
-	w := &World{aiSpawnSeconds: simulation.InitialAISpawnDelay}
+	w := &World{simulation: simulation.NewWorld()}
+	w.simulation.Join("player")
 	w.gameMap = NewMap(
 		rl.NewVector2(200, 200),
 		rl.NewVector2(10, 10),
@@ -59,71 +41,73 @@ func NewWorld() *World {
 		rl.NewVector2(30, 30),
 		rl.Red,
 		PlayerStats{
-			lvl:              1,
-			hp:               simulation.StartingHP,
-			speed:            simulation.PlayerSpeed,
-			sprintMultiplier: simulation.SprintMultiplier,
-			maxLvl:           simulation.MaxLevel,
-			maxHP:            simulation.StartingMaxHP,
+			lvl:    1,
+			hp:     simulation.StartingHP,
+			speed:  simulation.PlayerSpeed,
+			maxLvl: simulation.MaxLevel,
+			maxHP:  simulation.StartingMaxHP,
 		},
 	)
-	w.fruitSpawner = NewFruitSpawner(
-		rl.NewVector2(15, 15),
-		rl.Yellow,
-		1, 20,
-	)
+	w.fruitSpawner = &FruitSpawner{}
 
-	w.entities = []GameObject{w.player, w.fruitSpawner}
+	w.syncSimulation()
 	w.gameMap.exploration.reveal(entityCenter(w.player.pos, w.player.size))
 	return w
 }
 
-const maxSimulationStep float32 = 1.0 / 120
-
 func (w *World) update(dt float32) {
-	for dt > 0 && !w.player.isDeadFlag {
-		step := min(dt, maxSimulationStep)
+	w.accumulator += float64(min(dt, 0.25))
+	for w.accumulator >= simulation.StepSeconds && !w.player.isDeadFlag {
+		now := time.Now()
+		input := w.player.input
+		w.simulation.Input("player", simulation.Direction{X: float64(input.Direction.X), Y: float64(input.Direction.Y), Dash: input.Dash}, now)
+		w.player.input.Dash = false
+		w.simulation.Step(now)
+		w.accumulator -= simulation.StepSeconds
+		w.syncSimulation()
+	}
+	w.interpolateActors()
+	w.gameMap.exploration.reveal(entityCenter(w.player.pos, w.player.size))
+}
 
-		if w.aiSpawnSeconds > 0 {
-			w.aiSpawnSeconds = max(0, w.aiSpawnSeconds-step)
-			if w.aiSpawnSeconds == 0 {
-				for range simulation.InitialAIs {
-					ai := NewDefaultAI(w.gameMap.size)
-					w.ais = append(w.ais, ai)
-					w.entities = append(w.entities, ai)
-				}
-			}
+func gameStats(s simulation.Stats) PlayerStats {
+	return PlayerStats{lvl: s.Level, exp: s.XP, hp: float32(s.HP), speed: float32(s.Speed), maxLvl: simulation.MaxLevel, maxHP: float32(simulation.MaxHPForLevel(s.Level))}
+}
+
+func (w *World) syncSimulation() {
+	snapshot := w.simulation.Snapshot()
+	w.previousSnapshot, w.snapshot = w.snapshot, snapshot
+	p := snapshot.Players[0]
+	previous := make(map[string]rl.Vector2)
+	for _, ai := range w.ais {
+		previous[ai.id] = ai.pos
+	}
+	w.player.pos = rl.NewVector2(float32(p.X), float32(p.Y))
+	w.player.stats, w.player.combat = gameStats(p.Stats), p.Combat
+	w.player.isDeadFlag = p.Dead
+	w.ais = nil
+	w.entities = []GameObject{w.player, w.fruitSpawner}
+	for _, state := range snapshot.AIs {
+		ai := &AI{id: state.ID, pos: rl.NewVector2(float32(state.X), float32(state.Y)), size: rl.NewVector2(simulation.AISize, simulation.AISize), color: rl.Green, stats: gameStats(state.Stats)}
+		switch state.Behavior {
+		case "sleeping":
+			ai.actionState = ActionSleeping
+		case "fleeing":
+			ai.actionState = ActionFleeing
 		}
-
-		for _, entity := range w.entities {
-			if w.player.isDeadFlag {
-				return
+		w.ais = append(w.ais, ai)
+		w.entities = append(w.entities, ai)
+		if p.Dead && p.KilledBy == state.ID && w.eating == nil {
+			start, ok := previous[state.ID]
+			if !ok {
+				start = ai.pos
 			}
-
-			var aiStart rl.Vector2
-			if ai, ok := entity.(*AI); ok {
-				aiStart = ai.pos
-			}
-			entity.update(w, step)
-			if w.player.isDeadFlag {
-				if ai, ok := entity.(*AI); ok {
-					w.startEating(ai, aiStart)
-				}
-				return
-			}
+			w.startEating(ai, start)
 		}
-
-		for _, ai := range w.ais {
-			if ai.isDeadFlag {
-				ai.respawnSeconds = max(0, ai.respawnSeconds-step)
-				if ai.respawnSeconds == 0 {
-					*ai = *NewDefaultAI(w.gameMap.size)
-				}
-			}
-		}
-
-		w.gameMap.exploration.reveal(entityCenter(w.player.pos, w.player.size))
-		dt -= step
+	}
+	w.fruitSpawner.fruits = nil
+	for _, fruit := range snapshot.Fruits {
+		w.fruitSpawner.fruits = append(w.fruitSpawner.fruits, Fruit{pos: rl.NewVector2(float32(fruit.X), float32(fruit.Y)), size: rl.NewVector2(float32(fruit.Size), float32(fruit.Size)), color: massColor(fruit.Source, "player")})
 	}
 }
 
@@ -155,4 +139,26 @@ func (w *World) startEating(ai *AI, start rl.Vector2) {
 	previous.X, previous.Y = float64(start.X), float64(start.Y)
 	w.eating = newEatingScene(time.Now(), client.Update{Local: prey, PlayerID: prey.ID, AIs: []protocol.AI{killer}}, []protocol.Player{prey}, []protocol.AI{previous})
 	w.eatingAI = ai
+}
+
+func (w *World) interpolateActors() {
+	if w.player.isDeadFlag || len(w.previousSnapshot.Players) == 0 {
+		return
+	}
+	alpha := w.accumulator / simulation.StepSeconds
+	interpolate := func(ax, ay, bx, by float64) rl.Vector2 {
+		x, y := terrain.Move(ax, ay, (bx-ax)*alpha, (by-ay)*alpha, simulation.PlayerSize, simulation.PlayerSize)
+		return rl.NewVector2(float32(x), float32(y))
+	}
+	before, after := w.previousSnapshot.Players[0], w.snapshot.Players[0]
+	w.player.pos = interpolate(before.X, before.Y, after.X, after.Y)
+	for i, ai := range w.ais {
+		current := w.snapshot.AIs[i]
+		for _, previous := range w.previousSnapshot.AIs {
+			if ai.id == previous.ID {
+				ai.pos = interpolate(previous.X, previous.Y, current.X, current.Y)
+				break
+			}
+		}
+	}
 }

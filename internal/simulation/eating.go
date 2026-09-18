@@ -57,6 +57,13 @@ func (e eater) die(killer string, tick uint64) {
 func (w *World) consumeFruits(eaters []eater) {
 	remaining := w.fruits[:0]
 	for _, fruit := range w.fruits {
+		if fruit.ExpiresTick != 0 && w.tick >= fruit.ExpiresTick {
+			continue
+		}
+		if w.tick < fruit.AvailableTick {
+			remaining = append(remaining, fruit)
+			continue
+		}
 		winner := -1
 		earliest := math.Inf(1)
 		for i, actor := range eaters {
@@ -72,7 +79,11 @@ func (w *World) consumeFruits(eaters []eater) {
 		if winner < 0 {
 			remaining = append(remaining, fruit)
 		} else {
-			eaters[winner].stats.Eat(FruitHP, FruitXP)
+			hp := FruitHP
+			if fruit.Source != "" {
+				hp = fruit.HP
+			}
+			eaters[winner].stats.Eat(hp, FruitXP*hp)
 		}
 	}
 	w.fruits = remaining

@@ -1,26 +1,24 @@
 package simulation
 
 import (
+	"fmt"
 	"math"
+	"raylib-2d-sandbox/internal/terrain"
 	"sort"
 )
 
 type encounter struct {
 	first, second eater
 	time          float64
-	firstWins     bool
 }
 
 func (w *World) resolvePredation(eaters []eater) {
 	contacts := make([]encounter, 0)
 	for i, first := range eaters {
 		for _, second := range eaters[i+1:] {
-			if first.player == nil && second.player == nil || first.stats.HP == second.stats.HP {
-				continue
-			}
 			contact, hit := eatingContact(first.start, first.end, first.size, second.start, second.end, second.size)
 			if hit {
-				contacts = append(contacts, encounter{first: first, second: second, time: contact, firstWins: first.stats.HP > second.stats.HP})
+				contacts = append(contacts, encounter{first: first, second: second, time: contact})
 			}
 		}
 	}
@@ -34,19 +32,99 @@ func (w *World) resolvePredation(eaters []eater) {
 		}
 		return a.second.id < b.second.id
 	})
+	stopped := make(map[string]bool)
 	for _, hit := range contacts {
-		if hit.first.dead() || hit.second.dead() {
+		a, b := hit.first, hit.second
+		if stopped[a.id] || stopped[b.id] || a.dead() || b.dead() || w.tick < w.protectedUntil[a.id] || w.tick < w.protectedUntil[b.id] {
 			continue
 		}
-		predator, prey := hit.first, hit.second
-		if !hit.firstWins {
-			predator, prey = prey, predator
+		attackA, attackB := a.attacking(), b.attacking()
+		if attackA || attackB {
+			a.end = position{a.start.x + (a.end.x-a.start.x)*hit.time, a.start.y + (a.end.y-a.start.y)*hit.time}
+			b.end = position{b.start.x + (b.end.x-b.start.x)*hit.time, b.start.y + (b.end.y-b.start.y)*hit.time}
 		}
-		if predator.ai != nil && predator.ai.Behavior == "sleeping" {
+		if attackA && attackB {
+			w.separate(a, b)
 			continue
 		}
-		predator.stats.Eat(prey.stats.HP*ActorHPFraction, prey.stats.HP)
-		prey.die(predator.id, w.tick)
+		if attackA || attackB {
+			if attackB {
+				a, b = b, a
+			}
+			stopped[a.id] = true
+			a.setPosition(a.end.x, a.end.y)
+			a.player.Combat.Attack = false
+			a.player.Combat.Phase, a.player.Combat.Remaining = DashRecovering, DashRecovery
+			if a.stats.HP >= b.stats.HP && a.stats.HP > 0 {
+				a.stats.Eat(b.stats.HP*ActorHPFraction, b.stats.HP)
+				b.die(a.id, w.tick)
+			} else if a.stats.HP < b.stats.HP {
+				w.knockMass(b)
+				w.separate(a, b)
+			}
+			continue
+		}
+		if b.stats.HP > a.stats.HP {
+			a, b = b, a
+		}
+		if a.ai != nil && a.ai.Behavior == "sleeping" {
+			continue
+		}
+		if CanContactEat(a.stats.HP, b.stats.HP) {
+			a.stats.Eat(b.stats.HP*ActorHPFraction, b.stats.HP)
+			b.die(a.id, w.tick)
+		}
+	}
+}
+
+func (e eater) attacking() bool { return e.player != nil && e.player.Combat.Attack }
+
+func (e eater) setPosition(x, y float64) {
+	if e.player != nil {
+		e.player.X, e.player.Y = x, y
+	} else {
+		e.ai.X, e.ai.Y = x, y
+	}
+}
+
+func (w *World) separate(a, b eater) {
+	dx, dy := b.start.x-a.start.x, b.start.y-a.start.y
+	length := math.Hypot(dx, dy)
+	if length == 0 {
+		dx, dy, length = 1, 0, 1
+	}
+	for i, e := range []eater{a, b} {
+		sign := -1.0
+		if i == 1 {
+			sign = 1
+		}
+		x, y := MoveBy(e.end.x, e.end.y, Direction{X: sign * dx / length, Y: sign * dy / length}, PlayerSize)
+		e.setPosition(x, y)
+		w.protectedUntil[e.id] = w.tick + HitProtectionTicks
+		if e.player != nil {
+			e.player.Combat.Attack = false
+			e.player.Combat.Phase, e.player.Combat.Remaining = DashRecovering, DashRecovery
+		}
+	}
+}
+
+func (w *World) knockMass(target eater) {
+	amount := min(KnockedMass, target.stats.HP)
+	drops := 0
+	for _, f := range w.fruits {
+		if f.Source != "" {
+			drops++
+		}
+	}
+	for amount > 0 && drops < MaxMassDrops {
+		hp := min(1, amount)
+		angle := float64(drops) * 2.399963229728653
+		x, y := terrain.Move(target.end.x, target.end.y, math.Cos(angle)*45, math.Sin(angle)*45, FruitSize, FruitSize)
+		w.nextFruit++
+		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("m%d", w.nextFruit), X: x, Y: y, Size: FruitSize, Source: target.id, HP: hp, AvailableTick: w.tick + HitProtectionTicks, ExpiresTick: w.tick + 30*TickRate})
+		target.stats.HP -= hp
+		amount -= hp
+		drops++
 	}
 }
 

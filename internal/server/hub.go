@@ -64,7 +64,7 @@ func (h *Hub) Run(ctx context.Context) {
 			players := make([]protocol.Player, 0, len(snapshot.Players))
 			for _, state := range snapshot.Players {
 				players = append(players, protocol.Player{
-					Name: names[state.ID], Dead: state.Dead, KilledBy: state.KilledBy, ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
+					Combat: state.Combat, Name: names[state.ID], Dead: state.Dead, KilledBy: state.KilledBy, ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
 					Stats: protocol.PlayerStats{
 						Level: state.Stats.Level, XP: state.Stats.XP, HP: state.Stats.HP, Speed: state.Stats.Speed,
 					},
@@ -72,7 +72,7 @@ func (h *Hub) Run(ctx context.Context) {
 			}
 			fruits := make([]protocol.Fruit, 0, len(snapshot.Fruits))
 			for _, fruit := range snapshot.Fruits {
-				fruits = append(fruits, protocol.Fruit{ID: fruit.ID, X: fruit.X, Y: fruit.Y, Size: fruit.Size})
+				fruits = append(fruits, protocol.Fruit{Source: fruit.Source, HP: fruit.HP, ID: fruit.ID, X: fruit.X, Y: fruit.Y, Size: fruit.Size})
 			}
 			ais := make([]protocol.AI, 0, len(snapshot.AIs))
 			for _, ai := range snapshot.AIs {
@@ -123,7 +123,7 @@ func (h *Hub) Run(ctx context.Context) {
 			}
 			if event.message.Type == protocol.TypeInput {
 				d := event.message.Direction
-				if !world.Command(event.client.id, simulation.Direction{X: d.X, Y: d.Y, Sprint: d.Sprint}, event.message.Sequence, time.Now()) {
+				if !world.Command(event.client.id, simulation.Direction{X: d.X, Y: d.Y, Dash: d.Dash}, event.message.Sequence, time.Now()) {
 					remove(event.client)
 					broadcast()
 				}

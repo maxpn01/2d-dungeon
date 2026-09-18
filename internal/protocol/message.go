@@ -18,9 +18,9 @@ const (
 )
 
 type Direction struct {
-	Sprint bool    `json:"sprint,omitempty"`
-	X      float64 `json:"x"`
-	Y      float64 `json:"y"`
+	Dash bool    `json:"dash,omitempty"`
+	X    float64 `json:"x"`
+	Y    float64 `json:"y"`
 }
 
 type ClientMessage struct {
@@ -77,22 +77,25 @@ type PlayerStats struct {
 }
 
 type Player struct {
-	Name     string      `json:"name"`
-	Dead     bool        `json:"dead"`
-	KilledBy string      `json:"killed_by,omitempty"`
-	Stats    PlayerStats `json:"stats"`
-	InputSeq uint64      `json:"input_seq"`
-	ID       string      `json:"id"`
-	X        float64     `json:"x"`
-	Y        float64     `json:"y"`
-	Size     float64     `json:"size"`
+	Combat   simulation.CombatState `json:"combat"`
+	Name     string                 `json:"name"`
+	Dead     bool                   `json:"dead"`
+	KilledBy string                 `json:"killed_by,omitempty"`
+	Stats    PlayerStats            `json:"stats"`
+	InputSeq uint64                 `json:"input_seq"`
+	ID       string                 `json:"id"`
+	X        float64                `json:"x"`
+	Y        float64                `json:"y"`
+	Size     float64                `json:"size"`
 }
 
 type Fruit struct {
-	ID   string  `json:"id"`
-	X    float64 `json:"x"`
-	Y    float64 `json:"y"`
-	Size float64 `json:"size"`
+	Source string  `json:"source,omitempty"`
+	HP     float64 `json:"hp,omitempty"`
+	ID     string  `json:"id"`
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
+	Size   float64 `json:"size"`
 }
 
 type AI struct {

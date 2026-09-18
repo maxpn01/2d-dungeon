@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"image/color"
 	"raylib-2d-sandbox/internal/simulation"
-	"raylib-2d-sandbox/internal/terrain"
-	"slices"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -14,9 +12,8 @@ type PlayerStats struct {
 	lvl int
 	exp float64
 
-	hp               float32
-	speed            float32
-	sprintMultiplier float32
+	hp    float32
+	speed float32
 
 	maxLvl int
 	maxHP  float32
@@ -24,15 +21,16 @@ type PlayerStats struct {
 
 type PlayerInput struct {
 	Direction rl.Vector2
-	Sprint    bool
+	Dash      bool
 }
 
 type Player struct {
-	name  string
-	input PlayerInput
-	pos   rl.Vector2
-	size  rl.Vector2
-	color color.RGBA
+	combat simulation.CombatState
+	name   string
+	input  PlayerInput
+	pos    rl.Vector2
+	size   rl.Vector2
+	color  color.RGBA
 
 	stats PlayerStats
 
@@ -53,18 +51,14 @@ func NewPlayer(
 	}
 }
 
-func (p *Player) update(w *World, dt float32) {
-	p.move(dt)
-	p.handleFoodCollision(w.fruitSpawner, w.ais)
-}
-
 func (p *Player) draw() {
 	rl.DrawRectangleV(p.pos, p.size, p.color)
+	drawCombat(float64(p.pos.X), float64(p.pos.Y), float64(p.size.X), p.combat)
 	drawTextAt(fmt.Sprintf("%s Lv.%d (you)", p.name, p.stats.lvl), rl.NewVector2(p.pos.X, p.pos.Y-22), 18, rl.RayWhite)
 }
 
 func (p *Player) readInput() {
-	input := PlayerInput{Sprint: rl.IsKeyDown(rl.KeyLeftShift)}
+	input := PlayerInput{Dash: p.input.Dash || rl.IsKeyPressed(rl.KeyLeftShift)}
 	if rl.IsKeyDown(rl.KeyW) {
 		input.Direction.Y -= 1
 	}
@@ -78,61 +72,4 @@ func (p *Player) readInput() {
 		input.Direction.X += 1
 	}
 	p.input = input
-}
-
-func (p *Player) move(dt float32) {
-	move := p.input.Direction
-	speed := p.stats.speed * simulation.SpeedScale
-
-	if p.input.Sprint {
-		speed *= p.stats.sprintMultiplier
-	}
-
-	// normalize the diagonal speed
-	if move.X != 0 || move.Y != 0 {
-		move = rl.Vector2Normalize(move)
-
-		x, y := terrain.Move(float64(p.pos.X), float64(p.pos.Y), float64(move.X*speed*dt), float64(move.Y*speed*dt), float64(p.size.X), float64(p.size.Y))
-		p.pos = rl.NewVector2(float32(x), float32(y))
-	}
-
-}
-
-func (p *Player) handleFoodCollision(fs *FruitSpawner, ais []*AI) {
-	p.handleFruitCollision(fs)
-
-	for _, ai := range ais {
-		hasPlayerCollidedWithAI := checkCollisions(p.pos, p.size, ai.pos, ai.size)
-
-		if hasPlayerCollidedWithAI && p.canEatAI(ai) {
-			p.stats.eatFood(ai.stats.hp*simulation.ActorHPFraction, ai.stats.hp)
-			ai.markAIDeath()
-		}
-	}
-}
-
-func (p *Player) canEatAI(ai *AI) bool {
-	return !ai.isDeadFlag && p.stats.hp > ai.stats.hp
-}
-
-func (p *Player) handleFruitCollision(fs *FruitSpawner) {
-	for i, v := range slices.Backward(fs.fruits) {
-		hasPlayerCollidedWithFruit := checkCollisions(p.pos, p.size, v.pos, v.size)
-
-		if hasPlayerCollidedWithFruit {
-			p.stats.eatFood(simulation.FruitHP, simulation.FruitXP)
-			fs.despawnFruit(i)
-		}
-	}
-}
-
-func (p *Player) markPlayerDeath() {
-	p.isDeadFlag = true
-}
-
-func (s *PlayerStats) eatFood(hp, xp float32) {
-	stats := simulation.Stats{Level: s.lvl, XP: s.exp, HP: float64(s.hp), Speed: float64(s.speed)}
-	stats.Eat(float64(hp), float64(xp))
-	s.lvl, s.exp, s.hp = stats.Level, stats.XP, float32(stats.HP)
-	s.maxHP = float32(simulation.MaxHPForLevel(stats.Level))
 }

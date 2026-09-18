@@ -64,7 +64,7 @@ func (m *multiplayer) readInput(dt float32, mapOpen bool) {
 	}
 	direction := protocol.Direction{}
 	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.open && !mapOpen {
-		direction.Sprint = rl.IsKeyDown(rl.KeyLeftShift)
+		direction.Dash = rl.IsKeyPressed(rl.KeyLeftShift)
 		if rl.IsKeyDown(rl.KeyW) {
 			direction.Y--
 		}
@@ -81,7 +81,7 @@ func (m *multiplayer) readInput(dt float32, mapOpen bool) {
 	m.session.SetInput(direction)
 	now := time.Now()
 	if predicted, ready := m.session.PredictedPlayer(); ready {
-		m.motion.Advance(predicted, float64(dt), direction.Sprint)
+		m.motion.Advance(predicted, float64(dt))
 	}
 	m.rendered = m.motion.Players(now)
 	m.renderedAIs = m.motion.AIs(now)
@@ -122,7 +122,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	rl.BeginMode2D(camera)
 	m.gameMap.draw(RenderContext{Camera: camera, WindowWidth: window.width, WindowHeight: window.height})
 	for _, fruit := range m.view.Fruits {
-		rl.DrawRectangleV(rl.NewVector2(float32(fruit.X), float32(fruit.Y)), rl.NewVector2(float32(fruit.Size), float32(fruit.Size)), rl.Yellow)
+		rl.DrawRectangleV(rl.NewVector2(float32(fruit.X), float32(fruit.Y)), rl.NewVector2(float32(fruit.Size), float32(fruit.Size)), massColor(fruit.Source, m.view.PlayerID))
 	}
 	for _, ai := range m.renderedAIs {
 		rl.DrawRectangleV(rl.NewVector2(float32(ai.X), float32(ai.Y)), rl.NewVector2(float32(ai.Size), float32(ai.Size)), rl.Green)
@@ -137,6 +137,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		}
 		rl.DrawRectangleV(rl.NewVector2(float32(player.X), float32(player.Y)), rl.NewVector2(float32(player.Size), float32(player.Size)), tint)
 		if !player.Dead {
+			drawCombat(player.X, player.Y, player.Size, player.Combat)
 			drawTextAt(label, rl.NewVector2(float32(player.X), float32(player.Y)-22), 18, rl.RayWhite)
 		}
 	}
@@ -145,6 +146,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	alive := 0
 	for _, player := range m.view.Players {
 		if !player.Dead {
+			drawCombat(player.X, player.Y, player.Size, player.Combat)
 			alive++
 		}
 	}

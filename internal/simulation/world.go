@@ -8,22 +8,21 @@ import (
 )
 
 const (
-	TickRate         = 30
-	StepSeconds      = 1.0 / TickRate
-	PlayerSize       = 30.0
-	SpeedScale       = 100.0
-	PlayerSpeed      = 6.0
-	SprintMultiplier = 1.5
-	MapMin           = 10.0
-	MapMax           = 1990.0
-	MinPosition      = MapMin
-	MaxPosition      = MapMax - PlayerSize
-	InputTimeout     = 500 * time.Millisecond
+	TickRate     = 30
+	StepSeconds  = 1.0 / TickRate
+	PlayerSize   = 30.0
+	SpeedScale   = 100.0
+	PlayerSpeed  = 6.0
+	MapMin       = 10.0
+	MapMax       = 1990.0
+	MinPosition  = MapMin
+	MaxPosition  = MapMax - PlayerSize
+	InputTimeout = 500 * time.Millisecond
 )
 
 type Direction struct {
-	Sprint bool
-	X, Y   float64
+	Dash bool
+	X, Y float64
 }
 
 func (d Direction) Valid() bool {
@@ -33,6 +32,7 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
+	Combat   CombatState
 	Dead     bool
 	KilledBy string
 	Stats    Stats
@@ -55,18 +55,19 @@ type playerState struct {
 }
 
 type World struct {
-	ais          []aiState
-	nextAI       uint64
-	fruits       []Fruit
-	nextFruit    uint64
-	players      map[string]*playerState
-	nextSpawn    uint64
-	tick         uint64
-	aiSpawnTicks int
+	ais            []aiState
+	nextAI         uint64
+	fruits         []Fruit
+	nextFruit      uint64
+	players        map[string]*playerState
+	nextSpawn      uint64
+	tick           uint64
+	aiSpawnTicks   int
+	protectedUntil map[string]uint64
 }
 
 func NewWorld() *World {
-	w := &World{players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
+	w := &World{protectedUntil: make(map[string]uint64), players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
 	for range InitialFruits {
 		w.spawnFruit()
 	}
@@ -121,9 +122,6 @@ func Move(x, y float64, d Direction, seconds, speed float64) (float64, float64) 
 	if seconds <= 0 {
 		return x, y
 	}
-	if d.Sprint {
-		speed *= SprintMultiplier
-	}
 	return MoveBy(x, y, d, speed*SpeedScale*seconds)
 }
 
@@ -139,6 +137,11 @@ func MoveBy(x, y float64, d Direction, distance float64) (float64, float64) {
 
 func (w *World) Step(now time.Time) {
 	w.tick++
+	for id, until := range w.protectedUntil {
+		if w.tick >= until {
+			delete(w.protectedUntil, id)
+		}
+	}
 	if w.aiSpawnTicks > 0 && len(w.players) > 0 {
 		w.aiSpawnTicks--
 		if w.aiSpawnTicks == 0 {
@@ -170,7 +173,7 @@ func (w *World) Step(now time.Time) {
 				player.InputSeq = next.sequence
 			}
 		}
-		player.X, player.Y = Move(player.X, player.Y, direction, StepSeconds, player.Stats.Speed)
+		AdvancePlayer(&player.Player, direction, StepSeconds)
 	}
 	previousAIs := make([]position, len(w.ais))
 	for i, ai := range w.ais {
@@ -179,6 +182,14 @@ func (w *World) Step(now time.Time) {
 	w.updateAIs()
 	eaters := w.eaters(previous, previousAIs)
 	w.resolvePredation(eaters)
+	for i := range eaters {
+		e := &eaters[i]
+		if e.player != nil {
+			e.end = position{e.player.X, e.player.Y}
+		} else {
+			e.end = position{e.ai.X, e.ai.Y}
+		}
+	}
 	w.consumeFruits(eaters)
 }
 

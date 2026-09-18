@@ -13,12 +13,22 @@ const (
 )
 
 type Fruit struct {
-	ID         string
-	X, Y, Size float64
+	Source        string
+	HP            float64
+	AvailableTick uint64
+	ExpiresTick   uint64
+	ID            string
+	X, Y, Size    float64
 }
 
 func (w *World) spawnFruit() {
-	if len(w.fruits) >= MaxFruits {
+	ordinary := 0
+	for _, f := range w.fruits {
+		if f.Source == "" {
+			ordinary++
+		}
+	}
+	if ordinary >= MaxFruits {
 		return
 	}
 	for range 32 {

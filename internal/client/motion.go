@@ -70,7 +70,7 @@ func newCorrection(oldX, oldY, x, y float64, now time.Time) motionCorrection {
 	return motionCorrection{x: dx, y: dy, at: now}
 }
 
-func (m *Motion) Advance(target protocol.Player, dt float64, sprint bool) {
+func (m *Motion) Advance(target protocol.Player, dt float64) {
 	if len(m.frames) == 0 {
 		return
 	}
@@ -82,8 +82,8 @@ func (m *Motion) Advance(target protocol.Player, dt float64, sprint bool) {
 		return
 	}
 	speed := target.Stats.Speed * simulation.SpeedScale
-	if sprint {
-		speed *= simulation.SprintMultiplier
+	if target.Combat.Phase == simulation.DashRushing || m.local.Combat.Phase == simulation.DashRushing {
+		speed *= simulation.DashSpeedMultiplier
 	}
 	if distance > 2*speed*simulation.StepSeconds {
 		speed *= 2
@@ -92,9 +92,9 @@ func (m *Motion) Advance(target protocol.Player, dt float64, sprint bool) {
 		m.local = target
 		return
 	}
-	m.local.X += dx / distance * speed * dt
-	m.local.Y += dy / distance * speed * dt
-	m.local.ID, m.local.Size, m.local.InputSeq, m.local.Stats = target.ID, target.Size, target.InputSeq, target.Stats
+	x, y := m.local.X+dx/distance*speed*dt, m.local.Y+dy/distance*speed*dt
+	m.local = target
+	m.local.X, m.local.Y = x, y
 }
 
 func (m *Motion) Players(now time.Time) []protocol.Player {
