@@ -10,11 +10,11 @@ import (
 const (
 	TickRate     = 30
 	StepSeconds  = 1.0 / TickRate
-	PlayerSize   = 30.0
+	PlayerSize   = terrain.ActorSize
 	SpeedScale   = 100.0
 	PlayerSpeed  = 6.0
-	MapMin       = 10.0
-	MapMax       = 1990.0
+	MapMin       = float64(terrain.SurfaceMin)
+	MapMax       = float64(terrain.SurfaceMax)
 	MinPosition  = MapMin
 	MaxPosition  = MapMax - PlayerSize
 	InputTimeout = 500 * time.Millisecond
@@ -58,6 +58,7 @@ type World struct {
 	ais            []aiState
 	nextAI         uint64
 	fruits         []Fruit
+	patchNext      map[string]uint64
 	nextFruit      uint64
 	players        map[string]*playerState
 	nextSpawn      uint64
@@ -67,9 +68,12 @@ type World struct {
 }
 
 func NewWorld() *World {
-	w := &World{protectedUntil: make(map[string]uint64), players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
-	for range InitialFruits {
-		w.spawnFruit()
+	w := &World{patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
+	for _, p := range terrain.Patches {
+		for range p.Capacity {
+			w.spawnPatchFruit(p)
+		}
+		w.patchNext[p.ID] = uint64(p.Seconds * TickRate)
 	}
 	return w
 }
@@ -125,8 +129,6 @@ func Move(x, y float64, d Direction, seconds, speed float64) (float64, float64) 
 	return MoveBy(x, y, d, speed*SpeedScale*seconds)
 }
 
-// MoveBy slides an entity by a distance already expressed in world units,
-// resolving terrain collisions along the way.
 func MoveBy(x, y float64, d Direction, distance float64) (float64, float64) {
 	length := math.Hypot(d.X, d.Y)
 	if length == 0 || !d.Valid() || distance <= 0 {

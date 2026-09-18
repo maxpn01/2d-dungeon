@@ -124,13 +124,22 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	rl.BeginMode2D(camera)
 	m.gameMap.draw(RenderContext{Camera: camera, WindowWidth: window.width, WindowHeight: window.height})
 	for _, fruit := range m.view.Fruits {
+		if !m.gameMap.exploration.entityVisible(fruit.X, fruit.Y, fruit.Size) {
+			continue
+		}
 		drawFruit(float32(fruit.X), float32(fruit.Y), float32(fruit.Size), massColor(fruit.Source, m.view.PlayerID), fruit.Source != "")
 	}
 	for _, ai := range m.renderedAIs {
+		if !m.gameMap.exploration.entityVisible(ai.X, ai.Y, ai.Size) {
+			continue
+		}
 		bounds := drawActor(ai.X, ai.Y, ai.Size, ai.Stats.HP, ai.Combat, rl.Green)
 		drawTextAt(fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior), rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 	}
 	for _, player := range m.rendered {
+		if player.ID != m.view.PlayerID && !m.gameMap.exploration.entityVisible(player.X, player.Y, player.Size) {
+			continue
+		}
 		tint := rl.SkyBlue
 		label := fmt.Sprintf("%s Lv.%d", protocol.NormalizePlayerName(player.Name), player.Stats.Level)
 		if player.ID == m.view.PlayerID {
@@ -142,7 +151,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 			drawTextAt(label, rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 		}
 	}
-	m.feedback.draw(time.Now())
+	m.feedback.draw(time.Now(), &m.gameMap.exploration)
 	rl.EndMode2D()
 	drawDungeonLocation(camera.Target.X, camera.Target.Y, window.width, window.height)
 	alive := 0

@@ -40,7 +40,7 @@ func (v radarView) rect(x, y, width, height float32, tint color.RGBA) {
 }
 
 func (v radarView) marker(center rl.Vector2, radius float32, tint color.RGBA) {
-	if !v.exploration.visible[explorationCell(center)] {
+	if !v.exploration.actorVisible(float64(center.X), float64(center.Y), 0) {
 		return
 	}
 	p := v.point(center)
@@ -63,13 +63,15 @@ func (v *radarView) begin(m *Map) {
 	v.rect(float32(int(m.sizeInCells.X)/2-2)*m.cellSize.X, float32(int(m.sizeInCells.Y)/2-2)*m.cellSize.Y, 5*m.cellSize.X, 5*m.cellSize.Y, rl.Gray)
 	v.rect(880, 0, 240, m.cellSize.Y, field)
 
-	left := max(0, int(math.Floor(float64((v.focus.X-v.bounds.Width/(2*v.scale))/terrain.Tile))))
-	right := min(50, int(math.Ceil(float64((v.focus.X+v.bounds.Width/(2*v.scale))/terrain.Tile))))
+	left := max(terrain.MinCellX, int(math.Floor(float64((v.focus.X-v.bounds.Width/(2*v.scale))/terrain.Tile))))
+	right := min(terrain.MaxCellX, int(math.Ceil(float64((v.focus.X+v.bounds.Width/(2*v.scale))/terrain.Tile))))
 	top := max(terrain.North/terrain.Tile, int(math.Floor(float64((v.focus.Y-v.bounds.Height/(2*v.scale))/terrain.Tile))))
 	bottom := min(0, int(math.Ceil(float64((v.focus.Y+v.bounds.Height/(2*v.scale))/terrain.Tile))))
 	for y := top; y < bottom; y++ {
 		for x := left; x < right; x++ {
-			if terrain.Cell(x, y) != 0 {
+			if terrain.Cover(x, y) {
+				v.rect(float32(x*terrain.Tile), float32(y*terrain.Tile), terrain.Tile, terrain.Tile, color.RGBA{102, 91, 150, 255})
+			} else if terrain.Cell(x, y) != 0 {
 				v.rect(float32(x*terrain.Tile), float32(y*terrain.Tile), terrain.Tile, terrain.Tile, paleStone)
 			} else if terrain.Pool(x, y) {
 				v.rect(float32(x*terrain.Tile), float32(y*terrain.Tile), terrain.Tile, terrain.Tile, color.RGBA{23, 58, 71, 255})
@@ -79,10 +81,10 @@ func (v *radarView) begin(m *Map) {
 }
 
 func (v radarView) fog() {
-	left := max(0, int(math.Floor(float64(v.focus.X-v.bounds.Width/(2*v.scale))/terrain.Tile)))
-	right := min(50, int(math.Ceil(float64(v.focus.X+v.bounds.Width/(2*v.scale))/terrain.Tile)))
+	left := max(terrain.MinCellX, int(math.Floor(float64(v.focus.X-v.bounds.Width/(2*v.scale))/terrain.Tile)))
+	right := min(terrain.MaxCellX, int(math.Ceil(float64(v.focus.X+v.bounds.Width/(2*v.scale))/terrain.Tile)))
 	top := max(terrain.North/terrain.Tile, int(math.Floor(float64(v.focus.Y-v.bounds.Height/(2*v.scale))/terrain.Tile)))
-	bottom := min(50, int(math.Ceil(float64(v.focus.Y+v.bounds.Height/(2*v.scale))/terrain.Tile)))
+	bottom := min(terrain.SurfaceCells, int(math.Ceil(float64(v.focus.Y+v.bounds.Height/(2*v.scale))/terrain.Tile)))
 	state := func(x, y int) int {
 		cell := [2]int{x, y}
 		if v.exploration.visible[cell] {
@@ -157,7 +159,7 @@ func (w *World) drawRadar(v radarView) {
 	v.begin(w.gameMap)
 	v.fog()
 	for _, fruit := range w.fruitSpawner.fruits {
-		v.marker(entityCenter(fruit.pos, fruit.size), 2, rl.Yellow)
+		v.marker(entityCenter(fruit.pos, fruit.size), 2, energyColor)
 	}
 	for _, ai := range w.ais {
 		if !ai.isDeadFlag {
@@ -189,7 +191,7 @@ func (m *multiplayer) drawRadar(windowWidth, windowHeight int32) {
 		v.begin(m.gameMap)
 		v.fog()
 		for _, fruit := range m.view.Fruits {
-			v.marker(center(fruit.X, fruit.Y, fruit.Size), 2, rl.Yellow)
+			v.marker(center(fruit.X, fruit.Y, fruit.Size), 2, energyColor)
 		}
 		for _, ai := range m.renderedAIs {
 			v.marker(center(ai.X, ai.Y, ai.Size), 3, rl.Green)

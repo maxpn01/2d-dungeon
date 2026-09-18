@@ -90,7 +90,7 @@ func (f *combatFeedback) multiplayer(now time.Time, players []protocol.Player, a
 	f.observe(now, actors, fruits, localID)
 }
 
-func (f *combatFeedback) draw(now time.Time) {
+func (f *combatFeedback) draw(now time.Time, exploration *mapExploration) {
 	active := f.effects[:0]
 	for _, e := range f.effects {
 		p := float32(max(0, now.Sub(e.started).Seconds()) / 0.35)
@@ -98,6 +98,9 @@ func (f *combatFeedback) draw(now time.Time) {
 			continue
 		}
 		active = append(active, e)
+		if !exploration.entityVisible(float64(e.x), float64(e.y), 0) {
+			continue
+		}
 		tint := rl.Fade(e.tint, 1-p)
 		center := rl.NewVector2(e.x, e.y)
 		switch e.kind {

@@ -3,7 +3,7 @@ package simulation
 import "math"
 
 func (ai *aiState) canAttack(target *playerState) bool {
-	if ai.Combat.Phase != DashIdle || ai.Combat.Held || ai.Stats.HP <= DashCost ||
+	if ai.settleTicks > 0 || ai.targetID != target.ID || ai.targetTicks < AIReactionTicks || ai.attackCooldown > 0 || ai.Combat.Phase != DashIdle || ai.Combat.Held || ai.Stats.HP <= DashCost ||
 		CanContactEat(ai.Stats.HP, target.Stats.HP) {
 		return false
 	}
@@ -42,7 +42,11 @@ func (w *World) incomingDash(ai *aiState) *playerState {
 	var selected *playerState
 	best := math.Inf(1)
 	for _, p := range w.players {
-		if p.Dead || (p.Combat.Phase != DashWinding && p.Combat.Phase != DashRushing) {
+		if !ai.sees(p.X, p.Y) || p.Dead || (p.Combat.Phase != DashWinding && p.Combat.Phase != DashRushing) {
+			continue
+		}
+		// A creature needs a moment to read a windup; it cannot dodge on frame one.
+		if p.Combat.Phase == DashWinding && p.Combat.Remaining > DashWindup-0.10 {
 			continue
 		}
 		dx, dy := ai.X-p.X, ai.Y-p.Y
@@ -77,7 +81,7 @@ func (ai *aiState) evade(p *playerState) Direction {
 			chosen, best = candidate, score
 		}
 	}
-	chosen.Dash = ai.Combat.Phase == DashIdle && ai.Stats.HP > DashCost &&
+	chosen.Dash = ai.attackCooldown == 0 && ai.Combat.Phase == DashIdle && ai.Stats.HP > DashCost &&
 		CanContactEat(p.Stats.HP, ai.Stats.HP-DashCost) &&
 		p.Combat.Phase == DashWinding && p.Combat.Remaining >= DashWindup-StepSeconds-1e-9 && ai.clearDash(chosen)
 	return chosen

@@ -11,7 +11,7 @@ import (
 
 func massColor(source, localID string) color.RGBA {
 	if source == "" {
-		return rl.Yellow
+		return energyColor
 	}
 	if source == localID {
 		return rl.Red

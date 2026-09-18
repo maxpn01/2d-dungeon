@@ -361,7 +361,7 @@ func validatePlayers(players []protocol.Player, localID string) error {
 }
 
 func validateFruits(fruits []protocol.Fruit) error {
-	if len(fruits) > simulation.MaxFruits+simulation.MaxMassDrops {
+	if len(fruits) > terrain.FruitCapacity()+simulation.MaxMassDrops {
 		return errors.New("server sent too many fruits")
 	}
 	ids := make(map[string]bool, len(fruits))
@@ -398,7 +398,7 @@ func validStats(stats protocol.PlayerStats, baseSpeed float64) bool {
 }
 
 func validateAIs(ais []protocol.AI) error {
-	if len(ais) > simulation.InitialAIs {
+	if len(ais) > len(terrain.Dens) {
 		return errors.New("server sent too many AIs")
 	}
 	ids := make(map[string]bool, len(ais))

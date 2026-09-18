@@ -92,6 +92,10 @@ func (w *World) syncSimulation() {
 	for _, state := range snapshot.AIs {
 		ai := &AI{combat: state.Combat, id: state.ID, pos: rl.NewVector2(float32(state.X), float32(state.Y)), size: rl.NewVector2(simulation.AISize, simulation.AISize), color: rl.Green, stats: gameStats(state.Stats)}
 		switch state.Behavior {
+		case "alerted":
+			ai.actionState = ActionAlerted
+		case "emerging":
+			ai.actionState = ActionEmerging
 		case "attacking":
 			ai.actionState = ActionAttacking
 		case "evading":
@@ -124,9 +128,20 @@ func (w *World) draw(ctx RenderContext) {
 		if w.eating != nil && (entity == w.player || entity == w.eatingAI) {
 			continue
 		}
+		if ai, ok := entity.(*AI); ok && !w.gameMap.exploration.entityVisible(float64(ai.pos.X), float64(ai.pos.Y), float64(ai.size.X)) {
+			continue
+		}
+		if entity == w.fruitSpawner {
+			for _, f := range w.fruitSpawner.fruits {
+				if w.gameMap.exploration.entityVisible(float64(f.pos.X), float64(f.pos.Y), float64(f.size.X)) {
+					drawFruit(f.pos.X, f.pos.Y, f.size.X, f.color, f.mass)
+				}
+			}
+			continue
+		}
 		entity.draw()
 	}
-	w.feedback.draw(time.Now())
+	w.feedback.draw(time.Now(), &w.gameMap.exploration)
 	if w.eating != nil {
 		prey, killer := w.eating.actors(time.Now())
 		ai := *w.eatingAI

@@ -4,17 +4,20 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
+	"raylib-2d-sandbox/internal/terrain"
 )
 
 const (
-	InitialAIs          = 5
-	InitialAISpawnDelay = 10
-	AIRespawnSeconds    = 3
-	AIAwakeSeconds      = 120
-	AIAsleepSeconds     = 60
-	AISize              = PlayerSize
-	AISpeed             = PlayerSpeed
-	AIDetectionRadius   = 300.0
+	InitialAISpawnDelay   = 5
+	AIRespawnSeconds      = 45
+	AIAwakeSeconds        = 120
+	AIAsleepSeconds       = 60
+	AISize                = PlayerSize
+	AISpeed               = PlayerSpeed * 0.75
+	AIDetectionRadius     = 300.0
+	AISettleTicks         = 2 * TickRate
+	AIReactionTicks       = TickRate
+	AIAttackIntervalTicks = 2 * TickRate
 )
 
 type AI struct {
@@ -27,6 +30,12 @@ type AI struct {
 
 type aiState struct {
 	AI
+	den             terrain.Den
+	settleTicks     int
+	targetID        string
+	targetTicks     int
+	attackCooldown  int
+	returning       bool
 	direction       Direction
 	wanderTicks     int
 	respawnTick     uint64
@@ -38,14 +47,22 @@ type aiState struct {
 	evadeDirection  Direction
 }
 
+func (w *World) newDenAI(den terrain.Den) aiState {
+	w.nextAI++
+	x, y := terrain.CellPosition(den.X, den.Y, AISize)
+	stats := NewStats()
+	stats.Speed = AISpeed
+	stats.Level = den.Level
+	stats.HP = den.HP
+	return aiState{den: den, settleTicks: AISettleTicks, awakeTicks: AIAwakeSeconds * TickRate, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "emerging"}}
+}
 func (w *World) spawnAIs() {
-	for i := 0; i < InitialAIs; i++ {
-		w.nextAI++
-		stats := NewStats()
-		stats.Speed = AISpeed
-		w.ais = append(w.ais, aiState{awakeTicks: AIAwakeSeconds * TickRate, AI: AI{
-			ID: fmt.Sprintf("ai-%d", w.nextAI), X: 600 + float64(i%3)*450, Y: 400 + float64(i/3)*650, Stats: stats, Behavior: "wandering",
-		}})
+	for _, den := range terrain.Dens {
+		ai := w.newDenAI(den)
+		if !w.denClear(ai.X, ai.Y, -1) {
+			ai.respawnTick = w.tick + TickRate
+		}
+		w.ais = append(w.ais, ai)
 	}
 }
 
@@ -55,7 +72,13 @@ func (w *World) updateAIs() {
 		if ai.respawnTick != 0 {
 			continue
 		}
+		if ai.attackCooldown > 0 {
+			ai.attackCooldown--
+		}
 		input := w.aiInput(ai)
+		if input.Dash {
+			ai.attackCooldown = AIAttackIntervalTicks
+		}
 		actor := Player{X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat}
 		AdvancePlayer(&actor, input, StepSeconds)
 		ai.X, ai.Y, ai.Stats, ai.Combat = actor.X, actor.Y, actor.Stats, actor.Combat
@@ -63,8 +86,32 @@ func (w *World) updateAIs() {
 }
 
 func (w *World) aiInput(ai *aiState) Direction {
+	if ai.settleTicks > 0 {
+		ai.settleTicks--
+		ai.Behavior = "emerging"
+		return Direction{}
+	}
+	hx, hy := terrain.CellPosition(ai.den.X, ai.den.Y, AISize)
+	distance := math.Hypot(ai.X-hx, ai.Y-hy)
+	if distance > float64(ai.den.Radius*terrain.Tile) {
+		ai.returning = true
+	}
+	if ai.returning {
+		if distance < terrain.Tile {
+			ai.returning = false
+		} else {
+			ai.Behavior = "returning"
+			return ai.navigate(hx, hy)
+		}
+	}
 	incoming := w.incomingDash(ai)
 	threat, _ := w.nearestPlayer(ai, true)
+	prey, preyDistance := w.nearestPlayer(ai, false)
+	target := prey
+	if threat != nil {
+		target = threat
+	}
+	ai.observeTarget(target)
 	if ai.updateSleep(threat != nil || incoming != nil || ai.evadeTicks > 0 || ai.Combat.Phase != DashIdle) {
 		return Direction{}
 	}
@@ -96,13 +143,16 @@ func (w *World) aiInput(ai *aiState) Direction {
 		return ai.flee(threat)
 	}
 	ai.escapeTicks = 0
-	prey, preyDistance := w.nearestPlayer(ai, false)
 	fruit, found := w.nearestFruit(ai)
 	fruitX, fruitY := fruit.X+fruit.Size/2-AISize/2, fruit.Y+fruit.Size/2-AISize/2
 	fruitDistance := (fruitX-ai.X)*(fruitX-ai.X) + (fruitY-ai.Y)*(fruitY-ai.Y)
 	if prey != nil && (!found || preyDistance <= fruitDistance) {
+		if ai.targetTicks < AIReactionTicks {
+			ai.Behavior = "alerted"
+			return Direction{}
+		}
 		ai.Behavior = "chasing"
-		d := ai.approach(prey.X, prey.Y)
+		d := ai.navigate(prey.X, prey.Y)
 		d.Dash = ai.canAttack(prey)
 		if d.Dash {
 			ai.Behavior = "attacking"
@@ -111,7 +161,7 @@ func (w *World) aiInput(ai *aiState) Direction {
 	}
 	if found {
 		ai.Behavior = "seeking"
-		return ai.approach(fruitX, fruitY)
+		return ai.navigate(fruitX, fruitY)
 	}
 	ai.Behavior = "wandering"
 	if ai.wanderTicks == 0 {
@@ -120,17 +170,10 @@ func (w *World) aiInput(ai *aiState) Direction {
 		ai.wanderTicks = 2*TickRate + rand.IntN(2*TickRate+1)
 	}
 	d := ai.direction
-	if ai.X <= MapMin {
-		d.X = math.Abs(d.X)
-	}
-	if ai.X >= MapMax-AISize {
-		d.X = -math.Abs(d.X)
-	}
-	if ai.Y <= MapMin {
-		d.Y = math.Abs(d.Y)
-	}
-	if ai.Y >= MapMax-AISize {
-		d.Y = -math.Abs(d.Y)
+	nx, ny := Move(ai.X, ai.Y, d, .15, ai.Stats.Speed)
+	if math.Hypot(nx-hx, ny-hy) > float64(ai.den.Radius*terrain.Tile)*.75 || math.Hypot(nx-ai.X, ny-ai.Y) < 1 {
+		ai.wanderTicks = 1
+		d = ai.navigate(hx, hy)
 	}
 	ai.direction = d
 	ai.wanderTicks--
@@ -142,6 +185,9 @@ func (w *World) nearestFruit(ai *aiState) (Fruit, bool) {
 	best := AIDetectionRadius * AIDetectionRadius
 	found := false
 	for _, fruit := range w.fruits {
+		if !ai.sees(fruit.X, fruit.Y) || !ai.inTerritory(fruit.X, fruit.Y) || ai.Stats.HP >= MaxHPForLevel(ai.Stats.Level) {
+			continue
+		}
 		dx := fruit.X + fruit.Size/2 - (ai.X + AISize/2)
 		dy := fruit.Y + fruit.Size/2 - (ai.Y + AISize/2)
 		distance := dx*dx + dy*dy
@@ -158,11 +204,13 @@ func (w *World) respawnAIs() {
 		if ai.respawnTick == 0 || w.tick < ai.respawnTick {
 			continue
 		}
-		x, y := w.spawnPosition(uint64(i)*57 + w.tick)
-		w.nextAI++
-		stats := NewStats()
-		stats.Speed = AISpeed
-		*ai = aiState{awakeTicks: AIAwakeSeconds * TickRate, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "wandering"}}
+		den := ai.den
+		x, y := terrain.CellPosition(den.X, den.Y, AISize)
+		if !w.denClear(x, y, i) {
+			ai.respawnTick = w.tick + TickRate
+			continue
+		}
+		*ai = w.newDenAI(den)
 	}
 }
 
@@ -187,4 +235,32 @@ func (ai *aiState) updateSleep(threat bool) bool {
 		return true
 	}
 	return false
+}
+
+// Delay arrivals anywhere a player could immediately see or collide with them.
+func (w *World) denClear(x, y float64, skip int) bool {
+	for _, p := range w.players {
+		if !p.Dead && math.Hypot(p.X-x, p.Y-y) < AIDetectionRadius+PlayerSize {
+			return false
+		}
+	}
+	for j := range w.ais {
+		a := &w.ais[j]
+		if j != skip && a.respawnTick == 0 && math.Hypot(a.X-x, a.Y-y) < AISize*2 {
+			return false
+		}
+	}
+	return true
+}
+func (ai *aiState) observeTarget(target *playerState) {
+	if target == nil {
+		ai.targetID = ""
+		ai.targetTicks = 0
+		return
+	}
+	if target.ID != ai.targetID {
+		ai.targetID = target.ID
+		ai.targetTicks = 0
+	}
+	ai.targetTicks++
 }

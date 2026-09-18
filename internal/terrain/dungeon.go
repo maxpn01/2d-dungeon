@@ -3,35 +3,67 @@ package terrain
 import "math"
 
 const Tile = 40
-const North = -3800
+const (
+	MinCellX     = -20
+	MaxCellX     = 70
+	MinCellY     = -146
+	SurfaceCells = 50
+	SurfaceMin   = 10
+	SurfaceMax   = SurfaceCells*Tile - 10
+	North        = MinCellY * Tile
+	ActorSize    = 30
+)
 
 const DescentCircleX = 1000
-const DescentCircleY = -3620
+const DescentCircleY = -5580
 
 type Room struct {
 	X, Y, W, H int
 	Name       string
+	ID         string
+	Tags       []string
+	Props      []Prop
 }
 
 var Rooms = []Room{
-	{18, -28, 14, 18, "THE COLUMN HALL"},
-	{3, -40, 11, 20, "WEST CLOISTER"},
-	{36, -40, 11, 20, "THE BROKEN GALLERY"},
-	{16, -58, 18, 18, "THE STILLWATER BRIDGE"},
-	{2, -64, 11, 15, "HALL OF NICHES"},
-	{37, -64, 11, 15, "EAST ROTUNDA"},
-	{14, -84, 22, 19, "THE THRESHOLD HALL"},
-	{20, -94, 10, 7, "THE DESCENT"},
+	{X: 18, Y: -28, W: 14, H: 18, Name: "THE COLUMN HALL", ID: "the-column-hall", Tags: []string{"entrance", "refuge"}, Props: []Prop{{"cover", 19, -26, 3, 5}}},
+	{X: 3, Y: -40, W: 11, H: 20, Name: "WEST CLOISTER", ID: "west-cloister", Tags: []string{"exploration", "refuge"}, Props: []Prop{{"cover", 4, -38, 3, 5}}},
+	{X: 36, Y: -40, W: 11, H: 20, Name: "THE BROKEN GALLERY", ID: "the-broken-gallery", Tags: []string{"exploration", "refuge"}, Props: []Prop{{"cover", 37, -38, 3, 5}}},
+	{X: 16, Y: -58, W: 18, H: 18, Name: "THE STILLWATER BRIDGE", ID: "the-stillwater-bridge", Tags: []string{"exploration", "refuge"}, Props: []Prop{{"cover", 17, -56, 3, 5}}},
+	{X: 2, Y: -64, W: 11, H: 15, Name: "HALL OF NICHES", ID: "hall-of-niches", Tags: []string{"exploration", "refuge"}, Props: []Prop{{"cover", 3, -62, 3, 5}}},
+	{X: 37, Y: -64, W: 11, H: 15, Name: "EAST ROTUNDA", ID: "east-rotunda", Tags: []string{"exploration", "refuge"}, Props: []Prop{{"cover", 38, -62, 3, 5}}},
+	{X: 14, Y: -84, W: 22, H: 19, Name: "THE THRESHOLD HALL", ID: "the-threshold-hall", Tags: []string{"exploration", "refuge"}, Props: []Prop{{"cover", 15, -82, 3, 5}}},
+	{X: 20, Y: -94, W: 10, H: 7, Name: "THE WATCH", ID: "the-watch", Tags: []string{"exploration"}},
+	{X: -16, Y: -44, W: 15, H: 22, Name: "THE VEILED COURT", ID: "fern-garden", Tags: []string{"exploration", "refuge"}, Props: []Prop{{"cover", -15, -42, 3, 5}}},
+	{X: 51, Y: -44, W: 15, H: 22, Name: "THE RESONANT GALLERY", ID: "root-gallery", Tags: []string{"exploration", "refuge"}, Props: []Prop{{"cover", 52, -42, 3, 5}}},
+	{X: -16, Y: -65, W: 15, H: 14, Name: "WEST GRANARY", ID: "west-granary", Tags: []string{"exploration"}},
+	{X: 51, Y: -65, W: 15, H: 14, Name: "EAST GRANARY", ID: "east-granary", Tags: []string{"exploration"}},
+	{X: -14, Y: -82, W: 11, H: 10, Name: "SEALED STORE", ID: "sealed-store", Tags: []string{"exploration"}},
+	{X: 53, Y: -82, W: 11, H: 10, Name: "ASH VAULT", ID: "ash-vault", Tags: []string{"exploration"}},
+	{X: 15, Y: -114, W: 20, H: 14, Name: "LONG SANCTUM", ID: "long-sanctum", Tags: []string{"exploration", "refuge"}, Props: []Prop{{"cover", 16, -112, 3, 5}}},
+	{X: 0, Y: -117, W: 10, H: 20, Name: "THE WHISPER WALK", ID: "moss-walk", Tags: []string{"exploration", "refuge"}, Props: []Prop{{"cover", 1, -115, 3, 5}}},
+	{X: 40, Y: -117, W: 10, H: 20, Name: "RELIQUARY WALK", ID: "reliquary-walk", Tags: []string{"exploration"}},
+	{X: 12, Y: -134, W: 26, H: 16, Name: "THE CROWN / BOSS ARENA", ID: "the-crown-boss-arena", Tags: []string{"boss"}},
+	{X: 20, Y: -144, W: 10, H: 8, Name: "THE DESCENT", ID: "the-descent", Tags: []string{"descent"}},
 }
 
 var passages = []Room{
-	{22, -10, 6, 11, ""},
-	{12, -25, 8, 4, ""}, {30, -25, 8, 4, ""},
-	{7, -51, 4, 13, ""}, {39, -51, 4, 13, ""},
-	{10, -55, 8, 4, ""}, {32, -55, 9, 4, ""},
-	{7, -72, 4, 10, ""}, {9, -72, 7, 4, ""},
-	{39, -72, 4, 10, ""}, {34, -72, 7, 4, ""},
-	{23, -67, 4, 11, ""}, {23, -89, 4, 7, ""},
+	{X: -2, Y: -28, W: 7, H: 4}, {X: -2, Y: -58, W: 7, H: 4},
+	{X: 45, Y: -28, W: 8, H: 4}, {X: 45, Y: -58, W: 8, H: 4},
+	{X: -11, Y: -53, W: 4, H: 11}, {X: 57, Y: -53, W: 4, H: 11},
+	{X: -10, Y: -74, W: 4, H: 11}, {X: 57, Y: -74, W: 4, H: 11},
+	{X: 23, Y: -102, W: 4, H: 10},
+	{X: 8, Y: -105, W: 9, H: 4}, {X: 33, Y: -105, W: 9, H: 4},
+	{X: 5, Y: -122, W: 10, H: 4}, {X: 5, Y: -122, W: 4, H: 7},
+	{X: 36, Y: -122, W: 10, H: 4}, {X: 42, Y: -122, W: 4, H: 7},
+	{X: 23, Y: -120, W: 4, H: 8}, {X: 23, Y: -138, W: 4, H: 6},
+	{X: 22, Y: -10, W: 6, H: 11, Name: ""},
+	{X: 12, Y: -25, W: 8, H: 4, Name: ""}, {X: 30, Y: -25, W: 8, H: 4, Name: ""},
+	{X: 7, Y: -51, W: 4, H: 13, Name: ""}, {X: 39, Y: -51, W: 4, H: 13, Name: ""},
+	{X: 10, Y: -55, W: 8, H: 4, Name: ""}, {X: 32, Y: -55, W: 9, H: 4, Name: ""},
+	{X: 7, Y: -72, W: 4, H: 10, Name: ""}, {X: 9, Y: -72, W: 7, H: 4, Name: ""},
+	{X: 39, Y: -72, W: 4, H: 10, Name: ""}, {X: 34, Y: -72, W: 7, H: 4, Name: ""},
+	{X: 23, Y: -67, W: 4, H: 11, Name: ""}, {X: 23, Y: -89, W: 4, H: 7, Name: ""},
 }
 
 var floors = build()
@@ -78,11 +110,11 @@ func Cell(x, y int) int  { return floors[[2]int{x, y}] }
 func Pool(x, y int) bool { return x >= 18 && x < 32 && y >= -55 && y < -43 && Cell(x, y) == 0 }
 
 func Walkable(x, y, w, h float64) bool {
-	if math.IsNaN(x) || math.IsNaN(y) || math.IsInf(x, 0) || math.IsInf(y, 0) || x < 10 || x+w > 1990 || y < North || y+h > 1990 {
+	if w <= 0 || h <= 0 || math.IsNaN(w) || math.IsNaN(h) || math.IsInf(w, 0) || math.IsInf(h, 0) || math.IsNaN(x) || math.IsNaN(y) || math.IsInf(x, 0) || math.IsInf(y, 0) || x < MinCellX*Tile || x+w > MaxCellX*Tile || y < North || y+h > SurfaceMax {
 		return false
 	}
-	if y >= 10 {
-		return true
+	if y >= SurfaceMin {
+		return x >= SurfaceMin && x+w <= SurfaceMax
 	}
 	for cy := int(math.Floor(y / Tile)); cy <= int(math.Floor((y+h-.001)/Tile)); cy++ {
 		for cx := int(math.Floor(x / Tile)); cx <= int(math.Floor((x+w-.001)/Tile)); cx++ {

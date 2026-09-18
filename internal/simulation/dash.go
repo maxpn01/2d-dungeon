@@ -4,7 +4,7 @@ import "math"
 
 const (
 	DashCost            = 1.0
-	DashWindup          = 0.2
+	DashWindup          = 0.14
 	DashBurst           = 0.15
 	DashRecovery        = 0.45
 	DashSpeedMultiplier = 3.0

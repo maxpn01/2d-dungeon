@@ -67,7 +67,7 @@ func (w *World) consumeFruits(eaters []eater) {
 		winner := -1
 		earliest := math.Inf(1)
 		for i, actor := range eaters {
-			if actor.dead() || actor.ai != nil && actor.ai.Behavior == "sleeping" {
+			if actor.dead() || actor.ai != nil && (actor.ai.Behavior == "sleeping" || actor.ai.Behavior == "emerging") {
 				continue
 			}
 			location := position{fruit.X, fruit.Y}

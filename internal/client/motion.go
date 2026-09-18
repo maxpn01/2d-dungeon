@@ -6,6 +6,7 @@ import (
 
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
+	"raylib-2d-sandbox/internal/terrain"
 )
 
 const (
@@ -92,7 +93,7 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 		m.local = target
 		return
 	}
-	x, y := m.local.X+dx/distance*speed*dt, m.local.Y+dy/distance*speed*dt
+	x, y := terrain.Move(m.local.X, m.local.Y, dx/distance*speed*dt, dy/distance*speed*dt, simulation.PlayerSize, simulation.PlayerSize)
 	m.local = target
 	m.local.X, m.local.Y = x, y
 }
@@ -111,8 +112,6 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 				continue
 			}
 			player = m.local
-			player.X = max(simulation.MinPosition, min(simulation.MaxPosition, player.X))
-			player.Y = min(simulation.MaxPosition, player.Y)
 			positions = append(positions, player)
 			continue
 		}

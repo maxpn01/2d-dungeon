@@ -67,7 +67,7 @@ func (w *World) resolvePredation(eaters []eater) {
 		if b.stats.HP > a.stats.HP {
 			a, b = b, a
 		}
-		if a.ai != nil && a.ai.Behavior == "sleeping" {
+		if a.ai != nil && (a.ai.Behavior == "sleeping" || a.ai.Behavior == "emerging") {
 			continue
 		}
 		if CanContactEat(a.stats.HP, b.stats.HP) {
@@ -134,10 +134,10 @@ func (w *World) knockMass(target eater) {
 }
 
 func (w *World) spawnPosition(slot uint64) (float64, float64) {
-	bestX, bestY, bestDistance := 300.0, 300.0, -1.0
+	bestX, bestY, bestDistance := 900.0, 100.0, -1.0
 	for offset := uint64(0); offset < 400; offset++ {
 		cell := (slot + offset) % 400
-		x, y := 300+float64(cell%20)*60, 300+float64(cell/20)*60
+		x, y := 700+float64(cell%10)*60, 60+float64(cell/10)*15
 		distance := math.Inf(1)
 		for _, ai := range w.ais {
 			if ai.respawnTick == 0 {
@@ -167,7 +167,7 @@ func (w *World) nearestPlayer(ai *aiState, threat bool) (*playerState, float64) 
 	best := radius * radius
 	var selected *playerState
 	for _, player := range w.players {
-		if player.Dead || threat && player.Stats.HP <= ai.Stats.HP || !threat && player.Stats.HP > ai.Stats.HP {
+		if !ai.sees(player.X, player.Y) || !ai.inTerritory(player.X, player.Y) || player.Dead || threat && player.Stats.HP <= ai.Stats.HP || !threat && player.Stats.HP > ai.Stats.HP {
 			continue
 		}
 		dx, dy := player.X-ai.X, player.Y-ai.Y
@@ -199,7 +199,8 @@ func (ai *aiState) flee(player *playerState) Direction {
 		d = ai.escapeDirection
 		ai.escapeTicks--
 	}
-	blocked := (ai.X <= MapMin && d.X < 0) || (ai.X >= MaxPosition && d.X > 0) || (ai.Y <= MapMin && d.Y < 0) || (ai.Y >= MaxPosition && d.Y > 0)
+	nx, ny := Move(ai.X, ai.Y, d, .15, ai.Stats.Speed)
+	blocked := math.Hypot(nx-ai.X, ny-ai.Y) < ai.Stats.Speed*SpeedScale*.1
 	if blocked {
 		best := -1.0
 		for _, candidate := range [8]Direction{{X: 1}, {X: -1}, {Y: 1}, {Y: -1}, {X: 1, Y: 1}, {X: 1, Y: -1}, {X: -1, Y: 1}, {X: -1, Y: -1}} {
@@ -217,4 +218,25 @@ func (ai *aiState) flee(player *playerState) Direction {
 	}
 	ai.wanderTicks = 0
 	return d
+}
+
+func (ai *aiState) sees(x, y float64) bool {
+	return terrain.Visible(ai.X+AISize/2, ai.Y+AISize/2, x+AISize/2, y+AISize/2)
+}
+func (ai *aiState) inTerritory(x, y float64) bool {
+	hx, hy := terrain.CellPosition(ai.den.X, ai.den.Y, AISize)
+	return math.Hypot(x-hx, y-hy) <= float64(ai.den.Radius*terrain.Tile)
+}
+func (ai *aiState) navigate(x, y float64) Direction {
+	// Try a straight, collision-safe route before a grid search.
+	dx, dy := x-ai.X, y-ai.Y
+	mx, my := terrain.Move(ai.X, ai.Y, dx, dy, AISize, AISize)
+	if math.Hypot(mx-x, my-y) < .1 {
+		return ai.approach(x, y)
+	}
+	nx, ny, ok := terrain.NextStep(ai.X, ai.Y, x, y, AISize)
+	if !ok {
+		return Direction{}
+	}
+	return ai.approach(nx, ny)
 }

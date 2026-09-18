@@ -1,10 +1,11 @@
 package game
 
 import (
-	rl "github.com/gen2brain/raylib-go/raylib"
 	"image/color"
 	"math"
 	"raylib-2d-sandbox/internal/terrain"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 var stone = color.RGBA{53, 62, 73, 255}
@@ -21,8 +22,8 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 	right := int(math.Ceil(float64(ctx.Camera.Target.X+(float32(ctx.WindowWidth)-ctx.Camera.Offset.X)/zoom)/40)) + 1
 	top := int(math.Floor(float64(ctx.Camera.Target.Y-ctx.Camera.Offset.Y/zoom)/40)) - 1
 	bottom := min(0, int(math.Ceil(float64(ctx.Camera.Target.Y+(float32(ctx.WindowHeight)-ctx.Camera.Offset.Y)/zoom)/40))+1)
-	for y := max(-96, top); y < bottom; y++ {
-		for x := max(0, left); x < min(50, right); x++ {
+	for y := max(terrain.MinCellY, top); y < bottom; y++ {
+		for x := max(terrain.MinCellX, left); x < min(terrain.MaxCellX, right); x++ {
 			id := terrain.Cell(x, y)
 			px, py := x*40, y*40
 			hash := uint32(x*73856093) ^ uint32((y+100)*19349663)
@@ -32,10 +33,22 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 				dungeonRect(px, py, 40, 40, c)
 				dungeonRect(px, py, 40, 1, color.RGBA{43, 49, 57, 255})
 				dungeonRect(px, py, 1, 40, color.RGBA{43, 49, 57, 255})
-				// Worn inset tiles along the axial processional route.
 				if (x == 24 || x == 25) && (id == 2 || id == 8 || id == 1) {
 					dungeonRect(px+4, py+3, 32, 34, color.RGBA{47, 52, 58, 255})
 					dungeonRect(px+7, py+6, 26, 1, color.RGBA{69, 70, 66, 255})
+				}
+				if terrain.Cover(x, y) {
+					// Arcane residue seeps from engraved stone; it confuses creature sight.
+					center := rl.NewVector2(float32(px+20), float32(py+20))
+					pulse := float32(.7 + .15*math.Sin(rl.GetTime()*1.4+float64(hash%31)))
+					dungeonRect(px+2, py+2, 36, 36, color.RGBA{33, 35, 57, 255})
+					rl.DrawCircleGradient(center, 26, rl.Fade(color.RGBA{134, 125, 214, 255}, .20*pulse), rl.Blank)
+					rl.DrawPolyLines(center, 4, 9, 45, rl.Fade(color.RGBA{149, 139, 218, 255}, .5*pulse))
+					for i := 0; i < 3; i++ {
+						ox := float32((hash+uint32(i*17))%29) + 5
+						oy := float32((hash+uint32(i*11))%27) + 5 + float32(math.Sin(rl.GetTime()+float64(i)))*3
+						rl.DrawCircleV(rl.NewVector2(float32(px)+ox, float32(py)+oy), 1.5, rl.Fade(color.RGBA{164, 155, 233, 255}, .65*pulse))
+					}
 				}
 				if terrain.Cell(x, y-1) == 0 {
 					dungeonRect(px, py, 40, 10, color.RGBA{8, 13, 20, 150})
@@ -71,7 +84,6 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 			}
 		}
 	}
-	// Clear the field border at the walkable gate opening.
 	dungeonRect(880, 0, 240, 10, rl.Black)
 	for _, x := range []int{800, 1120} {
 		dungeonRect(x, -80, 80, 80, stone)
@@ -79,7 +91,6 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 		dungeonRect(x+12, -60, 56, 48, color.RGBA{31, 39, 49, 255})
 		dungeonRect(x+34, -52, 12, 28, runeColor)
 	}
-	// Floor inlays make each room recognizable without adding props or rewards.
 	for _, r := range terrain.Rooms {
 		if r.Y+r.H < top || r.Y > bottom {
 			continue
@@ -89,6 +100,25 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 			rl.DrawRectangleLines(int32(r.X*40+100), int32(r.Y*40+100), int32(r.W*40-200), int32(r.H*40-200), stone)
 			rl.DrawPolyLines(rl.NewVector2(cx, cy), 8, 145, 22.5, stone)
 			rl.DrawCircleLines(int32(cx), int32(cy), 110, stone)
+		}
+	}
+	for _, patch := range terrain.Patches {
+		px, py := patch.X*terrain.Tile, patch.Y*terrain.Tile
+		if px < left*40-160 || px > right*40+160 || py < top*40-160 || py > bottom*40+160 {
+			continue
+		}
+		rl.DrawCircleLines(int32(px+20), int32(py+20), float32(patch.Radius*terrain.Tile), color.RGBA{44, 82, 87, 255})
+		rl.DrawPolyLines(rl.NewVector2(float32(px+20), float32(py+20)), 4, 12, 45, runeColor)
+		rl.DrawCircleLines(int32(px+20), int32(py+20), 6, runeColor)
+	}
+	for _, den := range terrain.Dens {
+		px, py := den.X*terrain.Tile, den.Y*terrain.Tile
+		if px < left*40 || px > right*40 || py < top*40 || py > bottom*40 {
+			continue
+		}
+		for i := range 6 {
+			a := float64(i) * math.Pi / 3
+			dungeonRect(px+15+int(math.Cos(a)*26), py+15+int(math.Sin(a)*26), 10, 10, color.RGBA{124, 91, 67, 255})
 		}
 	}
 	drawDescentCircle()
@@ -110,7 +140,6 @@ func drawDescentCircle() {
 	}
 }
 
-// A compact location caption leaves the architecture itself free of labels.
 func drawDungeonLocation(x, y float32, width, height int32) {
 	name, hint := "OUTER FIELD", "Head north to enter The Hollow"
 	if y < 0 {
@@ -118,10 +147,18 @@ func drawDungeonLocation(x, y float32, width, height int32) {
 		for _, r := range terrain.Rooms {
 			if x >= float32(r.X*40) && x < float32((r.X+r.W)*40) && y >= float32(r.Y*40) && y < float32((r.Y+r.H)*40) {
 				name = "I / " + r.Name
+				for _, tag := range r.Tags {
+					if tag == "refuge" {
+						hint = "Arcane veils confuse creatures. They do not stop attacks."
+					}
+					if tag == "boss" {
+						hint = "An empty arena. Its guardian has yet to arrive."
+					}
+				}
 				break
 			}
 		}
-		if y < -3480 {
+		if y < terrain.DescentCircleY+160 {
 			hint = "The circle is dormant. The deeper floors are yet to open."
 		}
 	}
@@ -130,7 +167,6 @@ func drawDungeonLocation(x, y float32, width, height int32) {
 	drawText(hint, 24, height-29, 16, rl.LightGray)
 }
 
-// Keep the coping inside the blocked pool footprint so its edge matches collision.
 func drawDungeonPool(x, y int) {
 	dungeonRect(x, y, 200, 160, stone)
 	dungeonRect(x+2, y+2, 196, 2, paleStone)
@@ -145,8 +181,7 @@ func drawDungeonPool(x, y int) {
 	dungeonRect(x+11, y+17, 178, 132, color.RGBA{19, 49, 62, 255})
 	dungeonRect(x+16, y+24, 168, 120, color.RGBA{21, 55, 68, 255})
 	dungeonRect(x+24, y+34, 152, 100, color.RGBA{23, 58, 71, 255})
-	// Slowly expanding elliptical ripples keep the surface calm and legible.
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		phase := math.Mod(rl.GetTime()*.16+float64(i)/3+float64(x+y)*.001, 1)
 		if phase < 0 {
 			phase++
