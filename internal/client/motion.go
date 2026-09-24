@@ -244,6 +244,17 @@ func (m *Motion) AIs(now time.Time) []protocol.AI {
 		dx, dy := m.aiCorrections[ai.ID].offset(now)
 		ai.X += dx
 		ai.Y += dy
+		for i := range ai.Split {
+			cell := &ai.Split[i]
+			if !cell.Active {
+				continue
+			}
+			if okA && okB && a.Split[i].Active && b.Split[i].Active {
+				cell.X, cell.Y = projectPosition(a.Split[i].X, a.Split[i].Y, b.Split[i].X, b.Split[i].Y, alpha)
+			}
+			cell.X += dx
+			cell.Y += dy
+		}
 		ais = append(ais, ai)
 	}
 	return ais

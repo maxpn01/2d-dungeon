@@ -21,6 +21,9 @@ func (w *World) resolvePredation(eaters []eater) {
 			if first.player != nil && first.player == second.player {
 				continue
 			}
+			if first.ai != nil && first.ai == second.ai {
+				continue
+			}
 			contact, hit := eatingContact(first.start, first.end, first.size, second.start, second.end, second.size)
 			if hit {
 				contacts = append(contacts, encounter{first: first, second: second, time: contact})
@@ -69,6 +72,8 @@ func (w *World) resolvePredation(eaters []eater) {
 				killer := a.id
 				if a.player != nil {
 					killer = a.player.ID
+				} else if a.ai != nil {
+					killer = a.ai.ID
 				}
 				b.die(killer, w.tick)
 			} else if a.stats.HP < b.stats.HP {
@@ -89,6 +94,8 @@ func (w *World) resolvePredation(eaters []eater) {
 			killer := a.id
 			if a.player != nil {
 				killer = a.player.ID
+			} else if a.ai != nil {
+				killer = a.ai.ID
 			}
 			b.die(killer, w.tick)
 		}
@@ -103,7 +110,7 @@ func (e eater) combat() *CombatState {
 }
 
 func (e eater) attacking() bool {
-	return e.cell == nil && e.player != nil && e.player.Character == Triangle && e.combat().Attack
+	return e.cell == nil && e.combat().Attack && (e.player != nil && e.player.Character == Triangle || e.ai != nil && e.ai.Character == Triangle)
 }
 
 func (e eater) setPosition(x, y float64) {
@@ -131,7 +138,7 @@ func (w *World) separate(a, b eater) {
 		e.setPosition(x, y)
 		w.protectedUntil[e.id] = w.tick + HitProtectionTicks
 		e.combat().Attack = false
-		if e.player != nil && e.player.Character == Triangle {
+		if e.player != nil && e.player.Character == Triangle || e.ai != nil && e.ai.Character == Triangle {
 			e.combat().Phase, e.combat().Remaining = DashRecovering, DashRecovery
 		}
 	}
@@ -167,6 +174,11 @@ func (w *World) spawnPosition(slot uint64) (float64, float64) {
 		for _, ai := range w.ais {
 			if ai.respawnTick == 0 {
 				distance = min(distance, math.Hypot(x-ai.X, y-ai.Y))
+				for _, cell := range ai.Split {
+					if cell.Active {
+						distance = min(distance, math.Hypot(x-cell.X, y-cell.Y))
+					}
+				}
 			}
 		}
 		for _, player := range w.players {

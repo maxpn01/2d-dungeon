@@ -24,11 +24,13 @@ const (
 )
 
 type AI struct {
-	Combat   CombatState
-	Behavior string
-	ID       string
-	X, Y     float64
-	Stats    Stats
+	Combat    CombatState
+	Behavior  string
+	Character Character
+	Split     SplitCells
+	ID        string
+	X, Y      float64
+	Stats     Stats
 }
 
 type aiState struct {
@@ -55,8 +57,13 @@ func (w *World) newDenAI(den terrain.Den) aiState {
 	x, y := terrain.CellPosition(den.X, den.Y, AISize)
 	stats := NewStats()
 	stats.Speed = AISpeed
-	return aiState{den: den, settleTicks: AISettleTicks, awakeTicks: AIAwakeSeconds * TickRate, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "emerging"}}
+	return aiState{den: den, settleTicks: AISettleTicks, awakeTicks: AIAwakeSeconds * TickRate, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "emerging", Character: randomAICharacter()}}
 }
+
+func randomAICharacter() Character {
+	return [...]Character{Square, Triangle, Circle}[rand.IntN(3)]
+}
+
 func (w *World) spawnAIs() {
 	for i := 0; i < InitialAIs; i++ {
 		ai := w.newSurfaceAI(i)
@@ -73,7 +80,7 @@ func (w *World) newSurfaceAI(slot int) aiState {
 	stats.Speed = AISpeed
 	return aiState{settleTicks: AISettleTicks, AI: AI{
 		ID: fmt.Sprintf("ai-%d", w.nextAI), X: 600 + float64(slot%3)*450,
-		Y: 400 + float64(slot/3)*650, Stats: stats, Behavior: "emerging",
+		Y: 400 + float64(slot/3)*650, Stats: stats, Behavior: "emerging", Character: randomAICharacter(),
 	}}
 }
 
@@ -84,20 +91,22 @@ func (w *World) updateAIs() {
 			continue
 		}
 		input := w.aiInput(ai)
-		actor := Player{X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat}
+		actor := Player{X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character, Split: ai.Split}
 		actor.GatesClosed = w.boss.Phase == "fighting"
 		AdvancePlayer(&actor, input, StepSeconds, w.safeZones)
-		ai.X, ai.Y, ai.Stats, ai.Combat = actor.X, actor.Y, actor.Stats, actor.Combat
+		ai.X, ai.Y, ai.Stats, ai.Combat, ai.Split = actor.X, actor.Y, actor.Stats, actor.Combat, actor.Split
 	}
 }
 
 func (w *World) aiInput(ai *aiState) Direction {
+	ai.attackCooldown = max(0, ai.attackCooldown-1)
 	if ai.settleTicks > 0 {
 		ai.settleTicks--
 		ai.Behavior = "emerging"
 		return Direction{}
 	}
 	if threat, distance := w.nearestPlayer(ai, true); threat != nil {
+		ai.observeTarget(nil)
 		ai.Behavior = "fleeing"
 		d := ai.flee(threat)
 		d.Boost = distance < 180*180 && ai.Stats.HP > BoostMinimumMass
@@ -105,18 +114,29 @@ func (w *World) aiInput(ai *aiState) Direction {
 	}
 	ai.escapeTicks = 0
 	prey, preyDistance := w.nearestPlayer(ai, false)
+	ai.observeTarget(prey)
 	fruit, found := w.nearestFruit(ai)
 	fx, fy := fruit.X+(fruit.Size-AISize)/2, fruit.Y+(fruit.Size-AISize)/2
 	foodDistance := (fx-ai.X)*(fx-ai.X) + (fy-ai.Y)*(fy-ai.Y)
 	if prey != nil && (!found || preyDistance <= foodDistance) {
 		ai.Behavior = "chasing"
 		d := w.aiApproach(ai, prey.X, prey.Y)
+		d.AimX, d.AimY = d.X, d.Y
+		if ai.Character == Triangle && ai.canAttack(prey) {
+			d.Dash = true
+			ai.Behavior = "attacking"
+			ai.attackCooldown = AIAttackIntervalTicks
+		}
+		if ai.Character == Circle && !ai.Combat.Held && ai.Split.Count() == 0 && ai.Stats.HP >= SplitMinimumMass &&
+			ai.Stats.HP/2 > prey.Stats.HP && preyDistance < 220*220 {
+			d.Dash = true
+		}
 		closingSpeed := (ai.Stats.MovementSpeed()*BoostMultiplier - prey.MovementSpeed()) * SpeedScale
 		catchSeconds := math.Inf(1)
 		if closingSpeed > 0 {
 			catchSeconds = math.Sqrt(preyDistance) / closingSpeed
 		}
-		d.Boost = ai.Stats.HP-BoostMassPerSecond*catchSeconds > max(BoostMinimumMass, prey.Stats.HP+1)
+		d.Boost = ai.Character == Square && ai.Stats.HP-BoostMassPerSecond*catchSeconds > max(BoostMinimumMass, prey.Stats.HP+1)
 		return d
 	}
 	if found {
@@ -278,8 +298,15 @@ func (w *World) denClear(x, y float64, skip int) bool {
 	}
 	for j := range w.ais {
 		a := &w.ais[j]
-		if j != skip && a.respawnTick == 0 && math.Hypot(a.X-x, a.Y-y) < AISize*2 {
-			return false
+		if j != skip && a.respawnTick == 0 {
+			if math.Hypot(a.X-x, a.Y-y) < AISize*2 {
+				return false
+			}
+			for _, cell := range a.Split {
+				if cell.Active && math.Hypot(cell.X-x, cell.Y-y) < AISize*2 {
+					return false
+				}
+			}
 		}
 	}
 	return true

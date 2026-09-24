@@ -67,6 +67,12 @@ func (w *World) spawnFruit() {
 			if ai.respawnTick != 0 {
 				continue
 			}
+			for _, cell := range ai.Split {
+				if cell.Active && x < cell.X+AISize && x+FruitSize > cell.X && y < cell.Y+AISize && y+FruitSize > cell.Y {
+					overlaps = true
+					break
+				}
+			}
 			if x < ai.X+AISize && x+FruitSize > ai.X && y < ai.Y+AISize && y+FruitSize > ai.Y {
 				overlaps = true
 				break

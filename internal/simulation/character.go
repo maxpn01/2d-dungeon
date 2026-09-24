@@ -232,19 +232,29 @@ func splitCircle(p *Player, direction Direction) {
 
 func (w *World) finishSplitCells() {
 	for _, p := range w.players {
-		for i := range p.Split {
-			cell := &p.Split[i]
-			if !cell.Active {
-				continue
-			}
-			if cell.Stats.HP <= 0 {
-				*cell = SplitCell{}
-				continue
-			}
-			if p.Stats.HP <= 0 {
-				p.X, p.Y, p.Stats.HP = cell.X, cell.Y, cell.Stats.HP
-				*cell = SplitCell{}
-			}
+		finishActorSplit(&p.X, &p.Y, &p.Stats, &p.Split)
+	}
+	for i := range w.ais {
+		ai := &w.ais[i]
+		if ai.respawnTick == 0 {
+			finishActorSplit(&ai.X, &ai.Y, &ai.Stats, &ai.Split)
+		}
+	}
+}
+
+func finishActorSplit(x, y *float64, stats *Stats, split *SplitCells) {
+	for i := range split {
+		cell := &split[i]
+		if !cell.Active {
+			continue
+		}
+		if cell.Stats.HP <= 0 {
+			*cell = SplitCell{}
+			continue
+		}
+		if stats.HP <= 0 {
+			*x, *y, stats.HP = cell.X, cell.Y, cell.Stats.HP
+			*cell = SplitCell{}
 		}
 	}
 }

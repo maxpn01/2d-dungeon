@@ -18,7 +18,7 @@ type eater struct {
 	ai         *aiState
 }
 
-func (w *World) eaters(previous map[string]position, previousAIs []position) []eater {
+func (w *World) eaters(previous map[string]position) []eater {
 	eaters := make([]eater, 0, len(w.players)+len(w.ais))
 	for id, player := range w.players {
 		if player.Dead {
@@ -44,7 +44,19 @@ func (w *World) eaters(previous map[string]position, previousAIs []position) []e
 		if ai.respawnTick != 0 {
 			continue
 		}
-		eaters = append(eaters, eater{id: ai.ID, start: previousAIs[i], end: position{ai.X, ai.Y}, size: AISize, stats: &ai.Stats, ai: ai})
+		eaters = append(eaters, eater{id: ai.ID, start: previous[ai.ID], end: position{ai.X, ai.Y}, size: AISize, stats: &ai.Stats, ai: ai})
+		for j := range ai.Split {
+			cell := &ai.Split[j]
+			if !cell.Active {
+				continue
+			}
+			id := fmt.Sprintf("%s/split/%d", ai.ID, j)
+			start, ok := previous[id]
+			if !ok {
+				start = position{cell.X, cell.Y}
+			}
+			eaters = append(eaters, eater{id: id, start: start, end: position{cell.X, cell.Y}, size: AISize, stats: &cell.Stats, ai: ai, cell: cell})
+		}
 	}
 	return eaters
 }
@@ -53,7 +65,7 @@ func (e eater) dead() bool {
 	if e.player != nil {
 		return e.player.Dead || e.stats.HP <= 0
 	}
-	return e.ai.respawnTick != 0
+	return e.ai.respawnTick != 0 || e.stats.HP <= 0
 }
 
 func (e eater) die(killer string, tick uint64) {
@@ -64,6 +76,12 @@ func (e eater) die(killer string, tick uint64) {
 		}
 	}
 	if e.player == nil {
+		if e.ai.Split.Count() > 0 {
+			e.stats.HP = 0
+			if e.ai.Stats.HP > 0 || e.ai.Split.Mass() > 0 {
+				return
+			}
+		}
 		e.ai.respawnTick = tick + AIRespawnSeconds*TickRate
 		return
 	}
@@ -140,17 +158,23 @@ func eatingContact(start, end position, size float64, targetStart, targetEnd pos
 }
 
 func (e eater) gain(hp, xp float64) {
-	if e.player == nil || e.player.Split.Count() == 0 {
+	if (e.player == nil || e.player.Split.Count() == 0) && (e.ai == nil || e.ai.Split.Count() == 0) {
 		e.stats.Eat(hp, xp)
 		return
 	}
-	p := e.player
-	p.Stats.GainXP(xp)
-	for i := range p.Split {
-		if p.Split[i].Active {
-			p.Split[i].Stats.Level, p.Split[i].Stats.XP = p.Stats.Level, p.Stats.XP
+	var stats *Stats
+	var split *SplitCells
+	if e.player != nil {
+		stats, split = &e.player.Stats, &e.player.Split
+	} else {
+		stats, split = &e.ai.Stats, &e.ai.Split
+	}
+	stats.GainXP(xp)
+	for i := range split {
+		if split[i].Active {
+			split[i].Stats.Level, split[i].Stats.XP = stats.Level, stats.XP
 		}
 	}
-	room := max(0, MaxHPForLevel(p.Stats.Level)-p.Stats.HP-p.Split.Mass())
+	room := max(0, MaxHPForLevel(stats.Level)-stats.HP-split.Mass())
 	e.stats.HP += min(hp, room)
 }

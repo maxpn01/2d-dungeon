@@ -463,11 +463,33 @@ func validateAIs(ais []protocol.AI) error {
 			return errors.New("server sent invalid AI IDs")
 		}
 		ids[ai.ID] = true
+		if simulation.NormalizeCharacter(ai.Character) != ai.Character {
+			return errors.New("server sent an invalid AI character")
+		}
 		if !validCombat(ai.Combat) {
 			return errors.New("server sent invalid AI combat state")
 		}
 		if !validStats(ai.Stats, simulation.AISpeed) {
 			return errors.New("server sent invalid AI stats")
+		}
+		if ai.Stats.HP+ai.Split.Mass() > simulation.MaxHPForLevel(ai.Stats.Level)+1e-9 {
+			return errors.New("server sent invalid AI total mass")
+		}
+		for _, cell := range ai.Split {
+			if !cell.Active {
+				continue
+			}
+			if ai.Character != simulation.Circle || !validStats(protocol.PlayerStats{Level: cell.Stats.Level, XP: cell.Stats.XP, HP: cell.Stats.HP, Speed: cell.Stats.Speed}, simulation.AISpeed) || cell.Stats.HP <= 0 || cell.Stats.Level != ai.Stats.Level || cell.Stats.XP != ai.Stats.XP {
+				return errors.New("server sent invalid AI split stats")
+			}
+			for _, v := range []float64{cell.X, cell.Y, cell.Remaining, cell.Launch} {
+				if math.IsNaN(v) || math.IsInf(v, 0) {
+					return errors.New("server sent invalid AI split cell")
+				}
+			}
+			if cell.Remaining < 0 || cell.Remaining > simulation.SplitDuration || cell.Launch < 0 || cell.Launch > simulation.SplitLaunchDuration || !cell.Direction.Valid() || !terrain.Walkable(cell.X, cell.Y, simulation.AISize, simulation.AISize) {
+				return errors.New("server sent invalid AI split position or timer")
+			}
 		}
 		for _, v := range []float64{ai.X, ai.Y, ai.Size} {
 			if math.IsNaN(v) || math.IsInf(v, 0) {

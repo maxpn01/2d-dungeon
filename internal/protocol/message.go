@@ -109,13 +109,15 @@ type Fruit struct {
 }
 
 type AI struct {
-	Combat   simulation.CombatState `json:"combat"`
-	Behavior string                 `json:"behavior"`
-	ID       string                 `json:"id"`
-	X        float64                `json:"x"`
-	Y        float64                `json:"y"`
-	Size     float64                `json:"size"`
-	Stats    PlayerStats            `json:"stats"`
+	Combat    simulation.CombatState `json:"combat"`
+	Behavior  string                 `json:"behavior"`
+	Character simulation.Character   `json:"character"`
+	Split     simulation.SplitCells  `json:"split"`
+	ID        string                 `json:"id"`
+	X         float64                `json:"x"`
+	Y         float64                `json:"y"`
+	Size      float64                `json:"size"`
+	Stats     PlayerStats            `json:"stats"`
 }
 
 type Message struct {

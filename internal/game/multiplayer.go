@@ -143,12 +143,26 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		drawFruit(float32(fruit.X), float32(fruit.Y), float32(fruit.Size), massColor(fruit.Source, m.view.PlayerID), fruit.Source != "")
 	}
 	for _, ai := range m.renderedAIs {
-		if !m.gameMap.exploration.entityVisible(ai.X, ai.Y, ai.Size) {
+		headVisible := m.gameMap.exploration.entityVisible(ai.X, ai.Y, ai.Size)
+		visible := headVisible
+		for _, cell := range ai.Split {
+			visible = visible || cell.Active && m.gameMap.exploration.entityVisible(cell.X, cell.Y, ai.Size)
+		}
+		if !visible {
 			continue
 		}
-		drawSafeProtection(ai.X, ai.Y, ai.Size, ai.Stats.HP, m.view.SafeZones)
-		bounds := drawActor(ai.X, ai.Y, ai.Size, ai.Stats.HP, ai.Combat, rl.Green)
-		drawTextAt(fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior), rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
+		mass := ai.Stats.HP + ai.Split.Mass()
+		if headVisible {
+			drawSafeProtection(ai.X, ai.Y, ai.Size, mass, m.view.SafeZones)
+			bounds := drawActor(ai.X, ai.Y, ai.Size, ai.Stats.HP, ai.Combat, rl.Green, ai.Character)
+			drawTextAt(fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior), rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
+		}
+		for _, cell := range ai.Split {
+			if cell.Active && m.gameMap.exploration.entityVisible(cell.X, cell.Y, ai.Size) {
+				drawSafeProtection(cell.X, cell.Y, ai.Size, mass, m.view.SafeZones)
+				drawActor(cell.X, cell.Y, ai.Size, cell.Stats.HP, simulation.CombatState{}, rl.Green, ai.Character)
+			}
+		}
 	}
 	for _, player := range m.rendered {
 		if player.ID != m.view.PlayerID && !m.gameMap.exploration.entityVisible(player.X, player.Y, player.Size) {

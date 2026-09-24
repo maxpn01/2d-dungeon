@@ -49,6 +49,8 @@ func (e eater) protectedAt(t float64, zones []SafeZone) bool {
 	mass := e.stats.HP
 	if e.player != nil {
 		mass = e.player.Stats.HP + e.player.Split.Mass()
+	} else if e.ai != nil {
+		mass = e.ai.Stats.HP + e.ai.Split.Mass()
 	}
 	x, y := e.start.x+(e.end.x-e.start.x)*t, e.start.y+(e.end.y-e.start.y)*t
 	return InSafeZone(x, y, e.size, mass, zones)

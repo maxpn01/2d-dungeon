@@ -79,7 +79,7 @@ func (h *Hub) Run(ctx context.Context) {
 			ais := make([]protocol.AI, 0, len(snapshot.AIs))
 			for _, ai := range snapshot.AIs {
 				ais = append(ais, protocol.AI{
-					Combat: ai.Combat, Behavior: ai.Behavior, ID: ai.ID, X: ai.X, Y: ai.Y, Size: simulation.AISize,
+					Combat: ai.Combat, Behavior: ai.Behavior, Character: ai.Character, Split: ai.Split, ID: ai.ID, X: ai.X, Y: ai.Y, Size: simulation.AISize,
 					Stats: protocol.PlayerStats{Level: ai.Stats.Level, XP: ai.Stats.XP, HP: ai.Stats.HP, Speed: ai.Stats.Speed},
 				})
 			}

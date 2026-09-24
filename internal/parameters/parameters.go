@@ -1,6 +1,3 @@
-// Package parameters contains values intended for gameplay balance, world layout,
-// and client presentation. Derived values stay next to their inputs.
-// Rebuild both client and server after changing these compile-time constants.
 package parameters
 
 import "time"

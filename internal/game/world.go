@@ -94,7 +94,7 @@ func (w *World) syncSimulation() {
 	w.ais = nil
 	w.entities = []GameObject{w.player, w.fruitSpawner}
 	for _, state := range snapshot.AIs {
-		ai := &AI{safeZones: snapshot.SafeZones, combat: state.Combat, id: state.ID, pos: rl.NewVector2(float32(state.X), float32(state.Y)), size: rl.NewVector2(simulation.AISize, simulation.AISize), color: rl.Green, stats: gameStats(state.Stats)}
+		ai := &AI{safeZones: snapshot.SafeZones, character: state.Character, combat: state.Combat, split: state.Split, id: state.ID, pos: rl.NewVector2(float32(state.X), float32(state.Y)), size: rl.NewVector2(simulation.AISize, simulation.AISize), color: rl.Green, stats: gameStats(state.Stats)}
 		switch state.Behavior {
 		case "chasing":
 			ai.actionState = ActionChasing
@@ -134,7 +134,8 @@ func (w *World) draw(ctx RenderContext) {
 		if w.eating != nil && (entity == w.player || entity == w.eatingAI) {
 			continue
 		}
-		if ai, ok := entity.(*AI); ok && !w.gameMap.exploration.entityVisible(float64(ai.pos.X), float64(ai.pos.Y), float64(ai.size.X)) {
+		if ai, ok := entity.(*AI); ok {
+			ai.drawVisible(&w.gameMap.exploration)
 			continue
 		}
 		if entity == w.fruitSpawner {
@@ -206,6 +207,12 @@ func (w *World) interpolateActors() {
 		for _, previous := range w.previousSnapshot.AIs {
 			if ai.id == previous.ID {
 				ai.pos = interpolate(previous.X, previous.Y, current.X, current.Y)
+				for j, cell := range current.Split {
+					if cell.Active && previous.Split[j].Active {
+						point := interpolate(previous.Split[j].X, previous.Split[j].Y, cell.X, cell.Y)
+						ai.split[j].X, ai.split[j].Y = float64(point.X), float64(point.Y)
+					}
+				}
 				break
 			}
 		}

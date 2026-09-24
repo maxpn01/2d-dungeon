@@ -214,13 +214,17 @@ func (w *World) Step(now time.Time) {
 		}
 		AdvancePlayer(&player.Player, direction, StepSeconds, w.safeZones)
 	}
-	previousAIs := make([]position, len(w.ais))
-	for i, ai := range w.ais {
-		previousAIs[i] = position{ai.X, ai.Y}
+	for _, ai := range w.ais {
+		previous[ai.ID] = position{ai.X, ai.Y}
+		for i, cell := range ai.Split {
+			if cell.Active {
+				previous[fmt.Sprintf("%s/split/%d", ai.ID, i)] = position{cell.X, cell.Y}
+			}
+		}
 	}
 	w.updateAIs()
 	w.advanceFood()
-	eaters := w.eaters(previous, previousAIs)
+	eaters := w.eaters(previous)
 	w.resolvePredation(eaters)
 	for id, p := range w.players {
 		old := previous[id]
