@@ -31,8 +31,14 @@ type combatFeedback struct {
 	effects []feedbackEffect
 }
 
-func (f *combatFeedback) observe(now time.Time, actors map[string]feedbackActor, fruits []protocol.Fruit, localID string) {
+func (f *combatFeedback) observe(now time.Time, actors map[string]feedbackActor, fruits []protocol.Fruit) {
 	drops := make(map[string]bool)
+	playerColors := make(map[string]color.RGBA)
+	for id, actor := range actors {
+		if !actor.ai {
+			playerColors[id] = actor.tint
+		}
+	}
 	emit := func(x, y, size float64, tint color.RGBA, kind string) {
 		f.effects = append(f.effects, feedbackEffect{now, float32(x), float32(y), float32(size), tint, kind})
 	}
@@ -55,7 +61,7 @@ func (f *combatFeedback) observe(now time.Time, actors map[string]feedbackActor,
 		}
 		drops[fruit.ID] = true
 		if f.drops != nil && !f.drops[fruit.ID] {
-			emit(fruit.X+fruit.Size/2, fruit.Y+fruit.Size/2, fruit.Size, massColor(fruit.Source, localID), "mass")
+			emit(fruit.X+fruit.Size/2, fruit.Y+fruit.Size/2, fruit.Size, massColor(fruit.Source, playerColors), "mass")
 		}
 	}
 	f.actors, f.drops = actors, drops
@@ -67,7 +73,7 @@ func (f *combatFeedback) observe(now time.Time, actors map[string]feedbackActor,
 func (f *combatFeedback) snapshot(now time.Time, s simulation.Snapshot) {
 	actors := make(map[string]feedbackActor)
 	for _, p := range s.Players {
-		actors[p.ID] = feedbackActor{p.X, p.Y, simulation.PlayerSize, p.Stats.HP, p.Stats.XP, p.Stats.Level, massColor(p.ID, "player"), false, p.Dead}
+		actors[p.ID] = feedbackActor{p.X, p.Y, simulation.PlayerSize, p.Stats.HP, p.Stats.XP, p.Stats.Level, characterColor(p.Character), false, p.Dead}
 	}
 	for _, a := range s.AIs {
 		actors[a.ID] = feedbackActor{a.X, a.Y, simulation.AISize, a.Stats.HP, a.Stats.XP, a.Stats.Level, rl.Green, true, false}
@@ -76,18 +82,18 @@ func (f *combatFeedback) snapshot(now time.Time, s simulation.Snapshot) {
 	for _, fruit := range s.Fruits {
 		fruits = append(fruits, protocol.Fruit{ID: fruit.ID, X: fruit.X, Y: fruit.Y, Size: fruit.Size, Source: fruit.Source})
 	}
-	f.observe(now, actors, fruits, "player")
+	f.observe(now, actors, fruits)
 }
 
-func (f *combatFeedback) multiplayer(now time.Time, players []protocol.Player, ais []protocol.AI, fruits []protocol.Fruit, localID string) {
+func (f *combatFeedback) multiplayer(now time.Time, players []protocol.Player, ais []protocol.AI, fruits []protocol.Fruit) {
 	actors := make(map[string]feedbackActor)
 	for _, p := range players {
-		actors[p.ID] = feedbackActor{p.X, p.Y, p.Size, p.Stats.HP, p.Stats.XP, p.Stats.Level, massColor(p.ID, localID), false, p.Dead}
+		actors[p.ID] = feedbackActor{p.X, p.Y, p.Size, p.Stats.HP, p.Stats.XP, p.Stats.Level, characterColor(p.Character), false, p.Dead}
 	}
 	for _, a := range ais {
 		actors[a.ID] = feedbackActor{a.X, a.Y, a.Size, a.Stats.HP, a.Stats.XP, a.Stats.Level, rl.Green, true, false}
 	}
-	f.observe(now, actors, fruits, localID)
+	f.observe(now, actors, fruits)
 }
 
 func (f *combatFeedback) draw(now time.Time, exploration *mapExploration) {

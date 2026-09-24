@@ -1,6 +1,7 @@
 package game
 
 import (
+	"image/color"
 	"raylib-2d-sandbox/internal/client"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
@@ -122,8 +123,12 @@ func (w *World) syncSimulation() {
 		}
 	}
 	w.fruitSpawner.fruits = nil
+	playerColors := make(map[string]color.RGBA, len(snapshot.Players))
+	for _, player := range snapshot.Players {
+		playerColors[player.ID] = characterColor(player.Character)
+	}
 	for _, fruit := range snapshot.Fruits {
-		w.fruitSpawner.fruits = append(w.fruitSpawner.fruits, Fruit{mass: fruit.Source != "", pos: rl.NewVector2(float32(fruit.X), float32(fruit.Y)), size: rl.NewVector2(float32(fruit.Size), float32(fruit.Size)), color: massColor(fruit.Source, "player")})
+		w.fruitSpawner.fruits = append(w.fruitSpawner.fruits, Fruit{mass: fruit.Source != "", pos: rl.NewVector2(float32(fruit.X), float32(fruit.Y)), size: rl.NewVector2(float32(fruit.Size), float32(fruit.Size)), color: massColor(fruit.Source, playerColors)})
 	}
 }
 

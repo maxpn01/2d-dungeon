@@ -42,7 +42,7 @@ func EjectFood(p *Player, input Direction, dt float64) *Fruit {
 	fx, fy := terrain.Move(startX, startY, dx*offset, dy*offset, FruitSize, FruitSize)
 	stats.HP--
 	p.EjectCooldown = EjectInterval
-	return &Fruit{X: fx, Y: fy, Size: FruitSize, HP: 1, Ejected: true, VelocityX: dx * 450, VelocityY: dy * 450}
+	return &Fruit{X: fx, Y: fy, Size: FruitSize, HP: 1, Ejected: true, VelocityX: dx * parameters.EjectSpeed, VelocityY: dy * parameters.EjectSpeed}
 }
 
 func (w *World) advanceFood() {

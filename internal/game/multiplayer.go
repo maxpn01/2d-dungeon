@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"image/color"
 	"log"
 	"time"
 
@@ -53,7 +54,7 @@ func (m *multiplayer) poll() {
 			}
 			return
 		}
-		m.feedback.multiplayer(time.Now(), update.Players, update.AIs, update.Fruits, update.PlayerID)
+		m.feedback.multiplayer(time.Now(), update.Players, update.AIs, update.Fruits)
 		m.startEatingScenes(time.Now(), update)
 		m.view = update
 		m.gameMap.safeZones = update.SafeZones
@@ -136,11 +137,15 @@ func (m *multiplayer) follow(camera *rl.Camera2D) {
 func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	rl.BeginMode2D(camera)
 	m.gameMap.draw(RenderContext{Camera: camera, WindowWidth: window.width, WindowHeight: window.height})
+	playerColors := make(map[string]color.RGBA, len(m.view.Players))
+	for _, player := range m.view.Players {
+		playerColors[player.ID] = characterColor(player.Character)
+	}
 	for _, fruit := range m.view.Fruits {
 		if !m.gameMap.exploration.entityVisible(fruit.X, fruit.Y, fruit.Size) {
 			continue
 		}
-		drawFruit(float32(fruit.X), float32(fruit.Y), float32(fruit.Size), massColor(fruit.Source, m.view.PlayerID), fruit.Source != "")
+		drawFruit(float32(fruit.X), float32(fruit.Y), float32(fruit.Size), massColor(fruit.Source, playerColors), fruit.Source != "")
 	}
 	for _, ai := range m.renderedAIs {
 		headVisible := m.gameMap.exploration.entityVisible(ai.X, ai.Y, ai.Size)

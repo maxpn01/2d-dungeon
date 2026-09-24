@@ -91,7 +91,8 @@ const (
 	BoostMultiplier     = 1.5
 	BoostMassPerSecond  = 1.0
 	BoostMinimumMass    = 1.0
-	EjectInterval       = .25
+	EjectInterval       = .15
+	EjectSpeed          = 650.0
 	EjectOwnerDelay     = TickRate * 2
 	DashCost            = 1.0
 	DashWindup          = 0.14

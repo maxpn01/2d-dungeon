@@ -9,12 +9,12 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func massColor(source, localID string) color.RGBA {
+func massColor(source string, playerColors map[string]color.RGBA) color.RGBA {
 	if source == "" {
 		return energyColor
 	}
-	if source == localID {
-		return rl.Red
+	if tint, ok := playerColors[source]; ok {
+		return tint
 	}
 	if strings.HasPrefix(source, "ai-") {
 		return rl.Green
