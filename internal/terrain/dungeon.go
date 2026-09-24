@@ -43,7 +43,7 @@ var Rooms = []Room{
 	{X: 15, Y: -114, W: 20, H: 14, Name: "LONG SANCTUM", ID: "long-sanctum", Tags: []string{"exploration", "refuge"}, Props: []Prop{{"cover", 16, -112, 3, 5}}},
 	{X: 0, Y: -117, W: 10, H: 20, Name: "THE WHISPER WALK", ID: "moss-walk", Tags: []string{"exploration", "refuge"}, Props: []Prop{{"cover", 1, -115, 3, 5}}},
 	{X: 40, Y: -117, W: 10, H: 20, Name: "RELIQUARY WALK", ID: "reliquary-walk", Tags: []string{"exploration"}},
-	{X: 12, Y: -134, W: 26, H: 16, Name: "THE CROWN / BOSS ARENA", ID: "the-crown-boss-arena", Tags: []string{"boss"}},
+	{X: 12, Y: -134, W: 26, H: 16, Name: "THE CROWN", ID: "the-crown-boss-arena", Tags: []string{"exploration"}},
 	{X: 20, Y: -144, W: 10, H: 8, Name: "THE DESCENT", ID: "the-descent", Tags: []string{"descent"}},
 	{X: 13, Y: -190, W: 24, H: 24, Name: "FLOOR II / THE FEAST", ID: "floor-two", Tags: []string{"floor-two"}},
 }
@@ -116,6 +116,13 @@ func Cell(x, y int) int  { return floors[[2]int{x, y}] }
 func Pool(x, y int) bool { return x >= 18 && x < 32 && y >= -55 && y < -43 && Cell(x, y) == 0 }
 
 func Walkable(x, y, w, h float64) bool {
+	if y < SurfaceMin && y+h > 0 {
+		return false
+	}
+	return walkableLayout(x, y, w, h)
+}
+
+func walkableLayout(x, y, w, h float64) bool {
 	if w <= 0 || h <= 0 || math.IsNaN(w) || math.IsNaN(h) || math.IsInf(w, 0) || math.IsInf(h, 0) || math.IsNaN(x) || math.IsNaN(y) || math.IsInf(x, 0) || math.IsInf(y, 0) || x < MinCellX*Tile || x+w > MaxCellX*Tile || y < North || y+h > SurfaceMax {
 		return false
 	}

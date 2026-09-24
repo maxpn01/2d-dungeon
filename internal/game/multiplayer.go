@@ -66,7 +66,7 @@ func (m *multiplayer) readInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 	}
 	direction := protocol.Direction{}
 	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.open && !mapOpen {
-		direction.Dash = rl.IsKeyPressed(rl.KeyLeftShift)
+		direction.Boost = rl.IsKeyDown(rl.KeyLeftShift)
 		center := rl.NewVector2(float32(m.view.Local.X+m.view.Local.Size/2), float32(m.view.Local.Y+m.view.Local.Size/2))
 		for _, p := range m.rendered {
 			if p.ID == m.view.PlayerID {

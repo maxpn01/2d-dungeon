@@ -58,8 +58,6 @@ func InsideArena(x, y, size float64) bool {
 	return x >= ArenaLeft && y >= ArenaTop && x+size <= ArenaRight && y+size <= ArenaBottom
 }
 
-// Shared by authoritative movement and client prediction; arena state belongs to
-// each world/player, never the global terrain map.
 func ConstrainArena(p *Player, oldX, oldY float64) {
 	if !p.GatesClosed {
 		return
@@ -138,7 +136,6 @@ func (w *World) updateBoss(previous map[string]position) {
 			}
 		}
 	}
-	// A disconnect is a wipe too; never strand the shared world behind gates.
 	alive := players[:0]
 	for _, p := range players {
 		if p.InArena {
@@ -173,14 +170,10 @@ func (w *World) updateBoss(previous map[string]position) {
 		if p.Combat.Attack && w.tick >= w.bossHitUntil[p.ID] {
 			b.HP = max(0, b.HP-BossDashDamage)
 			w.bossHitUntil[p.ID] = w.tick + TickRate/2
-			// Stop at the first segment actually struck. Carry that contact with the
-			// moving segment to its final tick position so the bodies visibly touch.
 			p.X = start.x + (end.x-start.x)*contact + (hitEnd.x-hitStart.x)*(1-contact)
 			p.Y = start.y + (end.y-start.y)*contact + (hitEnd.y-hitStart.y)*(1-contact)
 			ConstrainArena(&p.Player, start.x, start.y)
 			w.bossHitEscape(p)
-			// A successful hit releases mass for recovery, without immediately healing
-			// the boss that shed it.
 			drops := 0
 			for _, f := range w.fruits {
 				if f.Source != "" {
@@ -230,7 +223,6 @@ func (b *Boss) followTail() {
 	}
 }
 
-// Use the same XP curve as ordinary creatures; mass is also limited by level.
 func (b *Boss) eat(hp, xp float64) {
 	stats := Stats{Level: b.Level, XP: b.XP}
 	stats.GainXP(xp)
@@ -267,10 +259,6 @@ func (w *World) updatePortals() {
 			p.TeleportCharge = 0
 			continue
 		}
-		if w.boss.Phase != "defeated" {
-			p.TeleportCharge = 0
-			continue
-		}
 		x, y := float64(terrain.DescentCircleX), float64(terrain.DescentCircleY)
 		toX, toY := float64(terrain.ReturnCircleX), float64(terrain.ReturnCircleY)
 		if terrain.FloorTwo(p.X, p.Y) {
@@ -294,7 +282,6 @@ func (w *World) updatePortals() {
 			p.Combat = CombatState{}
 			p.TeleportCharge = 0
 			p.portalCooldown = 2 * TickRate
-			// Retire pre-teleport inputs so lag cannot fling someone off the arrival pad.
 			p.commands = nil
 			p.InputSeq = p.lastSequence
 			p.direction = Direction{}

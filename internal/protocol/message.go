@@ -18,11 +18,12 @@ const (
 )
 
 type Direction struct {
-	AimX float64 `json:"aim_x,omitempty"`
-	AimY float64 `json:"aim_y,omitempty"`
-	Dash bool    `json:"dash,omitempty"`
-	X    float64 `json:"x"`
-	Y    float64 `json:"y"`
+	Boost bool    `json:"boost,omitempty"`
+	AimX  float64 `json:"aim_x,omitempty"`
+	AimY  float64 `json:"aim_y,omitempty"`
+	Dash  bool    `json:"dash,omitempty"`
+	X     float64 `json:"x"`
+	Y     float64 `json:"y"`
 }
 
 type ClientMessage struct {

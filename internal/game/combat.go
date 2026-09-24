@@ -40,6 +40,14 @@ func drawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 	center := rl.NewVector2(float32(x+size/2), float32(y+size/2))
 	dir := rl.NewVector2(float32(c.Direction.X), float32(c.Direction.Y))
 	stretch, offset := float32(0), float32(0)
+	if c.Boosting {
+		for i := 3; i > 0; i-- {
+			trail := bounds
+			trail.X -= dir.X * float32(i) * 10
+			trail.Y -= dir.Y * float32(i) * 10
+			rl.DrawRectangleRec(trail, rl.Fade(tint, .18/float32(i)))
+		}
+	}
 	switch c.Phase {
 	case simulation.DashWinding:
 		p := phaseProgress(c.Remaining, simulation.DashWindup)

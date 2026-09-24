@@ -13,6 +13,31 @@ type encounter struct {
 }
 
 func (w *World) resolvePredation(eaters []eater) {
+	contacts := []encounter{}
+	for i, a := range eaters {
+		for _, b := range eaters[i+1:] {
+			if t, hit := eatingContact(a.start, a.end, a.size, b.start, b.end, b.size); hit {
+				contacts = append(contacts, encounter{a, b, t})
+			}
+		}
+	}
+	sort.SliceStable(contacts, func(i, j int) bool { return contacts[i].time < contacts[j].time })
+	for _, hit := range contacts {
+		a, b := hit.first, hit.second
+		if a.dead() || b.dead() {
+			continue
+		}
+		if b.stats.HP > a.stats.HP {
+			a, b = b, a
+		}
+		if a.stats.HP > b.stats.HP {
+			a.stats.Eat(b.stats.HP*ActorHPFraction, b.stats.HP)
+			b.die(a.id, w.tick)
+		}
+	}
+}
+
+func (w *World) resolveDashPredation(eaters []eater) {
 	contacts := make([]encounter, 0)
 	for i, first := range eaters {
 		for _, second := range eaters[i+1:] {
@@ -167,7 +192,7 @@ func (w *World) nearestPlayer(ai *aiState, threat bool) (*playerState, float64) 
 	best := radius * radius
 	var selected *playerState
 	for _, player := range w.players {
-		if !ai.sees(player.X, player.Y) || !ai.inTerritory(player.X, player.Y) || player.Dead || threat && player.Stats.HP <= ai.Stats.HP || !threat && player.Stats.HP > ai.Stats.HP {
+		if !ai.sees(player.X, player.Y) || !ai.inTerritory(player.X, player.Y) || player.Dead || threat && player.Stats.HP <= ai.Stats.HP || !threat && player.Stats.HP >= ai.Stats.HP {
 			continue
 		}
 		dx, dy := player.X-ai.X, player.Y-ai.Y
@@ -224,11 +249,9 @@ func (ai *aiState) sees(x, y float64) bool {
 	return terrain.Visible(ai.X+AISize/2, ai.Y+AISize/2, x+AISize/2, y+AISize/2)
 }
 func (ai *aiState) inTerritory(x, y float64) bool {
-	hx, hy := terrain.CellPosition(ai.den.X, ai.den.Y, AISize)
-	return math.Hypot(x-hx, y-hy) <= float64(ai.den.Radius*terrain.Tile)
+	return x >= MapMin && y >= MapMin && x <= MaxPosition && y <= MaxPosition
 }
 func (ai *aiState) navigate(x, y float64) Direction {
-	// Try a straight, collision-safe route before a grid search.
 	dx, dy := x-ai.X, y-ai.Y
 	mx, my := terrain.Move(ai.X, ai.Y, dx, dy, AISize, AISize)
 	if math.Hypot(mx-x, my-y) < .1 {

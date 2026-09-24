@@ -21,6 +21,7 @@ const (
 )
 
 type Direction struct {
+	Boost      bool
 	Dash       bool
 	AimX, AimY float64
 	X, Y       float64
@@ -76,12 +77,9 @@ type World struct {
 }
 
 func NewWorld() *World {
-	w := &World{boss: newBoss(), bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
-	for _, p := range terrain.Patches {
-		for range p.Capacity {
-			w.spawnPatchFruit(p)
-		}
-		w.patchNext[p.ID] = uint64(p.Seconds * TickRate)
+	w := &World{bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
+	for range InitialFruits {
+		w.spawnFruit()
 	}
 	return w
 }
@@ -190,7 +188,6 @@ func (w *World) Step(now time.Time) {
 		previousAIs[i] = position{ai.X, ai.Y}
 	}
 	w.updateAIs()
-	w.updateBoss(previous)
 	eaters := w.eaters(previous, previousAIs)
 	w.resolvePredation(eaters)
 	for id, p := range w.players {

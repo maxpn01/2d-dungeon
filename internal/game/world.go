@@ -61,7 +61,7 @@ func (w *World) update(dt float32) {
 	for w.accumulator >= simulation.StepSeconds && !w.player.isDeadFlag {
 		now := time.Now()
 		input := w.player.input
-		w.simulation.Input("player", simulation.Direction{X: float64(input.Direction.X), Y: float64(input.Direction.Y), Dash: input.Dash, AimX: float64(input.Aim.X), AimY: float64(input.Aim.Y)}, now)
+		w.simulation.Input("player", simulation.Direction{X: float64(input.Direction.X), Y: float64(input.Direction.Y), Boost: input.Boost, Dash: input.Dash, AimX: float64(input.Aim.X), AimY: float64(input.Aim.Y)}, now)
 		w.player.input.Dash = false
 		w.simulation.Step(now)
 		w.accumulator -= simulation.StepSeconds
@@ -92,6 +92,8 @@ func (w *World) syncSimulation() {
 	for _, state := range snapshot.AIs {
 		ai := &AI{combat: state.Combat, id: state.ID, pos: rl.NewVector2(float32(state.X), float32(state.Y)), size: rl.NewVector2(simulation.AISize, simulation.AISize), color: rl.Green, stats: gameStats(state.Stats)}
 		switch state.Behavior {
+		case "chasing":
+			ai.actionState = ActionChasing
 		case "alerted":
 			ai.actionState = ActionAlerted
 		case "emerging":

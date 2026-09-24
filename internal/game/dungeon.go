@@ -84,7 +84,11 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 			}
 		}
 	}
-	dungeonRect(880, 0, 240, 10, rl.Black)
+	dungeonRect(880, 0, 240, 10, stone)
+	for x := 886; x < 1120; x += 20 {
+		dungeonRect(x, -8, 6, 18, paleStone)
+	}
+	drawTextAt("DUNGEON CLOSED", rl.NewVector2(908, 24), 18, runeColor)
 	for _, x := range []int{800, 1120} {
 		dungeonRect(x, -80, 80, 80, stone)
 		dungeonRect(x+6, -74, 68, 5, paleStone)
@@ -125,7 +129,7 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 }
 
 func drawDungeonLocation(x, y float32, width, height int32) {
-	name, hint := "OUTER FIELD", "Head north to enter The Hollow"
+	name, hint := "OUTER FIELD", "Eat, grow, and hold Shift to boost. The dungeon is closed."
 	if y < 0 {
 		name, hint = "THE HOLLOW / FLOOR I", "Entrance lies to the south"
 		for _, r := range terrain.Rooms {
@@ -135,20 +139,17 @@ func drawDungeonLocation(x, y float32, width, height int32) {
 					if tag == "refuge" {
 						hint = "Arcane veils confuse creatures. They do not stop attacks."
 					}
-					if tag == "boss" {
-						hint = "Enter together. The exits seal when the Devourer wakes."
-					}
 				}
 				break
 			}
 		}
 		if y < terrain.DescentCircleY+160 {
-			hint = "The descent links the floors. Defeat the Devourer to awaken it."
+			hint = "The circle links the floors. Stand inside to travel."
 		}
 	}
 	if terrain.FloorTwo(float64(x), float64(y)) {
 		name = "II / THE FEAST"
-		hint = "Gather energy. Leave and re-enter the circle to return to floor I."
+		hint = "Leave and re-enter the circle to return to floor I."
 	}
 	rl.DrawRectangle(0, height-70, width, 70, rl.Fade(rl.Black, .8))
 	drawText(name, 24, height-57, 20, runeColor)

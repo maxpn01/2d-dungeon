@@ -368,7 +368,7 @@ func validatePlayers(players []protocol.Player, localID string) error {
 }
 
 func validateFruits(fruits []protocol.Fruit) error {
-	if len(fruits) > terrain.FruitCapacity()+simulation.MaxMassDrops {
+	if len(fruits) > simulation.MaxFruits+simulation.MaxMassDrops {
 		return errors.New("server sent too many fruits")
 	}
 	ids := make(map[string]bool, len(fruits))
@@ -405,7 +405,7 @@ func validStats(stats protocol.PlayerStats, baseSpeed float64) bool {
 }
 
 func validateAIs(ais []protocol.AI) error {
-	if len(ais) > len(terrain.Dens) {
+	if len(ais) > simulation.InitialAIs {
 		return errors.New("server sent too many AIs")
 	}
 	ids := make(map[string]bool, len(ais))
@@ -434,7 +434,7 @@ func validateAIs(ais []protocol.AI) error {
 
 func predictPlayer(player *protocol.Player, input protocol.Direction) {
 	p := simulation.Player{GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, Speed: player.Stats.Speed}}
-	simulation.AdvancePlayer(&p, simulation.Direction{X: input.X, Y: input.Y, Dash: input.Dash, AimX: input.AimX, AimY: input.AimY}, simulation.StepSeconds)
+	simulation.AdvancePlayer(&p, simulation.Direction{X: input.X, Y: input.Y, Boost: input.Boost, Dash: input.Dash, AimX: input.AimX, AimY: input.AimY}, simulation.StepSeconds)
 	player.X, player.Y, player.Combat, player.Stats.HP = p.X, p.Y, p.Combat, p.Stats.HP
 }
 

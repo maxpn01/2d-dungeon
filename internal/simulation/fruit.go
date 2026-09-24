@@ -3,11 +3,12 @@ package simulation
 import (
 	"fmt"
 	"math/rand/v2"
-	"raylib-2d-sandbox/internal/terrain"
 )
 
 const (
 	FruitSize       = 15.0
+	InitialFruits   = 8
+	MaxFruits       = 20
 	fruitSpawnTicks = TickRate
 )
 
@@ -22,49 +23,34 @@ type Fruit struct {
 }
 
 func (w *World) spawnFruit() {
-	for _, patch := range terrain.Patches {
-		count := 0
-		for _, f := range w.fruits {
-			if f.Patch == patch.ID {
-				count++
-			}
-		}
-		if count >= patch.Capacity {
-			w.patchNext[patch.ID] = w.tick + uint64(patch.Seconds*TickRate)
-			continue
-		}
-		if w.tick < w.patchNext[patch.ID] {
-			continue
-		}
-		if w.spawnPatchFruit(patch) {
-			w.patchNext[patch.ID] = w.tick + uint64(patch.Seconds*TickRate)
-		}
+	if len(w.fruits) >= MaxFruits {
+		return
 	}
-}
-func (w *World) spawnPatchFruit(p terrain.FeedingPatch) bool {
-	for range 64 {
-		x, y := terrain.CellPosition(p.X+rand.IntN(2*p.Radius+1)-p.Radius, p.Y+rand.IntN(2*p.Radius+1)-p.Radius, FruitSize)
-		if !terrain.Walkable(x, y, FruitSize, FruitSize) {
-			continue
-		}
+	for range 32 {
+		x := MapMin + rand.Float64()*(MapMax-MapMin-FruitSize)
+		y := MapMin + rand.Float64()*(MapMax-MapMin-FruitSize)
 		overlaps := false
-		overlap := func(ax, ay, size float64) bool {
-			return x < ax+size && x+FruitSize > ax && y < ay+size && y+FruitSize > ay
-		}
-		for _, f := range w.fruits {
-			if overlap(f.X, f.Y, f.Size) {
+		for _, fruit := range w.fruits {
+			if x < fruit.X+fruit.Size && x+FruitSize > fruit.X &&
+				y < fruit.Y+fruit.Size && y+FruitSize > fruit.Y {
 				overlaps = true
 				break
 			}
 		}
-		for _, a := range w.ais {
-			if a.respawnTick == 0 && overlap(a.X, a.Y, AISize) {
+		for _, player := range w.players {
+			if player.Dead {
+				continue
+			}
+			if x < player.X+PlayerSize && x+FruitSize > player.X && y < player.Y+PlayerSize && y+FruitSize > player.Y {
 				overlaps = true
 				break
 			}
 		}
-		for _, a := range w.players {
-			if !a.Dead && overlap(a.X, a.Y, PlayerSize) {
+		for _, ai := range w.ais {
+			if ai.respawnTick != 0 {
+				continue
+			}
+			if x < ai.X+AISize && x+FruitSize > ai.X && y < ai.Y+AISize && y+FruitSize > ai.Y {
 				overlaps = true
 				break
 			}
@@ -73,8 +59,7 @@ func (w *World) spawnPatchFruit(p terrain.FeedingPatch) bool {
 			continue
 		}
 		w.nextFruit++
-		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("f%d", w.nextFruit), Patch: p.ID, X: x, Y: y, Size: FruitSize})
-		return true
+		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("f%d", w.nextFruit), X: x, Y: y, Size: FruitSize})
+		return
 	}
-	return false
 }

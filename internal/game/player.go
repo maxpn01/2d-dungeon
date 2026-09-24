@@ -22,6 +22,7 @@ type PlayerStats struct {
 type PlayerInput struct {
 	Direction rl.Vector2
 	Aim       rl.Vector2
+	Boost     bool
 	Dash      bool
 }
 
@@ -58,11 +59,7 @@ func (p *Player) draw() {
 }
 
 func (p *Player) readInput(camera rl.Camera2D) {
-	input := PlayerInput{Dash: p.input.Dash || rl.IsKeyPressed(rl.KeyLeftShift)}
-	input.Aim = mouseAim(camera, entityCenter(p.pos, p.size), p.combat.Facing)
-	if p.input.Dash {
-		input.Aim = p.input.Aim
-	}
+	input := PlayerInput{Boost: rl.IsKeyDown(rl.KeyLeftShift)}
 	if rl.IsKeyDown(rl.KeyW) {
 		input.Direction.Y -= 1
 	}

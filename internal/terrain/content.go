@@ -18,24 +18,8 @@ type Den struct {
 	HP                  float64
 }
 
-var Patches = []FeedingPatch{
-	{"boss-west", 17, -127, 3, 14, 2}, {"boss-east", 32, -127, 3, 14, 2},
-	{"feast-west", 19, -181, 5, 100, 1}, {"feast-east", 30, -181, 5, 100, 1},
-	{"entry", 24, -14, 2, 6, 5}, {"entry-east", 28, -20, 2, 5, 6},
-	{"west-cloister", 8, -32, 2, 7, 9}, {"east-cloister", 41, -33, 2, 7, 9},
-	{"garden", -8, -32, 3, 4, 12}, {"roots", 58, -32, 3, 4, 12},
-	{"west-granary", -8, -58, 2, 9, 8}, {"east-granary", 58, -58, 2, 9, 8},
-	{"niches", 7, -58, 2, 6, 10}, {"rotunda", 42, -58, 2, 6, 10},
-	{"store", -8, -77, 2, 10, 16}, {"vault", 58, -77, 2, 10, 16},
-	{"threshold", 25, -75, 3, 8, 10}, {"sanctum", 25, -107, 3, 10, 9},
-	{"moss", 5, -110, 2, 4, 12}, {"reliquary", 45, -110, 2, 7, 12},
-}
-var Dens = []Den{
-	{"cloister", 8, -33, 9, 1, 7}, {"gallery", 41, -34, 9, 1, 7},
-	{"west-granary", -8, -59, 8, 2, 10}, {"east-granary", 58, -59, 8, 2, 10},
-	{"niches", 7, -59, 7, 2, 10}, {"rotunda", 42, -59, 7, 2, 10},
-	{"threshold", 25, -77, 9, 3, 13}, {"sanctum", 25, -108, 8, 4, 17},
-}
+var Patches []FeedingPatch
+var Dens []Den
 var cover = map[[2]int]bool{}
 
 func init() {
@@ -72,7 +56,6 @@ func CellPosition(x, y int, size float64) (float64, float64) {
 func Validate() error {
 	start := [2]int{24, -1}
 	seen := map[[2]int]bool{start: true}
-	// The second connected component is reached through the descent portal.
 	second := [2]int{ReturnCircleX / Tile, ReturnCircleY / Tile}
 	seen[second] = true
 	queue := [][2]int{start, second}
@@ -85,7 +68,7 @@ func Validate() error {
 				continue
 			}
 			x, y := CellPosition(n[0], n[1], ActorSize)
-			if Walkable(x, y, ActorSize, ActorSize) {
+			if walkableLayout(x, y, ActorSize, ActorSize) {
 				seen[n] = true
 				queue = append(queue, n)
 			}

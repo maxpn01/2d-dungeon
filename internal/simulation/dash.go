@@ -36,6 +36,7 @@ const (
 )
 
 type CombatState struct {
+	Boosting  bool      `json:"boosting,omitempty"`
 	RecoilX   float64   `json:"recoil_x,omitempty"`
 	RecoilY   float64   `json:"recoil_y,omitempty"`
 	HitGrace  float64   `json:"hit_grace,omitempty"`
@@ -47,7 +48,7 @@ type CombatState struct {
 	Attack    bool      `json:"attack,omitempty"`
 }
 
-func AdvancePlayer(p *Player, input Direction, dt float64) {
+func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 	oldX, oldY := p.X, p.Y
 	defer func() { ConstrainArena(p, oldX, oldY) }()
 	c := &p.Combat
@@ -97,7 +98,6 @@ func AdvancePlayer(p *Player, input Direction, dt float64) {
 				distance -= travel
 			}
 		case DashRecoiling:
-			// Hold the point of contact briefly, then ease out into the bounce.
 			progress := func(elapsed float64) float64 {
 				t := max(0, min(1, (elapsed-BossImpactHold)/(BossRecoilDuration-BossImpactHold)))
 				return 1 - (1-t)*(1-t)

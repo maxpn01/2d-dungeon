@@ -13,6 +13,7 @@ type AIActionState int
 const (
 	ActionSearchingFood AIActionState = iota
 	ActionEating
+	ActionChasing
 	ActionFleeing
 	ActionSleeping
 	ActionAttacking
@@ -43,6 +44,8 @@ func (state AIActionState) String() string {
 	switch state {
 	case ActionSearchingFood:
 		return "searching"
+	case ActionChasing:
+		return "chasing"
 	case ActionEating:
 		return "eating"
 	case ActionFleeing:

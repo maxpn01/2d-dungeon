@@ -45,7 +45,7 @@ func drawPlayerHUD(p playerHUD, windowWidth int32) {
 		return
 	}
 	background := rl.Fade(rl.Black, .8)
-	rl.DrawRectangle(x, y, width, 202, background)
+	rl.DrawRectangle(x, y, width, 178, background)
 
 	rl.DrawRectangle(x+12, y+10, 36, 36, color.RGBA{48, 48, 48, 255})
 	rl.DrawRectangle(x+18, y+16, 24, 24, p.avatar)
@@ -72,9 +72,7 @@ func drawPlayerHUD(p playerHUD, windowWidth int32) {
 	rl.DrawLine(cx, cy, cx+4, cy-4, rl.RayWhite)
 	drawText(fmt.Sprintf("SPEED %.2f", p.speed), x+34, y+148, 18, muted)
 
-	drawText("SHIFT  Dash toward mouse (-1 HP)", x+12, y+178, 16, muted)
-
-	counts := fmt.Sprintf("Fruit: %d    AIs: %d", p.fruit, p.ais)
+	counts := fmt.Sprintf("Food: %d    AIs: %d", p.fruit, p.ais)
 	if p.players > 0 {
 		counts += fmt.Sprintf("    Players: %d", p.players)
 	}

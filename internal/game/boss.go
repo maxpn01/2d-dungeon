@@ -13,7 +13,7 @@ func drawEncounter(b simulation.Boss, e *mapExploration) {
 		if !e.entityVisible(float64(pad.X), float64(pad.Y), 0) {
 			continue
 		}
-		active := b.Phase == "defeated"
+		active := b.Phase == "" || b.Phase == "defeated"
 		tint := rl.Gray
 		label := "DEFEAT THE CROWN DEVOURER"
 		if active {
@@ -47,7 +47,7 @@ func drawEncounter(b simulation.Boss, e *mapExploration) {
 		rl.DrawRectangleLinesEx(r, 6, rl.Fade(tint, .65))
 		rl.DrawRectangleLinesEx(rl.NewRectangle(r.X+7, r.Y+7, r.Width-14, r.Height-14), 2, rl.Fade(tint, .25))
 	}
-	if b.Phase == "defeated" || !e.entityVisible(b.X, b.Y, simulation.BossSize) {
+	if b.Phase == "" || b.Phase == "defeated" || !e.entityVisible(b.X, b.Y, simulation.BossSize) {
 		return
 	}
 	if b.Phase == "fighting" && b.Behavior == "winding" {
