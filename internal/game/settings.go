@@ -7,11 +7,14 @@ import (
 	"strings"
 
 	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type Settings struct {
+	Character  simulation.Character `json:"character"`
+	character  simulation.Character
 	PlayerName string `json:"player_name"`
 	name       string
 	focused    bool
@@ -22,17 +25,19 @@ type Settings struct {
 
 func newSettings() *Settings {
 	s := &Settings{
-		PlayerName: "Player",
+		PlayerName: "Player", Character: simulation.Square,
 		saveButton: NewMenuButton("save", ActionSaveSettings),
 		backButton: NewMenuButton("cancel", ActionMenu),
 	}
 	if path, err := settingsPath(); err == nil {
 		if data, err := os.ReadFile(path); err == nil {
 			var saved struct {
-				PlayerName string `json:"player_name"`
+				PlayerName string               `json:"player_name"`
+				Character  simulation.Character `json:"character"`
 			}
 			if json.Unmarshal(data, &saved) == nil {
 				s.PlayerName = protocol.NormalizePlayerName(saved.PlayerName)
+				s.Character = simulation.NormalizeCharacter(saved.Character)
 			}
 		}
 	}
@@ -49,6 +54,7 @@ func settingsPath() (string, error) {
 
 func (s *Settings) open() {
 	s.name = s.PlayerName
+	s.character = s.Character
 	s.focused = true
 	s.errorText = ""
 	for rl.GetCharPressed() != 0 {
@@ -63,8 +69,9 @@ func (s *Settings) save() bool {
 	}
 	if err == nil {
 		data, _ := json.Marshal(struct {
-			PlayerName string `json:"player_name"`
-		}{name})
+			PlayerName string               `json:"player_name"`
+			Character  simulation.Character `json:"character"`
+		}{name, simulation.NormalizeCharacter(s.character)})
 		err = os.WriteFile(path, data, 0644)
 	}
 	if err != nil {
@@ -72,6 +79,7 @@ func (s *Settings) save() bool {
 		return false
 	}
 	s.PlayerName = name
+	s.Character = simulation.NormalizeCharacter(s.character)
 	return true
 }
 
@@ -79,9 +87,20 @@ func (s *Settings) draw() Action {
 	cx := float32(rl.GetScreenWidth()) / 2
 	top := float32(rl.GetScreenHeight())/2 - 230
 	drawCenteredText("settings", int32(top), 40, rl.RayWhite)
-	rl.DrawRectangle(int32(cx)-30, int32(top)+70, 60, 60, rl.Red)
-	drawCenteredText("avatar", int32(top)+145, 20, rl.LightGray)
-	bounds := rl.NewRectangle(cx-190, top+215, 380, 52)
+	for i, character := range []simulation.Character{simulation.Square, simulation.Triangle, simulation.Circle} {
+		card := rl.NewRectangle(cx-240+float32(i)*165, top+65, 150, 115)
+		if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(rl.GetMousePosition(), card) {
+			s.character = character
+		}
+		tint := rl.DarkGray
+		if s.character == character {
+			tint = characterColor(character)
+		}
+		rl.DrawRectangleLinesEx(card, 2, tint)
+		drawCharacterShape(character, rl.NewRectangle(card.X+55, card.Y+15, 40, 40), characterColor(character))
+		drawText(string(character), int32(card.X+75)-measureText(string(character), 20)/2, int32(card.Y+75), 20, rl.RayWhite)
+	}
+	bounds := rl.NewRectangle(cx-190, top+255, 380, 52)
 	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
 		s.focused = rl.CheckCollisionPointRec(rl.GetMousePosition(), bounds)
 	}
@@ -113,13 +132,13 @@ func (s *Settings) draw() Action {
 		x := int32(bounds.X) + 12 + measureText(s.name, fontSize)
 		rl.DrawRectangle(x, int32(bounds.Y)+12, 2, 28, rl.RayWhite)
 	}
-	drawCenteredText("Up to 20 characters | Ctrl+A to clear", int32(top)+280, 18, rl.LightGray)
-	s.saveButton.Bounds = rl.NewRectangle(cx-190, top+330, 180, 60)
-	s.backButton.Bounds = rl.NewRectangle(cx+10, top+330, 180, 60)
+	drawCenteredText("Up to 20 characters | Ctrl+A to clear", int32(top)+315, 18, rl.LightGray)
+	s.saveButton.Bounds = rl.NewRectangle(cx-190, top+360, 180, 60)
+	s.backButton.Bounds = rl.NewRectangle(cx+10, top+360, 180, 60)
 	save := s.saveButton.draw()
 	back := s.backButton.draw()
 	if s.errorText != "" {
-		drawCenteredText(s.errorText, int32(top)+410, 18, rl.Red)
+		drawCenteredText(s.errorText, int32(top)+435, 18, rl.Red)
 	}
 	if back != ActionNone {
 		return back

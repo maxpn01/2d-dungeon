@@ -63,6 +63,12 @@ func (v *radarView) begin(m *Map) {
 	v.rect(m.edgePosX.start, m.edgePosY.start, m.edgePosX.end-m.edgePosX.start, m.edgePosY.end-m.edgePosY.start, field)
 	v.rect(float32(int(m.sizeInCells.X)/2-2)*m.cellSize.X, float32(int(m.sizeInCells.Y)/2-2)*m.cellSize.Y, 5*m.cellSize.X, 5*m.cellSize.Y, rl.Gray)
 	v.rect(880, 0, 240, m.cellSize.Y, field)
+	for _, zone := range m.safeZones {
+		center := v.point(rl.NewVector2(float32(zone.X), float32(zone.Y)))
+		radius := float32(zone.Radius) * v.scale
+		rl.DrawCircleV(center, radius, rl.NewColor(27, 77, 49, 255))
+		rl.DrawCircleLinesV(center, radius, rl.NewColor(100, 220, 145, 255))
+	}
 
 	left := max(terrain.MinCellX, int(math.Floor(float64((v.focus.X-v.bounds.Width/(2*v.scale))/terrain.Tile))))
 	right := min(terrain.MaxCellX, int(math.Ceil(float64((v.focus.X+v.bounds.Width/(2*v.scale))/terrain.Tile))))

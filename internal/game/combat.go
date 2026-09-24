@@ -23,7 +23,7 @@ func massColor(source, localID string) color.RGBA {
 }
 
 func actorRenderSize(size, hp float64) float32 {
-	return float32(size * (0.65 + 0.35*math.Log2(1+max(0, hp))/math.Log2(1+simulation.StartingHP)))
+	return float32(simulation.BodySize(size, hp))
 }
 
 func actorBounds(x, y, size, hp float64) rl.Rectangle {
@@ -35,7 +35,11 @@ func phaseProgress(remaining, duration float64) float32 {
 	return float32(1 - max(0, min(1, remaining/duration)))
 }
 
-func drawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA) rl.Rectangle {
+func drawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA, characters ...simulation.Character) rl.Rectangle {
+	character := simulation.Square
+	if len(characters) > 0 {
+		character = characters[0]
+	}
 	bounds := actorBounds(x, y, size, hp)
 	center := rl.NewVector2(float32(x+size/2), float32(y+size/2))
 	dir := rl.NewVector2(float32(c.Direction.X), float32(c.Direction.Y))
@@ -45,7 +49,7 @@ func drawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 			trail := bounds
 			trail.X -= dir.X * float32(i) * 10
 			trail.Y -= dir.Y * float32(i) * 10
-			rl.DrawRectangleRec(trail, rl.Fade(tint, .18/float32(i)))
+			drawCharacterShape(character, trail, rl.Fade(tint, .18/float32(i)))
 		}
 	}
 	switch c.Phase {
@@ -58,7 +62,7 @@ func drawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 			trail := bounds
 			trail.X -= dir.X * float32(i) * 13
 			trail.Y -= dir.Y * float32(i) * 13
-			rl.DrawRectangleRec(trail, rl.Fade(tint, 0.19/float32(i)))
+			drawCharacterShape(character, trail, rl.Fade(tint, 0.19/float32(i)))
 		}
 	case simulation.DashBumped, simulation.DashRecoiling:
 		duration := simulation.BumpStun
@@ -74,9 +78,9 @@ func drawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 	body := rl.NewRectangle(center.X-width/2+dir.X*offset, center.Y-height/2+dir.Y*offset, width, height)
 	shadow := body
 	shadow.Y += 3
-	rl.DrawRectangleRec(shadow, rl.Fade(rl.Black, 0.35))
-	rl.DrawRectangleRec(body, tint)
-	rl.DrawRectangleLinesEx(body, 1, rl.Fade(rl.RayWhite, 0.3))
+	drawCharacterShape(character, shadow, rl.Fade(rl.Black, 0.35))
+	drawCharacterShape(character, body, tint)
+
 	if c.HitGrace > 0 {
 		pulse := float32(.6 + .25*math.Sin(rl.GetTime()*20))
 		rl.DrawRing(center, bounds.Width*.75+4, bounds.Width*.75+7, 0, 360, 40, rl.Fade(rl.SkyBlue, pulse))
@@ -119,5 +123,27 @@ func drawCombat(center rl.Vector2, size float32, c simulation.CombatState) {
 	case simulation.DashRecovering:
 		p := phaseProgress(c.Remaining, simulation.DashRecovery)
 		rl.DrawRing(center, size*0.72+3, size*0.72+4, -90+360*p, 270, 40, rl.Fade(rl.Gray, 0.65))
+	}
+}
+
+func characterColor(c simulation.Character) color.RGBA {
+	switch c {
+	case simulation.Triangle:
+		return rl.Yellow
+	case simulation.Circle:
+		return rl.SkyBlue
+	default:
+		return rl.Red
+	}
+}
+
+func drawCharacterShape(c simulation.Character, r rl.Rectangle, tint color.RGBA) {
+	switch c {
+	case simulation.Triangle:
+		rl.DrawTriangle(rl.NewVector2(r.X+r.Width/2, r.Y), rl.NewVector2(r.X, r.Y+r.Height), rl.NewVector2(r.X+r.Width, r.Y+r.Height), tint)
+	case simulation.Circle:
+		rl.DrawCircleV(rl.NewVector2(r.X+r.Width/2, r.Y+r.Height/2), r.Width/2, tint)
+	default:
+		rl.DrawRectangleRec(r, tint)
 	}
 }

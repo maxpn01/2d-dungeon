@@ -5,9 +5,9 @@ import "math"
 const Tile = 40
 const (
 	MinCellX     = -20
-	MaxCellX     = 70
+	MaxCellX     = 100
 	MinCellY     = -192
-	SurfaceCells = 50
+	SurfaceCells = 100
 	SurfaceMin   = 10
 	SurfaceMax   = SurfaceCells*Tile - 10
 	North        = MinCellY * Tile

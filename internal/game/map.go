@@ -3,6 +3,7 @@ package game
 import (
 	"image/color"
 	"math"
+	"raylib-2d-sandbox/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -18,6 +19,7 @@ type EdgePos struct {
 }
 
 type Map struct {
+	safeZones   []simulation.SafeZone
 	exploration mapExploration
 	sizeInCells rl.Vector2
 	cellSize    rl.Vector2
@@ -66,6 +68,7 @@ func (m *Map) draw(ctx RenderContext) {
 			rl.DrawRectangle(int32(x), int32(y), int32(cell.size.X), int32(cell.size.Y), cell.color)
 		}
 	}
+	drawSafeZones(m.safeZones)
 	m.drawDungeon(ctx)
 }
 

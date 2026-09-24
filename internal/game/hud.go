@@ -5,6 +5,7 @@ import (
 	"image/color"
 
 	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -19,6 +20,7 @@ func NewHUD(world *World, window *Window) *HUD {
 }
 
 type playerHUD struct {
+	character             simulation.Character
 	name                  string
 	avatar                color.RGBA
 	level, maxLevel       int
@@ -31,10 +33,10 @@ func (h *HUD) draw() {
 	w := h.world
 	s := w.player.stats
 	drawPlayerHUD(playerHUD{
-		name: w.player.name, avatar: w.player.color,
+		name: w.player.name, avatar: w.player.color, character: w.player.character,
 		level: s.lvl, maxLevel: s.maxLvl,
-		hp: s.hp, maxHP: s.maxHP, xp: float32(s.exp), nextXP: calcExpForNextLvl(s.lvl),
-		speed: s.speed, fruit: len(w.fruitSpawner.fruits), ais: len(w.ais),
+		hp: s.hp + float32(w.player.split.Mass()), maxHP: s.maxHP, xp: float32(s.exp), nextXP: calcExpForNextLvl(s.lvl),
+		speed: float32(effectivePlayerSpeed(w.player.character, float64(s.speed), float64(s.hp), w.player.split)), fruit: len(w.fruitSpawner.fruits), ais: len(w.ais),
 	}, h.window.width)
 }
 
@@ -48,7 +50,7 @@ func drawPlayerHUD(p playerHUD, windowWidth int32) {
 	rl.DrawRectangle(x, y, width, 178, background)
 
 	rl.DrawRectangle(x+12, y+10, 36, 36, color.RGBA{48, 48, 48, 255})
-	rl.DrawRectangle(x+18, y+16, 24, 24, p.avatar)
+	drawCharacterShape(p.character, rl.NewRectangle(float32(x+18), float32(y+16), 24, 24), p.avatar)
 	name := protocol.NormalizePlayerName(p.name)
 	fontSize := int32(20)
 	for fontSize > 10 && measureText(name, fontSize) > width-138 {
@@ -97,4 +99,8 @@ func drawHUDMeter(x, y, width int32, label, value string, current, maximum float
 		track.Width *= fraction
 		rl.DrawRectangleRec(track, tint)
 	}
+}
+
+func effectivePlayerSpeed(character simulation.Character, base, hp float64, cells simulation.SplitCells) float64 {
+	return simulation.PlayerMovementSpeed(character, base, hp, cells)
 }

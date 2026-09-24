@@ -8,7 +8,7 @@ const (
 	BoostMinimumMass   = 1.0
 )
 
-func AdvancePlayer(p *Player, input Direction, dt float64) {
+func advanceBoostPlayer(p *Player, input Direction, dt float64) {
 	p.Combat = CombatState{}
 	if p.Dead || !input.Valid() || dt <= 0 {
 		return
@@ -24,10 +24,10 @@ func AdvancePlayer(p *Player, input Direction, dt float64) {
 		boosted = min(dt, (p.Stats.HP-BoostMinimumMass)/BoostMassPerSecond)
 	}
 	oldX, oldY := p.X, p.Y
-	p.X, p.Y = Move(p.X, p.Y, input, boosted, p.Stats.Speed*BoostMultiplier)
+	p.X, p.Y = Move(p.X, p.Y, input, boosted, p.MovementSpeed()*BoostMultiplier)
 	if p.X != oldX || p.Y != oldY {
 		p.Stats.HP = max(BoostMinimumMass, p.Stats.HP-boosted*BoostMassPerSecond)
 		p.Combat.Boosting = boosted > 0
 	}
-	p.X, p.Y = Move(p.X, p.Y, input, dt-boosted, p.Stats.Speed)
+	p.X, p.Y = Move(p.X, p.Y, input, dt-boosted, p.MovementSpeed())
 }

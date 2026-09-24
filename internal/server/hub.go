@@ -10,11 +10,12 @@ import (
 )
 
 type client struct {
-	name     string
-	id       string
-	send     chan protocol.Message
-	cancel   context.CancelFunc
-	lastChat time.Time
+	character simulation.Character
+	name      string
+	id        string
+	send      chan protocol.Message
+	cancel    context.CancelFunc
+	lastChat  time.Time
 }
 
 const chatCooldown = 500 * time.Millisecond
@@ -64,7 +65,7 @@ func (h *Hub) Run(ctx context.Context) {
 			players := make([]protocol.Player, 0, len(snapshot.Players))
 			for _, state := range snapshot.Players {
 				players = append(players, protocol.Player{
-					GatesClosed: state.GatesClosed, InArena: state.InArena, TeleportCharge: state.TeleportCharge, Combat: state.Combat, Name: names[state.ID], Dead: state.Dead, KilledBy: state.KilledBy, ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
+					EjectCooldown: state.EjectCooldown, Character: state.Character, Split: state.Split, GatesClosed: state.GatesClosed, InArena: state.InArena, TeleportCharge: state.TeleportCharge, Combat: state.Combat, Name: names[state.ID], Dead: state.Dead, KilledBy: state.KilledBy, ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
 					Stats: protocol.PlayerStats{
 						Level: state.Stats.Level, XP: state.Stats.XP, HP: state.Stats.HP, Speed: state.Stats.Speed,
 					},
@@ -81,7 +82,7 @@ func (h *Hub) Run(ctx context.Context) {
 					Stats: protocol.PlayerStats{Level: ai.Stats.Level, XP: ai.Stats.XP, HP: ai.Stats.HP, Speed: ai.Stats.Speed},
 				})
 			}
-			message := protocol.Message{Boss: snapshot.Boss, Type: protocol.TypeSnapshot, Tick: snapshot.Tick, Players: &players, Fruits: &fruits, AIs: &ais}
+			message := protocol.Message{SafeZones: snapshot.SafeZones, Boss: snapshot.Boss, Type: protocol.TypeSnapshot, Tick: snapshot.Tick, Players: &players, Fruits: &fruits, AIs: &ais}
 			dropped := false
 			for c := range clients {
 				select {
@@ -110,6 +111,7 @@ func (h *Hub) Run(ctx context.Context) {
 			clients[c] = struct{}{}
 			names[c.id] = c.name
 			world.Join(c.id)
+			world.SetCharacter(c.id, c.character)
 			c.send <- protocol.Message{Type: protocol.TypeWelcome, PlayerID: c.id}
 			broadcast()
 		case c := <-h.leave:
@@ -123,7 +125,7 @@ func (h *Hub) Run(ctx context.Context) {
 			}
 			if event.message.Type == protocol.TypeInput {
 				d := event.message.Direction
-				if !world.Command(event.client.id, simulation.Direction{X: d.X, Y: d.Y, Boost: d.Boost, Dash: d.Dash, AimX: d.AimX, AimY: d.AimY}, event.message.Sequence, time.Now()) {
+				if !world.Command(event.client.id, simulation.Direction{X: d.X, Y: d.Y, Eject: d.Eject, Boost: d.Boost, Dash: d.Dash, AimX: d.AimX, AimY: d.AimY}, event.message.Sequence, time.Now()) {
 					remove(event.client)
 					broadcast()
 				}

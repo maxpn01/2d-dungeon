@@ -129,7 +129,7 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 }
 
 func drawDungeonLocation(x, y float32, width, height int32) {
-	name, hint := "OUTER FIELD", "Eat, grow, and hold Shift to boost. The dungeon is closed."
+	name, hint := "OUTER FIELD", "Eat and grow. The dungeon is closed."
 	if y < 0 {
 		name, hint = "THE HOLLOW / FLOOR I", "Entrance lies to the south"
 		for _, r := range terrain.Rooms {

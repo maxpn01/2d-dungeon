@@ -13,34 +13,12 @@ type encounter struct {
 }
 
 func (w *World) resolvePredation(eaters []eater) {
-	contacts := []encounter{}
-	for i, a := range eaters {
-		for _, b := range eaters[i+1:] {
-			if t, hit := eatingContact(a.start, a.end, a.size, b.start, b.end, b.size); hit {
-				contacts = append(contacts, encounter{a, b, t})
-			}
-		}
-	}
-	sort.SliceStable(contacts, func(i, j int) bool { return contacts[i].time < contacts[j].time })
-	for _, hit := range contacts {
-		a, b := hit.first, hit.second
-		if a.dead() || b.dead() {
-			continue
-		}
-		if b.stats.HP > a.stats.HP {
-			a, b = b, a
-		}
-		if a.stats.HP > b.stats.HP {
-			a.stats.Eat(b.stats.HP*ActorHPFraction, b.stats.HP)
-			b.die(a.id, w.tick)
-		}
-	}
-}
-
-func (w *World) resolveDashPredation(eaters []eater) {
 	contacts := make([]encounter, 0)
 	for i, first := range eaters {
 		for _, second := range eaters[i+1:] {
+			if first.player != nil && first.player == second.player {
+				continue
+			}
 			contact, hit := eatingContact(first.start, first.end, first.size, second.start, second.end, second.size)
 			if hit {
 				contacts = append(contacts, encounter{first: first, second: second, time: contact})
@@ -60,6 +38,9 @@ func (w *World) resolveDashPredation(eaters []eater) {
 	stopped := make(map[string]bool)
 	for _, hit := range contacts {
 		a, b := hit.first, hit.second
+		if a.protectedAt(hit.time, w.safeZones) || b.protectedAt(hit.time, w.safeZones) {
+			continue
+		}
 		if stopped[a.id] || stopped[b.id] || a.dead() || b.dead() || w.tick < w.protectedUntil[a.id] || w.tick < w.protectedUntil[b.id] {
 			continue
 		}
@@ -69,6 +50,7 @@ func (w *World) resolveDashPredation(eaters []eater) {
 			b.end = position{b.start.x + (b.end.x-b.start.x)*hit.time, b.start.y + (b.end.y-b.start.y)*hit.time}
 		}
 		if attackA && attackB {
+			stopped[a.id], stopped[b.id] = true, true
 			w.separate(a, b)
 			continue
 		}
@@ -81,10 +63,15 @@ func (w *World) resolveDashPredation(eaters []eater) {
 			a.combat().Attack = false
 			a.combat().Phase, a.combat().Remaining = DashRecovering, DashRecovery
 			if a.stats.HP >= b.stats.HP && a.stats.HP > 0 {
-				a.stats.Eat(b.stats.HP*ActorHPFraction, b.stats.HP)
-				b.die(a.id, w.tick)
+				a.gain(b.stats.HP*ActorHPFraction, b.stats.HP)
+				killer := a.id
+				if a.player != nil {
+					killer = a.player.ID
+				}
+				b.die(killer, w.tick)
 			} else if a.stats.HP < b.stats.HP {
 				w.knockMass(b)
+				stopped[b.id] = true
 				w.separate(a, b)
 			}
 			continue
@@ -95,9 +82,13 @@ func (w *World) resolveDashPredation(eaters []eater) {
 		if a.ai != nil && (a.ai.Behavior == "sleeping" || a.ai.Behavior == "emerging") {
 			continue
 		}
-		if CanContactEat(a.stats.HP, b.stats.HP) {
-			a.stats.Eat(b.stats.HP*ActorHPFraction, b.stats.HP)
-			b.die(a.id, w.tick)
+		if a.stats.HP > b.stats.HP {
+			a.gain(b.stats.HP*ActorHPFraction, b.stats.HP)
+			killer := a.id
+			if a.player != nil {
+				killer = a.player.ID
+			}
+			b.die(killer, w.tick)
 		}
 	}
 }
@@ -109,10 +100,14 @@ func (e eater) combat() *CombatState {
 	return &e.ai.Combat
 }
 
-func (e eater) attacking() bool { return e.combat().Attack }
+func (e eater) attacking() bool {
+	return e.cell == nil && e.player != nil && e.player.Character == Triangle && e.combat().Attack
+}
 
 func (e eater) setPosition(x, y float64) {
-	if e.player != nil {
+	if e.cell != nil {
+		e.cell.X, e.cell.Y = x, y
+	} else if e.player != nil {
 		e.player.X, e.player.Y = x, y
 	} else {
 		e.ai.X, e.ai.Y = x, y
@@ -134,12 +129,15 @@ func (w *World) separate(a, b eater) {
 		e.setPosition(x, y)
 		w.protectedUntil[e.id] = w.tick + HitProtectionTicks
 		e.combat().Attack = false
-		e.combat().Phase, e.combat().Remaining = DashRecovering, DashRecovery
+		if e.player != nil && e.player.Character == Triangle {
+			e.combat().Phase, e.combat().Remaining = DashRecovering, DashRecovery
+		}
 	}
 }
 
 func (w *World) knockMass(target eater) {
-	amount := min(KnockedMass, target.stats.HP)
+	// Raids dislodge mass but leave the victim alive to defend or retreat.
+	amount := min(KnockedMass, max(0, target.stats.HP-BoostMinimumMass))
 	drops := 0
 	for _, f := range w.fruits {
 		if f.Source != "" {
@@ -191,16 +189,32 @@ func (w *World) nearestPlayer(ai *aiState, threat bool) (*playerState, float64) 
 	}
 	best := radius * radius
 	var selected *playerState
-	for _, player := range w.players {
-		if !ai.sees(player.X, player.Y) || !ai.inTerritory(player.X, player.Y) || player.Dead || threat && player.Stats.HP <= ai.Stats.HP || !threat && player.Stats.HP >= ai.Stats.HP {
-			continue
+	for _, owner := range w.players {
+		candidates := []playerState{*owner}
+		for _, part := range owner.Split {
+			if !part.Active {
+				continue
+			}
+			cell := *owner
+			cell.X, cell.Y, cell.Stats = part.X, part.Y, part.Stats
+			candidates = append(candidates, cell)
 		}
-		dx, dy := player.X-ai.X, player.Y-ai.Y
-		distance := dx*dx + dy*dy
-		if distance <= best && (selected == nil || distance < best || player.ID < selected.ID) {
-			selected, best = player, distance
+		for _, player := range candidates {
+			if InSafeZone(player.X, player.Y, PlayerSize, owner.Stats.HP+owner.Split.Mass(), w.safeZones) {
+				continue
+			}
+			if !ai.sees(player.X, player.Y) || !ai.inTerritory(player.X, player.Y) || player.Dead || player.Stats.HP <= 0 || threat && player.Stats.HP <= ai.Stats.HP || !threat && player.Stats.HP >= ai.Stats.HP {
+				continue
+			}
+			dx, dy := player.X-ai.X, player.Y-ai.Y
+			distance := dx*dx + dy*dy
+			if distance <= best && (selected == nil || distance < best || player.ID < selected.ID) {
+				copy := player
+				selected, best = &copy, distance
+			}
 		}
 	}
+
 	return selected, best
 }
 
@@ -224,12 +238,12 @@ func (ai *aiState) flee(player *playerState) Direction {
 		d = ai.escapeDirection
 		ai.escapeTicks--
 	}
-	nx, ny := Move(ai.X, ai.Y, d, .15, ai.Stats.Speed)
-	blocked := math.Hypot(nx-ai.X, ny-ai.Y) < ai.Stats.Speed*SpeedScale*.1
+	nx, ny := Move(ai.X, ai.Y, d, .15, ai.Stats.MovementSpeed())
+	blocked := math.Hypot(nx-ai.X, ny-ai.Y) < ai.Stats.MovementSpeed()*SpeedScale*.1
 	if blocked {
 		best := -1.0
 		for _, candidate := range [8]Direction{{X: 1}, {X: -1}, {Y: 1}, {Y: -1}, {X: 1, Y: 1}, {X: 1, Y: -1}, {X: -1, Y: 1}, {X: -1, Y: -1}} {
-			x, y := Move(ai.X, ai.Y, candidate, StepSeconds, ai.Stats.Speed)
+			x, y := Move(ai.X, ai.Y, candidate, StepSeconds, ai.Stats.MovementSpeed())
 			if x == ai.X && y == ai.Y {
 				continue
 			}

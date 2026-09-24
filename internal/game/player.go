@@ -20,6 +20,7 @@ type PlayerStats struct {
 }
 
 type PlayerInput struct {
+	Eject     bool
 	Direction rl.Vector2
 	Aim       rl.Vector2
 	Boost     bool
@@ -27,12 +28,15 @@ type PlayerInput struct {
 }
 
 type Player struct {
-	combat simulation.CombatState
-	name   string
-	input  PlayerInput
-	pos    rl.Vector2
-	size   rl.Vector2
-	color  color.RGBA
+	safeZones []simulation.SafeZone
+	character simulation.Character
+	split     simulation.SplitCells
+	combat    simulation.CombatState
+	name      string
+	input     PlayerInput
+	pos       rl.Vector2
+	size      rl.Vector2
+	color     color.RGBA
 
 	stats PlayerStats
 
@@ -54,12 +58,21 @@ func NewPlayer(
 }
 
 func (p *Player) draw() {
-	bounds := drawActor(float64(p.pos.X), float64(p.pos.Y), float64(p.size.X), float64(p.stats.hp), p.combat, p.color)
+	mass := float64(p.stats.hp) + p.split.Mass()
+	drawSafeProtection(float64(p.pos.X), float64(p.pos.Y), float64(p.size.X), mass, p.safeZones)
+	bounds := drawActor(float64(p.pos.X), float64(p.pos.Y), float64(p.size.X), float64(p.stats.hp), p.combat, p.color, p.character)
+	for _, cell := range p.split {
+		if cell.Active {
+			drawSafeProtection(cell.X, cell.Y, float64(p.size.X), mass, p.safeZones)
+			drawActor(cell.X, cell.Y, float64(p.size.X), cell.Stats.HP, simulation.CombatState{}, p.color, p.character)
+		}
+	}
 	drawTextAt(fmt.Sprintf("%s Lv.%d (you)", p.name, p.stats.lvl), rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 }
 
 func (p *Player) readInput(camera rl.Camera2D) {
-	input := PlayerInput{Boost: rl.IsKeyDown(rl.KeyLeftShift)}
+	input := PlayerInput{Eject: p.input.Eject || rl.IsKeyDown(rl.KeyE), Boost: rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift), Dash: p.input.Dash || rl.IsKeyPressed(rl.KeyLeftShift) || rl.IsKeyPressed(rl.KeyRightShift)}
+	input.Aim = mouseAim(camera, entityCenter(p.pos, p.size), p.combat.Facing)
 	if rl.IsKeyDown(rl.KeyW) {
 		input.Direction.Y -= 1
 	}

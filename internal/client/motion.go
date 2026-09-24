@@ -76,13 +76,31 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 		return
 	}
 	dt = max(0, min(dt, .05))
+	previous := m.local
+	defer func() {
+		if math.Hypot(target.X-previous.X, target.Y-previous.Y) > teleportDistance {
+			return
+		}
+		for i, cell := range target.Split {
+			if !cell.Active {
+				continue
+			}
+			offsetX, offsetY := cell.X-target.X, cell.Y-target.Y
+			if previous.Split[i].Active {
+				oldX, oldY := previous.Split[i].X-previous.X, previous.Split[i].Y-previous.Y
+				blend := 1 - math.Exp(-simulation.SplitFollowResponse*dt)
+				offsetX, offsetY = oldX+(offsetX-oldX)*blend, oldY+(offsetY-oldY)*blend
+			}
+			m.local.Split[i].X, m.local.Split[i].Y = terrain.Move(m.local.X, m.local.Y, offsetX, offsetY, simulation.PlayerSize, simulation.PlayerSize)
+		}
+	}()
 	dx, dy := target.X-m.local.X, target.Y-m.local.Y
 	distance := math.Hypot(dx, dy)
 	if distance > 200 {
 		m.local = target
 		return
 	}
-	speed := target.Stats.Speed * simulation.SpeedScale
+	speed := playerMovementSpeed(target) * simulation.SpeedScale
 	if target.Combat.Boosting || m.local.Combat.Boosting {
 		speed *= simulation.BoostMultiplier
 	}
@@ -126,7 +144,20 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 		}
 		if next, ok := afterByID[player.ID]; ok {
 			if math.Hypot(next.X-player.X, next.Y-player.Y) <= teleportDistance {
+				oldX, oldY := player.X, player.Y
 				player.X, player.Y = interpolatePosition(player.X, player.Y, next.X, next.Y, alpha)
+				for i, cell := range next.Split {
+					if !cell.Active {
+						continue
+					}
+					startX, startY := cell.X-next.X, cell.Y-next.Y
+					if player.Split[i].Active {
+						startX, startY = player.Split[i].X-oldX, player.Split[i].Y-oldY
+					}
+					player.Split[i] = cell
+					player.Split[i].X = player.X + startX + (cell.X-next.X-startX)*alpha
+					player.Split[i].Y = player.Y + startY + (cell.Y-next.Y-startY)*alpha
+				}
 			}
 		}
 		positions = append(positions, player)
@@ -232,4 +263,8 @@ func projectPosition(ax, ay, bx, by, alpha float64) (float64, float64) {
 		return bx, by
 	}
 	return simulation.MoveBy(bx, by, simulation.Direction{X: dx / distance, Y: dy / distance}, distance)
+}
+
+func playerMovementSpeed(p protocol.Player) float64 {
+	return simulation.PlayerMovementSpeed(p.Character, p.Stats.Speed, p.Stats.HP, p.Split)
 }

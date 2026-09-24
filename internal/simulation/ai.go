@@ -53,8 +53,6 @@ func (w *World) newDenAI(den terrain.Den) aiState {
 	x, y := terrain.CellPosition(den.X, den.Y, AISize)
 	stats := NewStats()
 	stats.Speed = AISpeed
-	stats.Level = den.Level
-	stats.HP = den.HP
 	return aiState{den: den, settleTicks: AISettleTicks, awakeTicks: AIAwakeSeconds * TickRate, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "emerging"}}
 }
 func (w *World) spawnAIs() {
@@ -86,7 +84,7 @@ func (w *World) updateAIs() {
 		input := w.aiInput(ai)
 		actor := Player{X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat}
 		actor.GatesClosed = w.boss.Phase == "fighting"
-		AdvancePlayer(&actor, input, StepSeconds)
+		AdvancePlayer(&actor, input, StepSeconds, w.safeZones)
 		ai.X, ai.Y, ai.Stats, ai.Combat = actor.X, actor.Y, actor.Stats, actor.Combat
 	}
 }
@@ -110,14 +108,18 @@ func (w *World) aiInput(ai *aiState) Direction {
 	foodDistance := (fx-ai.X)*(fx-ai.X) + (fy-ai.Y)*(fy-ai.Y)
 	if prey != nil && (!found || preyDistance <= foodDistance) {
 		ai.Behavior = "chasing"
-		d := ai.approach(prey.X, prey.Y)
-		catchSeconds := math.Sqrt(preyDistance) / (ai.Stats.Speed * SpeedScale * (BoostMultiplier - 1))
+		d := w.aiApproach(ai, prey.X, prey.Y)
+		closingSpeed := (ai.Stats.MovementSpeed()*BoostMultiplier - prey.MovementSpeed()) * SpeedScale
+		catchSeconds := math.Inf(1)
+		if closingSpeed > 0 {
+			catchSeconds = math.Sqrt(preyDistance) / closingSpeed
+		}
 		d.Boost = ai.Stats.HP-BoostMassPerSecond*catchSeconds > max(BoostMinimumMass, prey.Stats.HP+1)
 		return d
 	}
 	if found {
 		ai.Behavior = "seeking"
-		return ai.approach(fx, fy)
+		return w.aiApproach(ai, fx, fy)
 	}
 	ai.Behavior = "wandering"
 	if ai.wanderTicks == 0 {
@@ -143,12 +145,65 @@ func (w *World) aiInput(ai *aiState) Direction {
 	return d
 }
 
+// Large AIs cannot enter a refuge. Steer around its rim when it blocks the
+// direct route to prey or food, instead of repeatedly walking into it.
+func (w *World) aiApproach(ai *aiState, x, y float64) Direction {
+	direct := ai.approach(x, y)
+	if ai.Stats.HP <= SafeZoneMaxMass || (direct.X == 0 && direct.Y == 0) {
+		return direct
+	}
+	ax, ay := ai.X+AISize/2, ai.Y+AISize/2
+	tx, ty := x+AISize/2, y+AISize/2
+	dx, dy := tx-ax, ty-ay
+	lengthSquared := dx*dx + dy*dy
+	var blocked *SafeZone
+	blockedRadius, firstProjection := 0.0, math.Inf(1)
+	for _, zone := range w.safeZones {
+		radius := zone.Radius + BodySize(AISize, ai.Stats.HP)/2 + 10
+		projection := max(0, min(1, ((zone.X-ax)*dx+(zone.Y-ay)*dy)/lengthSquared))
+		nearX, nearY := ax+projection*dx, ay+projection*dy
+		if math.Hypot(nearX-zone.X, nearY-zone.Y) >= radius {
+			continue
+		}
+		if projection < firstProjection {
+			copy := zone
+			blocked, blockedRadius, firstProjection = &copy, radius, projection
+		}
+	}
+	if blocked == nil {
+		return direct
+	}
+	rx, ry := ax-blocked.X, ay-blocked.Y
+	distance := math.Hypot(rx, ry)
+	if distance < 1e-6 {
+		rx, ry, distance = 1, 0, 1
+	}
+	rx, ry = rx/distance, ry/distance
+	side := 1.0
+	if rx*(ty-blocked.Y)-ry*(tx-blocked.X) < 0 {
+		side = -1
+	}
+	var steerX, steerY float64
+	if distance > blockedRadius+8 {
+		cosine := blockedRadius / distance
+		sine := math.Sqrt(1 - cosine*cosine)
+		waypointX := blocked.X + blockedRadius*(cosine*rx-side*sine*ry)
+		waypointY := blocked.Y + blockedRadius*(cosine*ry+side*sine*rx)
+		steerX, steerY = waypointX-ax, waypointY-ay
+	} else {
+		outward := max(0, min(.4, (blockedRadius+8-distance)/20))
+		steerX, steerY = -side*ry+outward*rx, side*rx+outward*ry
+	}
+	steerLength := math.Hypot(steerX, steerY)
+	return Direction{X: steerX / steerLength, Y: steerY / steerLength}
+}
+
 func (w *World) nearestFruit(ai *aiState) (Fruit, bool) {
 	var nearest Fruit
 	best := AIDetectionRadius * AIDetectionRadius
 	found := false
 	for _, fruit := range w.fruits {
-		if !ai.sees(fruit.X, fruit.Y) || !ai.inTerritory(fruit.X, fruit.Y) || (ai.Stats.HP >= MaxHPForLevel(ai.Stats.Level) && ai.Stats.Level >= MaxLevel) {
+		if !ai.sees(fruit.X, fruit.Y) || !ai.inTerritory(fruit.X, fruit.Y) || w.fruitInsideBlockedRefuge(ai, fruit) || (ai.Stats.HP >= MaxHPForLevel(ai.Stats.Level) && ai.Stats.Level >= MaxLevel) {
 			continue
 		}
 		dx := fruit.X + fruit.Size/2 - (ai.X + AISize/2)
@@ -159,6 +214,19 @@ func (w *World) nearestFruit(ai *aiState) (Fruit, bool) {
 		}
 	}
 	return nearest, found
+}
+
+func (w *World) fruitInsideBlockedRefuge(ai *aiState, fruit Fruit) bool {
+	if ai.Stats.HP <= SafeZoneMaxMass {
+		return false
+	}
+	fx, fy := fruit.X+fruit.Size/2, fruit.Y+fruit.Size/2
+	for _, zone := range w.safeZones {
+		if math.Hypot(fx-zone.X, fy-zone.Y) < zone.Radius {
+			return true
+		}
+	}
+	return false
 }
 
 func (w *World) respawnAIs() {

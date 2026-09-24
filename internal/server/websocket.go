@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/simulation"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
@@ -23,7 +24,7 @@ func (h *Hub) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	c := &client{name: protocol.NormalizePlayerName(r.URL.Query().Get("name")), send: make(chan protocol.Message, 16), cancel: cancel}
+	c := &client{character: simulation.NormalizeCharacter(simulation.Character(r.URL.Query().Get("character"))), name: protocol.NormalizePlayerName(r.URL.Query().Get("name")), send: make(chan protocol.Message, 16), cancel: cancel}
 	select {
 	case h.join <- c:
 	case <-h.done:

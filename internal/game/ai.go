@@ -23,6 +23,7 @@ const (
 )
 
 type AI struct {
+	safeZones   []simulation.SafeZone
 	combat      simulation.CombatState
 	id          string
 	pos, size   rl.Vector2
@@ -36,6 +37,7 @@ func (ai *AI) draw() {
 	if ai.isDeadFlag {
 		return
 	}
+	drawSafeProtection(float64(ai.pos.X), float64(ai.pos.Y), float64(ai.size.X), float64(ai.stats.hp), ai.safeZones)
 	bounds := drawActor(float64(ai.pos.X), float64(ai.pos.Y), float64(ai.size.X), float64(ai.stats.hp), ai.combat, ai.color)
 	drawTextAt(fmt.Sprintf("AI Lv.%d %s", ai.stats.lvl, ai.actionState), rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 }

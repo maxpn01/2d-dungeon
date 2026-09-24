@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"fmt"
 	"math"
 	"raylib-2d-sandbox/internal/terrain"
 	"sort"
@@ -21,6 +22,7 @@ const (
 )
 
 type Direction struct {
+	Eject      bool
 	Boost      bool
 	Dash       bool
 	AimX, AimY float64
@@ -35,6 +37,9 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
+	EjectCooldown  float64
+	Character      Character
+	Split          SplitCells
 	GatesClosed    bool
 	InArena        bool
 	TeleportCharge float64
@@ -62,6 +67,7 @@ type playerState struct {
 }
 
 type World struct {
+	safeZones      []SafeZone
 	boss           Boss
 	bossHitUntil   map[string]uint64
 	ais            []aiState
@@ -77,7 +83,7 @@ type World struct {
 }
 
 func NewWorld() *World {
-	w := &World{bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
+	w := &World{safeZones: newSafeZones(), bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
 	for range InitialFruits {
 		w.spawnFruit()
 	}
@@ -91,7 +97,7 @@ func (w *World) Join(id string) {
 	x, y := w.spawnPosition(w.nextSpawn)
 	w.nextSpawn++
 	w.players[id] = &playerState{Player: Player{
-		Stats: NewStats(), ID: id, X: x, Y: y, GatesClosed: w.boss.Phase == "fighting",
+		Character: Square, Stats: NewStats(), ID: id, X: x, Y: y, GatesClosed: w.boss.Phase == "fighting",
 	}}
 }
 
@@ -163,6 +169,11 @@ func (w *World) Step(now time.Time) {
 	previous := make(map[string]position, len(w.players))
 	for id, player := range w.players {
 		previous[id] = position{player.X, player.Y}
+		for i, cell := range player.Split {
+			if cell.Active {
+				previous[fmt.Sprintf("%s/split/%d", id, i)] = position{cell.X, cell.Y}
+			}
+		}
 		if player.Dead {
 			continue
 		}
@@ -181,13 +192,32 @@ func (w *World) Step(now time.Time) {
 				player.InputSeq = next.sequence
 			}
 		}
-		AdvancePlayer(&player.Player, direction, StepSeconds)
+		drops := 0
+		for _, f := range w.fruits {
+			if f.Source != "" {
+				drops++
+			}
+		}
+		ejectInput := direction
+		if drops >= MaxMassDrops {
+			ejectInput.Eject = false
+		}
+		if food := EjectFood(&player.Player, ejectInput, StepSeconds); food != nil {
+			w.nextFruit++
+			food.ID = fmt.Sprintf("m%d", w.nextFruit)
+			food.Source = id
+			food.OwnerPickupTick = w.tick + EjectOwnerDelay
+			food.ExpiresTick = w.tick + 30*TickRate
+			w.fruits = append(w.fruits, *food)
+		}
+		AdvancePlayer(&player.Player, direction, StepSeconds, w.safeZones)
 	}
 	previousAIs := make([]position, len(w.ais))
 	for i, ai := range w.ais {
 		previousAIs[i] = position{ai.X, ai.Y}
 	}
 	w.updateAIs()
+	w.advanceFood()
 	eaters := w.eaters(previous, previousAIs)
 	w.resolvePredation(eaters)
 	for id, p := range w.players {
@@ -196,22 +226,35 @@ func (w *World) Step(now time.Time) {
 	}
 	for i := range eaters {
 		e := &eaters[i]
-		if e.player != nil {
+		if e.cell != nil {
+			e.end = position{e.cell.X, e.cell.Y}
+		} else if e.player != nil {
 			e.end = position{e.player.X, e.player.Y}
 		} else {
 			e.end = position{e.ai.X, e.ai.Y}
 		}
 	}
 	w.consumeFruits(eaters)
+	w.finishSplitCells()
+	for _, p := range w.players {
+		RepelPlayer(&p.Player, p.Player, w.safeZones)
+	}
+	for i := range w.ais {
+		ai := &w.ais[i]
+		if ai.Stats.HP > SafeZoneMaxMass {
+			ai.X, ai.Y = repelBody(ai.X, ai.Y, ai.X, ai.Y, ai.Stats.HP, w.safeZones)
+		}
+	}
 	w.updatePortals()
 }
 
 type Snapshot struct {
-	Boss    Boss
-	AIs     []AI
-	Tick    uint64
-	Players []Player
-	Fruits  []Fruit
+	SafeZones []SafeZone
+	Boss      Boss
+	AIs       []AI
+	Tick      uint64
+	Players   []Player
+	Fruits    []Fruit
 }
 
 func (w *World) Snapshot() Snapshot {
@@ -231,7 +274,7 @@ func (w *World) Snapshot() Snapshot {
 	}
 	boss := w.boss
 	boss.Tail = append([]Point(nil), boss.Tail...)
-	return Snapshot{Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	return Snapshot{SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }

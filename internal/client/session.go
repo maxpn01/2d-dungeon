@@ -18,6 +18,7 @@ import (
 )
 
 type Update struct {
+	SafeZones  []simulation.SafeZone
 	Boss       simulation.Boss
 	AIs        []protocol.AI
 	Fruits     []protocol.Fruit
@@ -45,6 +46,7 @@ type sentInput struct {
 }
 
 type Session struct {
+	safeZones       []simulation.SafeZone
 	dead            bool
 	predicted       protocol.Player
 	predictionReady bool
@@ -66,6 +68,10 @@ func Connect(endpoint string) *Session {
 }
 
 func ConnectWithName(endpoint, name string) *Session {
+	return ConnectWithCharacter(endpoint, name, simulation.Square)
+}
+
+func ConnectWithCharacter(endpoint, name string, character simulation.Character) *Session {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Session{updates: make(chan Update, 1), done: make(chan struct{}), cancel: cancel}
 	go func() {
@@ -78,6 +84,7 @@ func ConnectWithName(endpoint, name string) *Session {
 			return
 		}
 		query := address.Query()
+		query.Set("character", string(simulation.NormalizeCharacter(character)))
 		query.Set("name", protocol.NormalizePlayerName(name))
 		address.RawQuery = query.Encode()
 		if err := s.run(ctx, address.String()); err != nil && ctx.Err() == nil {
@@ -93,10 +100,11 @@ func (s *Session) Close()                 { s.cancel() }
 
 func (s *Session) SetInput(direction protocol.Direction) {
 	s.inputMu.Lock()
-	if s.direction.Dash {
+	if s.direction.Dash || s.direction.Eject {
 		direction.AimX, direction.AimY = s.direction.AimX, s.direction.AimY
 	}
 	direction.Dash = direction.Dash || s.direction.Dash
+	direction.Eject = direction.Eject || s.direction.Eject
 	s.direction, s.inputAt = direction, time.Now()
 	s.inputMu.Unlock()
 }
@@ -161,6 +169,7 @@ func (s *Session) input() protocol.Direction {
 	}
 	direction := s.direction
 	s.direction.Dash = false
+	s.direction.Eject = false
 	return direction
 }
 
@@ -255,7 +264,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 				sequence := s.sequence
 				s.pending = append(s.pending, sentInput{sequence, direction})
 				if s.predictionReady {
-					predictPlayer(&s.predicted, direction)
+					predictPlayer(&s.predicted, direction, s.safeZones)
 				}
 				s.inputMu.Unlock()
 				writeCtx, finish := context.WithTimeout(ioCtx, 3*time.Second)
@@ -307,6 +316,19 @@ func (s *Session) run(ctx context.Context, url string) error {
 		if err := validateAIs(*message.AIs); err != nil {
 			return err
 		}
+		if len(message.SafeZones) > simulation.SafeZoneCount {
+			return errors.New("server sent too many refuges")
+		}
+		for _, zone := range message.SafeZones {
+			for _, v := range []float64{zone.X, zone.Y, zone.Radius} {
+				if math.IsNaN(v) || math.IsInf(v, 0) {
+					return errors.New("server sent invalid refuge")
+				}
+			}
+			if zone.Radius <= 0 || zone.Radius > 100 || zone.X-zone.Radius < simulation.MapMin || zone.Y-zone.Radius < simulation.MapMin || zone.X+zone.Radius > simulation.MapMax || zone.Y+zone.Radius > simulation.MapMax {
+				return errors.New("server sent invalid refuge bounds")
+			}
+		}
 		lastTick = message.Tick
 		var local protocol.Player
 		for _, player := range *message.Players {
@@ -326,16 +348,17 @@ func (s *Session) run(ctx context.Context, url string) error {
 			first++
 		}
 		s.pending = s.pending[first:]
+		s.safeZones = message.SafeZones
 		s.dead = local.Dead
 		if s.dead {
 			s.pending = nil
 		}
 		for _, input := range s.pending {
-			predictPlayer(&local, input.direction)
+			predictPlayer(&local, input.direction, message.SafeZones)
 		}
 		s.predicted, s.predictionReady = local, !s.dead
 		s.inputMu.Unlock()
-		s.publish(Update{Boss: message.Boss, PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits, AIs: *message.AIs})
+		s.publish(Update{SafeZones: message.SafeZones, Boss: message.Boss, PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits, AIs: *message.AIs})
 	}
 }
 
@@ -353,6 +376,31 @@ func validatePlayers(players []protocol.Player, localID string) error {
 			if math.IsNaN(value) || math.IsInf(value, 0) || math.Abs(value) > math.MaxFloat32 {
 				return errors.New("server sent an invalid player position or size")
 			}
+		}
+		if player.Character != "" && simulation.NormalizeCharacter(player.Character) != player.Character {
+			return errors.New("server sent invalid character")
+		}
+		if player.Stats.HP+player.Split.Mass() > simulation.MaxHPForLevel(player.Stats.Level)+1e-9 {
+			return errors.New("server sent invalid total mass")
+		}
+		for _, cell := range player.Split {
+			if !cell.Active {
+				continue
+			}
+			if player.Character != simulation.Circle || !validStats(protocol.PlayerStats{Level: cell.Stats.Level, XP: cell.Stats.XP, HP: cell.Stats.HP, Speed: cell.Stats.Speed}, simulation.PlayerSpeed) || cell.Stats.HP <= 0 || cell.Stats.Level != player.Stats.Level || cell.Stats.XP != player.Stats.XP {
+				return errors.New("server sent invalid split stats")
+			}
+			for _, v := range []float64{cell.X, cell.Y, cell.Remaining, cell.Launch} {
+				if math.IsNaN(v) || math.IsInf(v, 0) {
+					return errors.New("server sent invalid split cell")
+				}
+			}
+			if cell.Remaining < 0 || cell.Remaining > simulation.SplitDuration || cell.Launch < 0 || cell.Launch > simulation.SplitLaunchDuration || !cell.Direction.Valid() || !terrain.Walkable(cell.X, cell.Y, simulation.PlayerSize, simulation.PlayerSize) {
+				return errors.New("server sent invalid split position or timer")
+			}
+		}
+		if math.IsNaN(player.EjectCooldown) || math.IsInf(player.EjectCooldown, 0) || player.EjectCooldown < 0 || player.EjectCooldown > simulation.EjectInterval {
+			return errors.New("server sent invalid eject cooldown")
 		}
 		if !validCombat(player.Combat) {
 			return errors.New("server sent invalid combat state")
@@ -432,10 +480,14 @@ func validateAIs(ais []protocol.AI) error {
 	return nil
 }
 
-func predictPlayer(player *protocol.Player, input protocol.Direction) {
-	p := simulation.Player{GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, Speed: player.Stats.Speed}}
-	simulation.AdvancePlayer(&p, simulation.Direction{X: input.X, Y: input.Y, Boost: input.Boost, Dash: input.Dash, AimX: input.AimX, AimY: input.AimY}, simulation.StepSeconds)
+func predictPlayer(player *protocol.Player, input protocol.Direction, zones []simulation.SafeZone) {
+	p := simulation.Player{EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split, GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, Speed: player.Stats.Speed}}
+	d := simulation.Direction{X: input.X, Y: input.Y, Boost: input.Boost, Dash: input.Dash, Eject: input.Eject, AimX: input.AimX, AimY: input.AimY}
+	simulation.EjectFood(&p, d, simulation.StepSeconds)
+	simulation.AdvancePlayer(&p, d, simulation.StepSeconds, zones)
 	player.X, player.Y, player.Combat, player.Stats.HP = p.X, p.Y, p.Combat, p.Stats.HP
+	player.Split = p.Split
+	player.EjectCooldown = p.EjectCooldown
 }
 
 func validCombat(c simulation.CombatState) bool {
@@ -469,7 +521,6 @@ func validCombat(c simulation.CombatState) bool {
 }
 
 func validateBoss(b simulation.Boss) error {
-	// An empty phase permits older servers without the encounter extension.
 	if b.Phase == "" {
 		return nil
 	}

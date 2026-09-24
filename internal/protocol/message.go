@@ -18,6 +18,7 @@ const (
 )
 
 type Direction struct {
+	Eject bool    `json:"eject,omitempty"`
 	Boost bool    `json:"boost,omitempty"`
 	AimX  float64 `json:"aim_x,omitempty"`
 	AimY  float64 `json:"aim_y,omitempty"`
@@ -80,6 +81,9 @@ type PlayerStats struct {
 }
 
 type Player struct {
+	EjectCooldown  float64                `json:"eject_cooldown,omitempty"`
+	Character      simulation.Character   `json:"character"`
+	Split          simulation.SplitCells  `json:"split"`
 	GatesClosed    bool                   `json:"gates_closed,omitempty"`
 	InArena        bool                   `json:"in_arena,omitempty"`
 	TeleportCharge float64                `json:"teleport_charge,omitempty"`
@@ -115,13 +119,14 @@ type AI struct {
 }
 
 type Message struct {
-	Boss     simulation.Boss `json:"boss"`
-	AIs      *[]AI           `json:"ais,omitempty"`
-	Fruits   *[]Fruit        `json:"fruits,omitempty"`
-	Type     string          `json:"type"`
-	PlayerID string          `json:"player_id,omitempty"`
-	Tick     uint64          `json:"tick"`
-	Players  *[]Player       `json:"players,omitempty"`
-	Message  string          `json:"message,omitempty"`
-	Name     string          `json:"name,omitempty"`
+	SafeZones []simulation.SafeZone `json:"safe_zones"`
+	Boss      simulation.Boss       `json:"boss"`
+	AIs       *[]AI                 `json:"ais,omitempty"`
+	Fruits    *[]Fruit              `json:"fruits,omitempty"`
+	Type      string                `json:"type"`
+	PlayerID  string                `json:"player_id,omitempty"`
+	Tick      uint64                `json:"tick"`
+	Players   *[]Player             `json:"players,omitempty"`
+	Message   string                `json:"message,omitempty"`
+	Name      string                `json:"name,omitempty"`
 }

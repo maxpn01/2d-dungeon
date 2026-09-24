@@ -279,6 +279,10 @@ func (w *World) updatePortals() {
 		p.TeleportCharge += StepSeconds
 		if p.TeleportCharge >= PortalSeconds {
 			p.X, p.Y = toX-PlayerSize/2, toY-PlayerSize/2
+			if p.Split.Count() > 0 {
+				p.Stats.HP += p.Split.Mass()
+				p.Split = SplitCells{}
+			}
 			p.Combat = CombatState{}
 			p.TeleportCharge = 0
 			p.portalCooldown = 2 * TickRate

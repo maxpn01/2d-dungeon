@@ -68,7 +68,7 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 		c.Facing.X = 1
 	}
 	if c.Phase == DashIdle {
-		if pressed && p.Stats.HP >= DashCost {
+		if pressed && p.Stats.HP >= DashCost+BoostMinimumMass {
 			p.Stats.HP -= DashCost
 			c.Direction = c.Facing
 			c.Phase, c.Remaining = DashWinding, DashWindup
@@ -76,21 +76,21 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 	}
 	for dt > 1e-9 {
 		if c.Phase == DashIdle {
-			p.X, p.Y = Move(p.X, p.Y, input, dt, p.Stats.Speed)
+			p.X, p.Y = Move(p.X, p.Y, input, dt, p.MovementSpeed())
 			return
 		}
 		step := min(dt, c.Remaining)
 		switch c.Phase {
 		case DashRushing:
 			c.Attack = true
-			distance := p.Stats.Speed * SpeedScale * DashSpeedMultiplier * step
+			distance := p.MovementSpeed() * SpeedScale * DashSpeedMultiplier * step
 			for distance > 1e-9 {
 				travel := min(distance, 4)
 				x, y := MoveBy(p.X, p.Y, c.Direction, travel)
 				blocked := math.Abs(x-p.X-c.Direction.X*travel) > 1e-6 || math.Abs(y-p.Y-c.Direction.Y*travel) > 1e-6
 				p.X, p.Y = x, y
 				if blocked {
-					p.Stats.HP = max(0, p.Stats.HP-BumpCost)
+					p.Stats.HP = max(BoostMinimumMass, p.Stats.HP-BumpCost)
 					p.X, p.Y = MoveBy(p.X, p.Y, Direction{X: -c.Direction.X, Y: -c.Direction.Y}, BumpKnockback)
 					c.Phase, c.Remaining = DashBumped, BumpStun
 					return
@@ -109,7 +109,7 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 				p.X, p.Y = MoveBy(p.X, p.Y, Direction{X: c.RecoilX / length, Y: c.RecoilY / length}, length*fraction)
 			}
 		case DashRecovering:
-			p.X, p.Y = Move(p.X, p.Y, input, step, p.Stats.Speed*0.35)
+			p.X, p.Y = Move(p.X, p.Y, input, step, p.MovementSpeed()*0.35)
 		}
 		dt -= step
 		c.Remaining -= step

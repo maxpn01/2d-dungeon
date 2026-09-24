@@ -8,6 +8,7 @@ import (
 	"raylib-2d-sandbox/internal/client"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
+	"raylib-2d-sandbox/internal/terrain"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -26,10 +27,10 @@ type multiplayer struct {
 	otherEating []*eatingScene
 }
 
-func newMultiplayer(url, name string) *multiplayer {
+func newMultiplayer(url, name string, character simulation.Character) *multiplayer {
 	return &multiplayer{
-		session: client.ConnectWithName(url, name),
-		gameMap: NewMap(rl.NewVector2(200, 200), rl.NewVector2(10, 10), rl.Black, rl.Gray),
+		session: client.ConnectWithCharacter(url, name, character),
+		gameMap: NewMap(rl.NewVector2(terrain.SurfaceCells*terrain.Tile/10, terrain.SurfaceCells*terrain.Tile/10), rl.NewVector2(10, 10), rl.Black, rl.Gray),
 	}
 }
 
@@ -55,6 +56,7 @@ func (m *multiplayer) poll() {
 		m.feedback.multiplayer(time.Now(), update.Players, update.AIs, update.Fruits, update.PlayerID)
 		m.startEatingScenes(time.Now(), update)
 		m.view = update
+		m.gameMap.safeZones = update.SafeZones
 		m.motion.Apply(update)
 	default:
 	}
@@ -66,7 +68,9 @@ func (m *multiplayer) readInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 	}
 	direction := protocol.Direction{}
 	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.open && !mapOpen {
-		direction.Boost = rl.IsKeyDown(rl.KeyLeftShift)
+		direction.Eject = rl.IsKeyDown(rl.KeyE)
+		direction.Boost = rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
+		direction.Dash = rl.IsKeyPressed(rl.KeyLeftShift) || rl.IsKeyPressed(rl.KeyRightShift)
 		center := rl.NewVector2(float32(m.view.Local.X+m.view.Local.Size/2), float32(m.view.Local.Y+m.view.Local.Size/2))
 		for _, p := range m.rendered {
 			if p.ID == m.view.PlayerID {
@@ -142,6 +146,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		if !m.gameMap.exploration.entityVisible(ai.X, ai.Y, ai.Size) {
 			continue
 		}
+		drawSafeProtection(ai.X, ai.Y, ai.Size, ai.Stats.HP, m.view.SafeZones)
 		bounds := drawActor(ai.X, ai.Y, ai.Size, ai.Stats.HP, ai.Combat, rl.Green)
 		drawTextAt(fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior), rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 	}
@@ -149,13 +154,21 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		if player.ID != m.view.PlayerID && !m.gameMap.exploration.entityVisible(player.X, player.Y, player.Size) {
 			continue
 		}
-		tint := rl.SkyBlue
+		tint := characterColor(player.Character)
 		label := fmt.Sprintf("%s Lv.%d", protocol.NormalizePlayerName(player.Name), player.Stats.Level)
 		if player.ID == m.view.PlayerID {
-			tint = rl.Red
+			tint = characterColor(player.Character)
 			label += " (you)"
 		}
-		bounds := drawActor(player.X, player.Y, player.Size, player.Stats.HP, player.Combat, tint)
+		mass := player.Stats.HP + player.Split.Mass()
+		drawSafeProtection(player.X, player.Y, player.Size, mass, m.view.SafeZones)
+		bounds := drawActor(player.X, player.Y, player.Size, player.Stats.HP, player.Combat, tint, player.Character)
+		for _, cell := range player.Split {
+			if cell.Active {
+				drawSafeProtection(cell.X, cell.Y, player.Size, mass, m.view.SafeZones)
+				drawActor(cell.X, cell.Y, player.Size, cell.Stats.HP, simulation.CombatState{}, tint, player.Character)
+			}
+		}
 		if !player.Dead {
 			drawTextAt(label, rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 		}
@@ -174,16 +187,16 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		}
 	}
 	stats := m.view.Local.Stats
-	hp := float32(stats.HP)
+	hp := float32(stats.HP + m.view.Local.Split.Mass())
 	if m.view.Local.Dead {
 		hp = 0
 	}
 	drawPlayerHUD(playerHUD{
-		name: m.view.Local.Name, avatar: rl.Red,
+		name: m.view.Local.Name, avatar: characterColor(m.view.Local.Character), character: m.view.Local.Character,
 		level: stats.Level, maxLevel: simulation.MaxLevel,
 		hp: hp, maxHP: float32(simulation.MaxHPForLevel(stats.Level)),
 		xp: float32(stats.XP), nextXP: float32(simulation.XPForNextLevel(stats.Level)),
-		speed: float32(stats.Speed), fruit: len(m.view.Fruits), ais: len(m.view.AIs), players: alive,
+		speed: float32(effectivePlayerSpeed(m.view.Local.Character, stats.Speed, stats.HP, m.view.Local.Split)), fruit: len(m.view.Fruits), ais: len(m.view.AIs), players: alive,
 	}, window.width)
 	drawBossHUD(m.view.Boss, m.view.Local.X, m.view.Local.Y, window.width)
 	m.drawMinimap(window.width)

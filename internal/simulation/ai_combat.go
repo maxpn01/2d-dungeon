@@ -20,13 +20,13 @@ func (ai *aiState) canAttack(target *playerState) bool {
 		return false
 	}
 	distance := math.Hypot(target.X-ai.X, target.Y-ai.Y)
-	reach := ai.Stats.Speed * SpeedScale * DashSpeedMultiplier * DashBurst
+	reach := ai.Stats.MovementSpeed() * SpeedScale * DashSpeedMultiplier * DashBurst
 	return distance > 0 && distance <= reach*0.7 && ai.clearDash(ai.approach(target.X, target.Y))
 }
 
 func (ai *aiState) clearDash(d Direction) bool {
 	x, y := ai.X, ai.Y
-	distance := ai.Stats.Speed * SpeedScale * DashSpeedMultiplier * DashBurst
+	distance := ai.Stats.MovementSpeed() * SpeedScale * DashSpeedMultiplier * DashBurst
 	for distance > 1e-9 {
 		step := min(4, distance)
 		nx, ny := MoveBy(x, y, d, step)
@@ -58,7 +58,7 @@ func (w *World) incomingDash(ai *aiState) *playerState {
 		if p.Combat.Phase == DashRushing {
 			burst = p.Combat.Remaining
 		}
-		reach := p.Stats.Speed * SpeedScale * DashSpeedMultiplier * burst
+		reach := p.MovementSpeed() * SpeedScale * DashSpeedMultiplier * burst
 		end := position{p.X + p.Combat.Direction.X*reach, p.Y + p.Combat.Direction.Y*reach}
 		_, hit := eatingContact(position{p.X, p.Y}, end, PlayerSize, position{ai.X, ai.Y}, position{ai.X, ai.Y}, AISize)
 		if hit && (selected == nil || distance < best || distance == best && p.ID < selected.ID) {
@@ -73,7 +73,7 @@ func (ai *aiState) evade(p *playerState) Direction {
 	best := -math.MaxFloat64
 	var chosen Direction
 	for _, candidate := range []Direction{{X: -d.Y, Y: d.X}, {X: d.Y, Y: -d.X}} {
-		x, y := Move(ai.X, ai.Y, candidate, DashWindup, ai.Stats.Speed)
+		x, y := Move(ai.X, ai.Y, candidate, DashWindup, ai.Stats.MovementSpeed())
 		clearance := math.Hypot(x-ai.X, y-ai.Y)
 		cross := math.Abs((x-p.X)*d.Y - (y-p.Y)*d.X)
 		score := clearance + cross

@@ -7,23 +7,32 @@ import (
 
 const (
 	FruitSize       = 15.0
-	InitialFruits   = 8
-	MaxFruits       = 20
-	fruitSpawnTicks = TickRate
+	InitialFruits   = 320
+	MaxFruits       = 500
+	fruitSpawnTicks = TickRate / 10
 )
 
 type Fruit struct {
-	Patch         string
-	Source        string
-	HP            float64
-	AvailableTick uint64
-	ExpiresTick   uint64
-	ID            string
-	X, Y, Size    float64
+	Ejected              bool
+	VelocityX, VelocityY float64
+	OwnerPickupTick      uint64
+	Patch                string
+	Source               string
+	HP                   float64
+	AvailableTick        uint64
+	ExpiresTick          uint64
+	ID                   string
+	X, Y, Size           float64
 }
 
 func (w *World) spawnFruit() {
-	if len(w.fruits) >= MaxFruits {
+	natural := 0
+	for _, fruit := range w.fruits {
+		if fruit.Source == "" {
+			natural++
+		}
+	}
+	if natural >= MaxFruits {
 		return
 	}
 	for range 32 {
@@ -40,6 +49,12 @@ func (w *World) spawnFruit() {
 		for _, player := range w.players {
 			if player.Dead {
 				continue
+			}
+			for _, cell := range player.Split {
+				if cell.Active && x < cell.X+PlayerSize && x+FruitSize > cell.X && y < cell.Y+PlayerSize && y+FruitSize > cell.Y {
+					overlaps = true
+					break
+				}
 			}
 			if x < player.X+PlayerSize && x+FruitSize > player.X && y < player.Y+PlayerSize && y+FruitSize > player.Y {
 				overlaps = true

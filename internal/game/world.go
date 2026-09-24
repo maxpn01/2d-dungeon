@@ -33,7 +33,7 @@ func NewWorld() *World {
 	w := &World{simulation: simulation.NewWorld()}
 	w.simulation.Join("player")
 	w.gameMap = NewMap(
-		rl.NewVector2(200, 200),
+		rl.NewVector2(terrain.SurfaceCells*terrain.Tile/10, terrain.SurfaceCells*terrain.Tile/10),
 		rl.NewVector2(10, 10),
 		rl.Black, rl.Gray,
 	)
@@ -61,8 +61,9 @@ func (w *World) update(dt float32) {
 	for w.accumulator >= simulation.StepSeconds && !w.player.isDeadFlag {
 		now := time.Now()
 		input := w.player.input
-		w.simulation.Input("player", simulation.Direction{X: float64(input.Direction.X), Y: float64(input.Direction.Y), Boost: input.Boost, Dash: input.Dash, AimX: float64(input.Aim.X), AimY: float64(input.Aim.Y)}, now)
+		w.simulation.Input("player", simulation.Direction{X: float64(input.Direction.X), Y: float64(input.Direction.Y), Eject: input.Eject, Boost: input.Boost, Dash: input.Dash, AimX: float64(input.Aim.X), AimY: float64(input.Aim.Y)}, now)
 		w.player.input.Dash = false
+		w.player.input.Eject = false
 		w.simulation.Step(now)
 		w.accumulator -= simulation.StepSeconds
 		w.syncSimulation()
@@ -77,6 +78,8 @@ func gameStats(s simulation.Stats) PlayerStats {
 
 func (w *World) syncSimulation() {
 	snapshot := w.simulation.Snapshot()
+	w.gameMap.safeZones = snapshot.SafeZones
+	w.player.safeZones = snapshot.SafeZones
 	w.feedback.snapshot(time.Now(), snapshot)
 	w.previousSnapshot, w.snapshot = w.snapshot, snapshot
 	p := snapshot.Players[0]
@@ -86,11 +89,12 @@ func (w *World) syncSimulation() {
 	}
 	w.player.pos = rl.NewVector2(float32(p.X), float32(p.Y))
 	w.player.stats, w.player.combat = gameStats(p.Stats), p.Combat
+	w.player.character, w.player.split, w.player.color = p.Character, p.Split, characterColor(p.Character)
 	w.player.isDeadFlag = p.Dead
 	w.ais = nil
 	w.entities = []GameObject{w.player, w.fruitSpawner}
 	for _, state := range snapshot.AIs {
-		ai := &AI{combat: state.Combat, id: state.ID, pos: rl.NewVector2(float32(state.X), float32(state.Y)), size: rl.NewVector2(simulation.AISize, simulation.AISize), color: rl.Green, stats: gameStats(state.Stats)}
+		ai := &AI{safeZones: snapshot.SafeZones, combat: state.Combat, id: state.ID, pos: rl.NewVector2(float32(state.X), float32(state.Y)), size: rl.NewVector2(simulation.AISize, simulation.AISize), color: rl.Green, stats: gameStats(state.Stats)}
 		switch state.Behavior {
 		case "chasing":
 			ai.actionState = ActionChasing
@@ -154,7 +158,7 @@ func (w *World) draw(ctx RenderContext) {
 		ai.pos = rl.NewVector2(float32(killer.X), float32(killer.Y))
 		ai.draw()
 		if prey.Size > 0 {
-			drawActor(prey.X, prey.Y, prey.Size, prey.Stats.HP, simulation.CombatState{}, w.player.color)
+			drawActor(prey.X, prey.Y, prey.Size, prey.Stats.HP, simulation.CombatState{}, w.player.color, w.player.character)
 		}
 	}
 }
@@ -183,6 +187,20 @@ func (w *World) interpolateActors() {
 	}
 	before, after := w.previousSnapshot.Players[0], w.snapshot.Players[0]
 	w.player.pos = interpolate(before.X, before.Y, after.X, after.Y)
+	w.player.split = after.Split
+	for i, cell := range after.Split {
+		if !cell.Active {
+			continue
+		}
+		startX, startY := cell.X-after.X, cell.Y-after.Y
+		if before.Split[i].Active {
+			startX, startY = before.Split[i].X-before.X, before.Split[i].Y-before.Y
+		}
+		ox := startX + (cell.X-after.X-startX)*alpha
+		oy := startY + (cell.Y-after.Y-startY)*alpha
+		w.player.split[i].X = float64(w.player.pos.X) + ox
+		w.player.split[i].Y = float64(w.player.pos.Y) + oy
+	}
 	for i, ai := range w.ais {
 		current := w.snapshot.AIs[i]
 		for _, previous := range w.previousSnapshot.AIs {

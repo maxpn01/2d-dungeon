@@ -45,6 +45,8 @@ func NewGame() *Game {
 	settings := newSettings()
 	world := NewWorld()
 	world.player.name = settings.PlayerName
+	world.simulation.SetCharacter("player", settings.Character)
+	world.syncSimulation()
 
 	hud := NewHUD(world, window)
 
@@ -118,6 +120,7 @@ func (g *Game) run() {
 					}
 				case screenMenu:
 					if !g.world.player.isDeadFlag {
+						g.startSinglePlayer()
 						current = screenSinglePlayer
 					}
 				}
@@ -214,10 +217,7 @@ func (g *Game) run() {
 			current = screenMenu
 		case ActionPlay:
 			g.leaveMultiplayer()
-			if g.world.player.isDeadFlag {
-				g.restart()
-			}
-			g.cameraFollowPlayer()
+			g.startSinglePlayer()
 			current = screenSinglePlayer
 		case ActionMultiplayer:
 			var history []client.ChatEntry
@@ -225,7 +225,7 @@ func (g *Game) run() {
 				history = g.multiplayer.session.Chat()
 			}
 			g.leaveMultiplayer()
-			g.multiplayer = newMultiplayer(g.serverURL, g.settings.PlayerName)
+			g.multiplayer = newMultiplayer(g.serverURL, g.settings.PlayerName, g.settings.Character)
 			g.multiplayer.session.RestoreChat(history)
 			current = screenMultiplayer
 		case ActionMenu:
@@ -237,6 +237,15 @@ func (g *Game) run() {
 	}
 }
 
+func (g *Game) startSinglePlayer() {
+	if g.world.player.isDeadFlag || g.world.player.character != g.settings.Character {
+		g.restart()
+		return
+	}
+	g.world.player.name = g.settings.PlayerName
+	g.cameraFollowPlayer()
+}
+
 func drawCenteredText(text string, y, size int32, tint color.RGBA) {
 	drawText(text, (int32(rl.GetScreenWidth())-measureText(text, size))/2, y, size, tint)
 }
@@ -244,6 +253,8 @@ func drawCenteredText(text string, y, size int32, tint color.RGBA) {
 func (g *Game) restart() {
 	g.world = NewWorld()
 	g.world.player.name = g.settings.PlayerName
+	g.world.simulation.SetCharacter("player", g.settings.Character)
+	g.world.syncSimulation()
 	g.hud = NewHUD(g.world, g.window)
 	g.cameraFollowPlayer()
 }
