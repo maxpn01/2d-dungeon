@@ -4,13 +4,14 @@ import (
 	"image/color"
 	"math"
 
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/terrain"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-const radarWorldSpan float32 = 3000
+const radarWorldSpan float32 = parameters.RadarWorldSpan
 
 type radarView struct {
 	exploration *mapExploration

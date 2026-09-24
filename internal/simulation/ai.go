@@ -4,21 +4,23 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
+
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/terrain"
 )
 
 const (
-	InitialAIs            = 5
-	InitialAISpawnDelay   = 10
-	AIRespawnSeconds      = 45
-	AIAwakeSeconds        = 120
-	AIAsleepSeconds       = 60
-	AISize                = PlayerSize
-	AISpeed               = PlayerSpeed
-	AIDetectionRadius     = 300.0
-	AISettleTicks         = 2 * TickRate
-	AIReactionTicks       = TickRate
-	AIAttackIntervalTicks = 2 * TickRate
+	InitialAIs            = parameters.InitialAIs
+	InitialAISpawnDelay   = parameters.InitialAISpawnDelay
+	AIRespawnSeconds      = parameters.AIRespawnSeconds
+	AIAwakeSeconds        = parameters.AIAwakeSeconds
+	AIAsleepSeconds       = parameters.AIAsleepSeconds
+	AISize                = parameters.AISize
+	AISpeed               = parameters.AISpeed
+	AIDetectionRadius     = parameters.AIDetectionRadius
+	AISettleTicks         = parameters.AISettleTicks
+	AIReactionTicks       = parameters.AIReactionTicks
+	AIAttackIntervalTicks = parameters.AIAttackIntervalTicks
 )
 
 type AI struct {

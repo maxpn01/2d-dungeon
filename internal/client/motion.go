@@ -4,16 +4,17 @@ import (
 	"math"
 	"time"
 
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/terrain"
 )
 
 const (
-	maxExtrapolation  = 100 * time.Millisecond
-	correctionSeconds = 0.05
-	teleportDistance  = 200
-	playerBufferTicks = 2.0
+	maxExtrapolation  = parameters.MaxExtrapolation
+	correctionSeconds = parameters.CorrectionSeconds
+	teleportDistance  = parameters.TeleportDistance
+	playerBufferTicks = parameters.PlayerBufferTicks
 )
 
 type motionCorrection struct {

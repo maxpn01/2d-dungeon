@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"raylib-2d-sandbox/internal/client"
+	"raylib-2d-sandbox/internal/parameters"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -25,8 +26,8 @@ type Game struct {
 
 func NewGame() *Game {
 	window := NewWindow(
-		1440,
-		1000,
+		parameters.WindowWidth,
+		parameters.WindowHeight,
 		"2D sandbox",
 		rl.Black,
 	)

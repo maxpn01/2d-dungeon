@@ -1,14 +1,18 @@
 package simulation
 
-import "math"
+import (
+	"math"
+
+	"raylib-2d-sandbox/internal/parameters"
+)
 
 const (
-	MaxLevel        = 100
-	StartingHP      = 5.0
-	StartingMaxHP   = 10.0
-	FruitXP         = 0.25
-	FruitHP         = 1.0
-	ActorHPFraction = 0.5
+	MaxLevel        = parameters.MaxLevel
+	StartingHP      = parameters.StartingHP
+	StartingMaxHP   = parameters.StartingMaxHP
+	FruitXP         = parameters.FruitXP
+	FruitHP         = parameters.FruitHP
+	ActorHPFraction = parameters.ActorHPFraction
 )
 
 type Stats struct {
@@ -22,8 +26,7 @@ func XPForNextLevel(level int) float64 {
 	if level >= MaxLevel {
 		return 0
 	}
-	// Each next level costs 2 XP more: 5, 7, 9, 11, ...
-	return 5 + 2.0*float64(level-1)
+	return parameters.XPFirstLevelCost + parameters.XPLevelCostIncrease*float64(level-1)
 }
 
 func (s *Stats) GainXP(amount float64) {
@@ -43,7 +46,7 @@ func (s *Stats) GainXP(amount float64) {
 func MaxHPForLevel(level int) float64 {
 	level = max(1, min(MaxLevel, level))
 	levelsGained := level - 1
-	return StartingMaxHP + float64(4*levelsGained+levelsGained*(levelsGained-1)/2)
+	return StartingMaxHP + float64(parameters.HPFirstLevelIncrease*levelsGained+levelsGained*(levelsGained-1)/2)
 }
 
 func (s *Stats) Eat(hp, xp float64) {
@@ -54,7 +57,7 @@ func (s *Stats) Eat(hp, xp float64) {
 }
 
 func SpeedForMass(base, hp float64) float64 {
-	return base * max(1.0/3, min(4.0/3, math.Pow(StartingHP/max(1, hp), .18)))
+	return base * max(parameters.MassSpeedMinimumMultiplier, min(parameters.MassSpeedMaximumMultiplier, math.Pow(StartingHP/max(1, hp), parameters.MassSpeedExponent)))
 }
 
 func (s Stats) MovementSpeed() float64 { return SpeedForMass(s.Speed, s.HP) }
@@ -67,10 +70,10 @@ func MovementMass(hp float64, cells SplitCells) float64 {
 			total += cell.Stats.HP
 		}
 	}
-	return largest + .25*(total-largest)
+	return largest + parameters.SplitMassMovementFraction*(total-largest)
 }
 
-const CircleSplitSpeedMultiplier = 1.2
+const CircleSplitSpeedMultiplier = parameters.CircleSplitSpeedMultiplier
 
 func PlayerMovementSpeed(character Character, base, hp float64, cells SplitCells) float64 {
 	speed := SpeedForMass(base, MovementMass(hp, cells))

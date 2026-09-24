@@ -3,13 +3,15 @@ package simulation
 import (
 	"fmt"
 	"math/rand/v2"
+
+	"raylib-2d-sandbox/internal/parameters"
 )
 
 const (
-	FruitSize       = 15.0
-	InitialFruits   = 320
-	MaxFruits       = 500
-	fruitSpawnTicks = TickRate / 10
+	FruitSize       = parameters.FruitSize
+	InitialFruits   = parameters.InitialFruits
+	MaxFruits       = parameters.MaxFruits
+	fruitSpawnTicks = parameters.FruitSpawnTicks
 )
 
 type Fruit struct {

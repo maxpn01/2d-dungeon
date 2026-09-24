@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
 )
@@ -18,7 +19,7 @@ type client struct {
 	lastChat  time.Time
 }
 
-const chatCooldown = 500 * time.Millisecond
+const chatCooldown = parameters.ChatCooldown
 
 type clientMessage struct {
 	client  *client

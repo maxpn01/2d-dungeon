@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/terrain"
@@ -38,7 +39,7 @@ type ChatEntry struct {
 	Mine bool
 }
 
-const maxChatEntries = 50
+const maxChatEntries = parameters.MaxChatEntries
 
 type sentInput struct {
 	sequence  uint64

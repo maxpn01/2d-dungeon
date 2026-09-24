@@ -3,22 +3,24 @@ package simulation
 import (
 	"fmt"
 	"math"
-	"raylib-2d-sandbox/internal/terrain"
 	"sort"
+
+	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/terrain"
 )
 
 const (
-	BossStartingHP = 30.0
-	BossMaxHP      = 1000.0
-	BossMaxTail    = 100
-	BossSize       = 36.0
-	BossDashDamage = 8.0
-	BossCountdown  = 3.0
-	PortalSeconds  = 0.8
-	ArenaLeft      = 12 * terrain.Tile
-	ArenaRight     = 38 * terrain.Tile
-	ArenaTop       = -134 * terrain.Tile
-	ArenaBottom    = -118 * terrain.Tile
+	BossStartingHP = parameters.BossStartingHP
+	BossMaxHP      = parameters.BossMaxHP
+	BossMaxTail    = parameters.BossMaxTail
+	BossSize       = parameters.BossSize
+	BossDashDamage = parameters.BossDashDamage
+	BossCountdown  = parameters.BossCountdown
+	PortalSeconds  = parameters.PortalSeconds
+	ArenaLeft      = parameters.ArenaLeft
+	ArenaRight     = parameters.ArenaRight
+	ArenaTop       = parameters.ArenaTop
+	ArenaBottom    = parameters.ArenaBottom
 )
 
 type Point struct{ X, Y float64 }
@@ -187,7 +189,7 @@ func (w *World) updateBoss(previous map[string]position) {
 				drops++
 				w.nextFruit++
 				x, y := terrain.Move(p.X, p.Y, float64(i%2)*25-12, float64(i/2)*25-12, FruitSize, FruitSize)
-				w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("m%d", w.nextFruit), Source: "boss", HP: 1, X: x, Y: y, Size: FruitSize, AvailableTick: w.tick + HitProtectionTicks, ExpiresTick: w.tick + 15*TickRate})
+				w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("m%d", w.nextFruit), Source: "boss", HP: 1, X: x, Y: y, Size: FruitSize, AvailableTick: w.tick + HitProtectionTicks, ExpiresTick: w.tick + parameters.BossDropLifetimeTicks})
 			}
 			if b.HP == 0 {
 				b.Phase = "defeated"

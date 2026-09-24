@@ -1,12 +1,16 @@
 package simulation
 
-import "math"
+import (
+	"math"
+
+	"raylib-2d-sandbox/internal/parameters"
+)
 
 const (
-	bossHuntTicks    = 24
-	bossWindupTicks  = 12 // 0.4 seconds; every chained rush is telegraphed
-	bossRushTicks    = 27
-	bossRecoverTicks = 22
+	bossHuntTicks    = parameters.BossHuntTicks
+	bossWindupTicks  = parameters.BossWindupTicks
+	bossRushTicks    = parameters.BossRushTicks
+	bossRecoverTicks = parameters.BossRecoverTicks
 )
 
 // Keep one target for the attack cycle instead of switching between nearby

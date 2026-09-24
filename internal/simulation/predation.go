@@ -3,8 +3,10 @@ package simulation
 import (
 	"fmt"
 	"math"
-	"raylib-2d-sandbox/internal/terrain"
 	"sort"
+
+	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/terrain"
 )
 
 type encounter struct {
@@ -149,7 +151,7 @@ func (w *World) knockMass(target eater) {
 		angle := float64(drops) * 2.399963229728653
 		x, y := terrain.Move(target.end.x, target.end.y, math.Cos(angle)*45, math.Sin(angle)*45, FruitSize, FruitSize)
 		w.nextFruit++
-		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("m%d", w.nextFruit), X: x, Y: y, Size: FruitSize, Source: target.id, HP: hp, AvailableTick: w.tick + HitProtectionTicks, ExpiresTick: w.tick + 30*TickRate})
+		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("m%d", w.nextFruit), X: x, Y: y, Size: FruitSize, Source: target.id, HP: hp, AvailableTick: w.tick + HitProtectionTicks, ExpiresTick: w.tick + parameters.MassDropLifetimeTicks})
 		target.stats.HP -= hp
 		amount -= hp
 		drops++

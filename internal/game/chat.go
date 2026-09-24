@@ -5,17 +5,18 @@ import (
 	"time"
 
 	"raylib-2d-sandbox/internal/client"
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 const (
-	chatVisibleLines = 8
-	chatFadeSeconds  = 10
-	chatFontSize     = 18
-	chatLineHeight   = 24
-	chatMargin       = 24
+	chatVisibleLines = parameters.ChatVisibleLines
+	chatFadeSeconds  = parameters.ChatFadeSeconds
+	chatFontSize     = parameters.ChatFontSize
+	chatLineHeight   = parameters.ChatLineHeight
+	chatMargin       = parameters.ChatMargin
 )
 
 type chatBox struct {

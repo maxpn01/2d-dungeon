@@ -2,11 +2,13 @@ package simulation
 
 import (
 	"math"
+
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/terrain"
 )
 
-const EjectInterval = .25
-const EjectOwnerDelay = TickRate * 2
+const EjectInterval = parameters.EjectInterval
+const EjectOwnerDelay = parameters.EjectOwnerDelay
 
 func EjectFood(p *Player, input Direction, dt float64) *Fruit {
 	p.EjectCooldown = max(0, p.EjectCooldown-dt)

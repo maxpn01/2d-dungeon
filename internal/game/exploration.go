@@ -3,13 +3,14 @@ package game
 import (
 	"math"
 
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/terrain"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-const explorationRadius = 400
-const entityDetectionRadius = 1200
+const explorationRadius = parameters.ExplorationRadius
+const entityDetectionRadius = parameters.EntityDetectionRadius
 
 type mapExploration struct {
 	explored map[[2]int]bool

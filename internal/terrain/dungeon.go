@@ -1,21 +1,25 @@
 package terrain
 
-import "math"
+import (
+	"math"
 
-const Tile = 40
-const (
-	MinCellX     = -20
-	MaxCellX     = 100
-	MinCellY     = -192
-	SurfaceCells = 100
-	SurfaceMin   = 10
-	SurfaceMax   = SurfaceCells*Tile - 10
-	North        = MinCellY * Tile
-	ActorSize    = 30
+	"raylib-2d-sandbox/internal/parameters"
 )
 
-const DescentCircleX = 1000
-const DescentCircleY = -5580
+const Tile = parameters.Tile
+const (
+	MinCellX     = parameters.MinCellX
+	MaxCellX     = parameters.MaxCellX
+	MinCellY     = parameters.MinCellY
+	SurfaceCells = parameters.SurfaceCells
+	SurfaceMin   = parameters.SurfaceMin
+	SurfaceMax   = parameters.SurfaceMax
+	North        = parameters.North
+	ActorSize    = parameters.ActorSize
+)
+
+const DescentCircleX = parameters.DescentCircleX
+const DescentCircleY = parameters.DescentCircleY
 
 type Room struct {
 	X, Y, W, H int
@@ -50,8 +54,8 @@ var Rooms = []Room{
 
 func FloorTwo(x, y float64) bool { return y < -160*Tile }
 
-const ReturnCircleX = 1000
-const ReturnCircleY = -6760
+const ReturnCircleX = parameters.ReturnCircleX
+const ReturnCircleY = parameters.ReturnCircleY
 
 var passages = []Room{
 	{X: -2, Y: -28, W: 7, H: 4}, {X: -2, Y: -58, W: 7, H: 4},

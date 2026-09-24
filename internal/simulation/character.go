@@ -2,6 +2,8 @@ package simulation
 
 import (
 	"math"
+
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/terrain"
 )
 
@@ -11,13 +13,13 @@ const (
 	Square              Character = "square"
 	Triangle            Character = "triangle"
 	Circle              Character = "circle"
-	SplitDuration                 = 8.0
-	SplitLaunchDuration           = .25
-	SplitMinimumMass              = 2.0
-	MaxCircleCells                = 16
-	SplitMergeDuration            = .35
-	SplitTurnResponse             = 7.0
-	SplitFollowResponse           = 24.0
+	SplitDuration                 = parameters.SplitDuration
+	SplitLaunchDuration           = parameters.SplitLaunchDuration
+	SplitMinimumMass              = parameters.SplitMinimumMass
+	MaxCircleCells                = parameters.MaxCircleCells
+	SplitMergeDuration            = parameters.SplitMergeDuration
+	SplitTurnResponse             = parameters.SplitTurnResponse
+	SplitFollowResponse           = parameters.SplitFollowResponse
 )
 
 func NormalizeCharacter(c Character) Character {

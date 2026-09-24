@@ -3,22 +3,24 @@ package simulation
 import (
 	"fmt"
 	"math"
-	"raylib-2d-sandbox/internal/terrain"
 	"sort"
 	"time"
+
+	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/terrain"
 )
 
 const (
-	TickRate     = 30
-	StepSeconds  = 1.0 / TickRate
-	PlayerSize   = terrain.ActorSize
-	SpeedScale   = 100.0
-	PlayerSpeed  = 6.0
-	MapMin       = float64(terrain.SurfaceMin)
-	MapMax       = float64(terrain.SurfaceMax)
-	MinPosition  = MapMin
-	MaxPosition  = MapMax - PlayerSize
-	InputTimeout = 500 * time.Millisecond
+	TickRate     = parameters.TickRate
+	StepSeconds  = parameters.StepSeconds
+	PlayerSize   = parameters.PlayerSize
+	SpeedScale   = parameters.SpeedScale
+	PlayerSpeed  = parameters.PlayerSpeed
+	MapMin       = parameters.MapMin
+	MapMax       = parameters.MapMax
+	MinPosition  = parameters.MinPosition
+	MaxPosition  = parameters.MaxPosition
+	InputTimeout = parameters.InputTimeout
 )
 
 type Direction struct {
@@ -207,7 +209,7 @@ func (w *World) Step(now time.Time) {
 			food.ID = fmt.Sprintf("m%d", w.nextFruit)
 			food.Source = id
 			food.OwnerPickupTick = w.tick + EjectOwnerDelay
-			food.ExpiresTick = w.tick + 30*TickRate
+			food.ExpiresTick = w.tick + parameters.MassDropLifetimeTicks
 			w.fruits = append(w.fruits, *food)
 		}
 		AdvancePlayer(&player.Player, direction, StepSeconds, w.safeZones)

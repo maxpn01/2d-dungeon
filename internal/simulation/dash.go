@@ -1,20 +1,24 @@
 package simulation
 
-import "math"
+import (
+	"math"
+
+	"raylib-2d-sandbox/internal/parameters"
+)
 
 const (
-	DashCost            = 1.0
-	DashWindup          = 0.14
-	DashBurst           = 0.15
-	DashRecovery        = 0.45
-	DashSpeedMultiplier = 3.0
-	BumpStun            = 0.2
-	BumpCost            = 1.0
-	BumpKnockback       = 12.0
-	ContactRatio        = 2.0
-	KnockedMass         = 2.0
-	HitProtectionTicks  = 8
-	MaxMassDrops        = 128
+	DashCost            = parameters.DashCost
+	DashWindup          = parameters.DashWindup
+	DashBurst           = parameters.DashBurst
+	DashRecovery        = parameters.DashRecovery
+	DashSpeedMultiplier = parameters.DashSpeedMultiplier
+	BumpStun            = parameters.BumpStun
+	BumpCost            = parameters.BumpCost
+	BumpKnockback       = parameters.BumpKnockback
+	ContactRatio        = parameters.ContactRatio
+	KnockedMass         = parameters.KnockedMass
+	HitProtectionTicks  = parameters.HitProtectionTicks
+	MaxMassDrops        = parameters.MaxMassDrops
 )
 
 type DashPhase string
@@ -29,10 +33,10 @@ const (
 )
 
 const (
-	BossHitGrace       = 1.2
-	BossRecoilDuration = .26
-	BossImpactHold     = .07
-	BossRecoilDistance = 85.0
+	BossHitGrace       = parameters.BossHitGrace
+	BossRecoilDuration = parameters.BossRecoilDuration
+	BossImpactHold     = parameters.BossImpactHold
+	BossRecoilDistance = parameters.BossRecoilDistance
 )
 
 type CombatState struct {

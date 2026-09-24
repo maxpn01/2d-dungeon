@@ -3,23 +3,25 @@ package simulation
 import (
 	"math"
 	"math/rand/v2"
+
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/terrain"
 )
 
-const SafeZoneMaxMass = 35.0
-const SafeZoneCount = 12
+const SafeZoneMaxMass = parameters.SafeZoneMaxMass
+const SafeZoneCount = parameters.SafeZoneCount
 
 type SafeZone struct{ X, Y, Radius float64 }
 
 func newSafeZones() []SafeZone {
 	zones := make([]SafeZone, 0, SafeZoneCount)
-	radius := BodySize(PlayerSize, SafeZoneMaxMass)/2 + 18
-	for attempts := 0; attempts < 500 && len(zones) < SafeZoneCount; attempts++ {
-		margin := radius + 80
+	radius := BodySize(PlayerSize, SafeZoneMaxMass)/2 + parameters.SafeZoneRadiusPadding
+	for attempts := 0; attempts < parameters.SafeZonePlacementAttempts && len(zones) < SafeZoneCount; attempts++ {
+		margin := radius + parameters.SafeZoneEdgeMargin
 		zone := SafeZone{X: MapMin + margin + rand.Float64()*(MapMax-MapMin-2*margin), Y: MapMin + margin + rand.Float64()*(MapMax-MapMin-2*margin), Radius: radius}
 		clear := true
 		for _, other := range zones {
-			if math.Hypot(zone.X-other.X, zone.Y-other.Y) < 450 {
+			if math.Hypot(zone.X-other.X, zone.Y-other.Y) < parameters.SafeZoneMinimumSeparation {
 				clear = false
 				break
 			}

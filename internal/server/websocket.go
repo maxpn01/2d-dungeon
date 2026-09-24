@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
 
@@ -57,7 +58,7 @@ func (h *Hub) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 	defer func() { cancel(); <-writerDone }()
 
-	const messagesPerSecond = 120.0
+	const messagesPerSecond = parameters.MessagesPerSecond
 	tokens, lastMessage := messagesPerSecond, time.Now()
 	for {
 		kind, data, err := conn.Read(ctx)

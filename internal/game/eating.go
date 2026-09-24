@@ -5,14 +5,15 @@ import (
 	"time"
 
 	"raylib-2d-sandbox/internal/client"
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
 )
 
 const (
-	eatingContactTime = 80 * time.Millisecond
-	eatingShrinkTime  = 140 * time.Millisecond
-	eatingSceneTime   = eatingContactTime + eatingShrinkTime + 30*time.Millisecond
+	eatingContactTime = parameters.EatingContactTime
+	eatingShrinkTime  = parameters.EatingShrinkTime
+	eatingSceneTime   = parameters.EatingSceneTime
 )
 
 type eatingScene struct {

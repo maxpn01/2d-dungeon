@@ -1,11 +1,15 @@
 package simulation
 
-import "math"
+import (
+	"math"
+
+	"raylib-2d-sandbox/internal/parameters"
+)
 
 const (
-	BoostMultiplier    = 1.5
-	BoostMassPerSecond = 1.0
-	BoostMinimumMass   = 1.0
+	BoostMultiplier    = parameters.BoostMultiplier
+	BoostMassPerSecond = parameters.BoostMassPerSecond
+	BoostMinimumMass   = parameters.BoostMinimumMass
 )
 
 func advanceBoostPlayer(p *Player, input Direction, dt float64) {
