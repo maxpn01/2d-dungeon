@@ -76,6 +76,7 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 	if len(m.frames) == 0 {
 		return
 	}
+	defer constrainPlayerBody(&m.local)
 	dt = max(0, min(dt, .05))
 	previous := m.local
 	defer func() {
@@ -137,6 +138,7 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 				continue
 			}
 			player = m.local
+			constrainPlayerBody(&player)
 			positions = append(positions, player)
 			continue
 		}
@@ -161,6 +163,7 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 				}
 			}
 		}
+		constrainPlayerBody(&player)
 		positions = append(positions, player)
 	}
 	return positions
@@ -254,10 +257,22 @@ func (m *Motion) AIs(now time.Time) []protocol.AI {
 			}
 			cell.X += dx
 			cell.Y += dy
+			simulation.ClampSurfaceBody(&cell.X, &cell.Y, ai.Size, cell.Stats.HP)
 		}
+		simulation.ClampSurfaceBody(&ai.X, &ai.Y, ai.Size, ai.Stats.HP)
 		ais = append(ais, ai)
 	}
 	return ais
+}
+
+func constrainPlayerBody(p *protocol.Player) {
+	simulation.ClampSurfaceBody(&p.X, &p.Y, p.Size, p.Stats.HP)
+	for i := range p.Split {
+		if p.Split[i].Active {
+			cell := &p.Split[i]
+			simulation.ClampSurfaceBody(&cell.X, &cell.Y, p.Size, cell.Stats.HP)
+		}
+	}
 }
 
 func indexAIs(ais []protocol.AI) map[string]protocol.AI {

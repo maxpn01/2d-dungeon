@@ -13,7 +13,7 @@ func drawEncounter(b simulation.Boss, e *mapExploration) {
 		if !e.entityVisible(float64(pad.X), float64(pad.Y), 0) {
 			continue
 		}
-		active := b.Phase == "" || b.Phase == "defeated"
+		active := b.Phase == "" || b.Defeats > 0
 		tint := rl.Gray
 		label := "DEFEAT THE CROWN DEVOURER"
 		if active {
@@ -37,17 +37,7 @@ func drawEncounter(b simulation.Boss, e *mapExploration) {
 		rl.DrawPolyLines(pad, 6, 78, rotation, tint)
 		drawTextAt(label, rl.NewVector2(pad.X-float32(measureText(label, 14))/2, pad.Y+105), 14, tint)
 	}
-	if b.Phase == "fighting" || b.Phase == "gathering" {
-		tint := rl.Orange
-		if b.Phase == "fighting" {
-			tint = rl.Red
-		}
-		// Mark the whole sealed boundary, including both side entrances.
-		r := rl.NewRectangle(simulation.ArenaLeft, simulation.ArenaTop, simulation.ArenaRight-simulation.ArenaLeft, simulation.ArenaBottom-simulation.ArenaTop)
-		rl.DrawRectangleLinesEx(r, 6, rl.Fade(tint, .65))
-		rl.DrawRectangleLinesEx(rl.NewRectangle(r.X+7, r.Y+7, r.Width-14, r.Height-14), 2, rl.Fade(tint, .25))
-	}
-	if b.Phase == "" || b.Phase == "defeated" || !e.entityVisible(b.X, b.Y, simulation.BossSize) {
+	if b.Phase == "" || b.Phase == "waiting" || b.Phase == "defeated" || !e.entityVisible(b.X, b.Y, simulation.BossSize) {
 		return
 	}
 	if b.Phase == "fighting" && b.Behavior == "winding" {
@@ -87,11 +77,6 @@ func drawEncounter(b simulation.Boss, e *mapExploration) {
 	rl.DrawRectangleLinesEx(rl.NewRectangle(float32(b.X), float32(b.Y), simulation.BossSize, simulation.BossSize), 2, rl.Gold)
 	rl.DrawCircleV(rl.NewVector2(center.X-8, center.Y-5), 4, rl.RayWhite)
 	rl.DrawCircleV(rl.NewVector2(center.X+8, center.Y-5), 4, rl.RayWhite)
-	label := fmt.Sprintf("BOSS Lv.%d", b.Level)
-	if b.Phase == "waiting" || b.Phase == "gathering" {
-		label += " / " + b.Behavior
-	}
-	drawTextAt(label, rl.NewVector2(center.X-float32(measureText(label, 16))/2, center.Y-58), 16, rl.Gold)
 }
 
 func drawTeleportCharge(x, y, charge float64) {
@@ -104,46 +89,48 @@ func drawTeleportCharge(x, y, charge float64) {
 	rl.DrawRing(center, 35, 40, -90, -90+360*progress, 48, rl.RayWhite)
 }
 
-func drawBossHUD(b simulation.Boss, x, y float64, width int32) {
-	if terrain.FloorTwo(x, y) || y > simulation.ArenaBottom+160 || y < simulation.ArenaTop-160 {
+func drawBossSpawnTimer(b simulation.Boss, width int32) {
+	if b.Phase == "" {
 		return
 	}
-	if b.Phase == "defeated" {
-		drawCenteredText("DEVOURER DEFEATED - THE DESCENT IS OPEN", 235, 20, runeColor)
+	waiting := b.Phase == "waiting" || b.Phase == "defeated"
+	maxWidth := float32(520)
+	if waiting {
+		maxWidth = 370
+	}
+	barWidth := min(float32(width)-32, maxWidth)
+	if barWidth <= 0 {
 		return
 	}
-	if b.Phase != "gathering" && b.Phase != "fighting" {
-		return
-	}
-	barWidth := min(float32(width)-48, float32(580))
 	left := (float32(width) - barWidth) / 2
-	rl.DrawRectangleRec(rl.NewRectangle(left-12, 224, barWidth+24, 104), rl.Fade(rl.Black, .85))
+	y := float32(12)
+	if width < 1100 {
+		y = 182 // below the player HUD on smaller windows
+	}
 	label := fmt.Sprintf("%s   Lv.%d", b.Name, b.Level)
-	if b.Enraged {
-		label += "  /  ENRAGED"
+	if waiting {
+		seconds := int(math.Ceil(float64(b.SpawnTicks) / simulation.TickRate))
+		label = fmt.Sprintf("NEXT BOSS  %02d:%02d", seconds/60, seconds%60)
 	}
-	drawCenteredText(label, 230, 22, rl.Gold)
-	rl.DrawRectangleRec(rl.NewRectangle(left, 261, barWidth, 17), rl.NewColor(49, 29, 42, 255))
-	rl.DrawRectangleRec(rl.NewRectangle(left, 261, barWidth*float32(b.HP/max(1, b.MaxHP)), 17), rl.NewColor(190, 78, 115, 255))
-	drawCenteredText(fmt.Sprintf("%.0f / %.0f HP   |   %d tail segments", b.HP, b.MaxHP, len(b.Tail)), 282, 16, rl.RayWhite)
-	hint := "DASH INTO THE SNAKE - CONTEST ITS FOOD"
-	if b.Phase == "gathering" {
-		hint = fmt.Sprintf("ENTER TOGETHER - EXITS SEAL IN %.0f", math.Ceil(b.Countdown))
+	height := float32(70)
+	if waiting {
+		height = 47
+	}
+	rl.DrawRectangleRec(rl.NewRectangle(left-10, y-5, barWidth+20, height), rl.Fade(rl.Black, .85))
+	fontSize := int32(18)
+	for fontSize > 10 && float32(measureText(label, fontSize)) > barWidth {
+		fontSize--
+	}
+	drawTextAt(label, rl.NewVector2(left+(barWidth-float32(measureText(label, fontSize)))/2, y), fontSize, rl.Gold)
+	if waiting {
+		rl.DrawRectangleRec(rl.NewRectangle(left, y+27, barWidth, 9), rl.NewColor(49, 29, 42, 255))
+		progress := 1 - float32(b.SpawnTicks)/float32(max(1, b.SpawnDuration))
+		rl.DrawRectangleRec(rl.NewRectangle(left, y+27, barWidth*max(0, min(1, progress)), 9), rl.Gold)
 	} else {
-		switch b.Behavior {
-		case "winding":
-			total := 2
-			if b.Enraged {
-				total = 3
-			}
-			hint = fmt.Sprintf("RUSH %d/%d - MOVE OFF THE LINE", b.Chain, total)
-		case "rushing":
-			hint = "DODGE THROUGH THE GAP - WATCH FOR THE FOLLOW-UP"
-		case "recovering":
-			hint = "COMBO FINISHED - STRIKE NOW"
-		case "feeding":
-			hint = "FEEDING - CONTEST ITS FOOD"
-		}
+		rl.DrawRectangleRec(rl.NewRectangle(left, y+27, barWidth, 17), rl.NewColor(49, 29, 42, 255))
+		progress := float32(max(0, min(1, b.HP/max(1, b.MaxHP))))
+		rl.DrawRectangleRec(rl.NewRectangle(left, y+27, barWidth*progress, 17), rl.NewColor(190, 78, 115, 255))
+		hp := fmt.Sprintf("%.0f / %.0f HP", b.HP, b.MaxHP)
+		drawTextAt(hp, rl.NewVector2(left+(barWidth-float32(measureText(hp, 16)))/2, y+49), 16, rl.RayWhite)
 	}
-	drawCenteredText(hint, 305, 14, rl.Orange)
 }

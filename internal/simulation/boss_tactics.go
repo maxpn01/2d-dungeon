@@ -13,21 +13,24 @@ const (
 	bossRecoverTicks = parameters.BossRecoverTicks
 )
 
-// Keep one target for the attack cycle instead of switching between nearby
-// players and food every frame. Retarget immediately if that player leaves.
-func (b *Boss) chooseTarget(players []*playerState) *playerState {
-	for _, p := range players {
-		if p.ID == b.targetID {
-			return p
+type bossTarget struct {
+	ID   string
+	X, Y float64
+}
+
+func (b *Boss) chooseTarget(targets []bossTarget) bossTarget {
+	for _, target := range targets {
+		if target.ID == b.targetID {
+			return target
 		}
 	}
-	target := players[0]
+	target := targets[0]
 	best := math.Inf(1)
-	for _, p := range players {
-		distance := math.Hypot(p.X-b.X, p.Y-b.Y)
+	for _, candidate := range targets {
+		distance := math.Hypot(candidate.X-b.X, candidate.Y-b.Y)
 		if distance < best {
 			best = distance
-			target = p
+			target = candidate
 		}
 	}
 	b.targetID = target.ID
@@ -40,7 +43,7 @@ func (b *Boss) tactic(state string, ticks int) {
 	b.Accelerating = state == "rushing"
 }
 
-func (w *World) moveBoss(players []*playerState, previous map[string]position) {
+func (w *World) moveBoss(targets []bossTarget, previous map[string]position) {
 	b := &w.boss
 	if b.staggerTicks > 0 {
 		b.staggerTicks--
@@ -49,25 +52,23 @@ func (w *World) moveBoss(players []*playerState, previous map[string]position) {
 	}
 	b.Accelerating = b.Behavior == "rushing"
 	b.Enraged = b.Enraged || b.HP <= b.MaxHP*.5
-	target := b.chooseTarget(players)
+	target := b.chooseTarget(targets)
 	if b.tacticTicks <= 0 {
 		switch b.Behavior {
 		case "winding":
 			b.tactic("rushing", bossRushTicks)
 		case "rushing":
-			w.finishBossRush(players, previous)
+			w.finishBossRush(targets, previous)
 		case "recovering":
 			b.targetID = ""
-			target = b.chooseTarget(players)
+			target = b.chooseTarget(targets)
 			b.Chain = 0
 			b.tactic("hunting", bossHuntTicks)
-			// Occasionally take a short feeding opportunity when wounded. It never
-			// interrupts a telegraphed attack, and cannot become an endless food loop.
 			if !b.Enraged && b.HP < b.MaxHP*.75 && b.attackCount%4 == 0 {
 				best := 250.0
 				for _, f := range w.fruits {
 					distance := math.Hypot(f.X-b.X, f.Y-b.Y)
-					if f.Source == "boss" || w.tick < f.AvailableTick || !InsideArena(f.X, f.Y, f.Size) {
+					if f.Source == "boss" || w.tick < f.AvailableTick || f.Y < MapMin {
 						continue
 					}
 					if distance < best {
@@ -94,7 +95,6 @@ func (w *World) moveBoss(players []*playerState, previous map[string]position) {
 		b.heading = math.Atan2(b.AttackTarget.Y-b.Y, b.AttackTarget.X-b.X)
 		return
 	case "recovering":
-		// A missed rush leaves a predictable punish window.
 		b.speed = 0
 		return
 	case "rushing", "feeding":
@@ -113,25 +113,21 @@ func (w *World) moveBoss(players []*playerState, previous map[string]position) {
 		desiredSpeed = PlayerSpeed * .95
 	}
 	b.speed += max(-.9, min(.9, desiredSpeed-b.speed))
-	// Point at the destination and stop at it. The old fixed turning radius and
-	// constant forward motion made the head orbit targets it could not turn into.
 	if distance > 0 {
 		b.heading = math.Atan2(dy, dx)
 		travel := min(distance, b.speed*SpeedScale*StepSeconds)
-		b.X = max(ArenaLeft, min(ArenaRight-BossSize, b.X+dx/distance*travel))
-		b.Y = max(ArenaTop, min(ArenaBottom-BossSize, b.Y+dy/distance*travel))
+		b.X = max(MapMin, min(MapMax-BossSize, b.X+dx/distance*travel))
+		b.Y = max(MapMin, min(MapMax-BossSize, b.Y+dy/distance*travel))
 	}
 	if distance <= max(2, b.speed*SpeedScale*StepSeconds) && b.Behavior == "rushing" {
-		w.finishBossRush(players, previous)
+		w.finishBossRush(targets, previous)
 	}
 	if distance <= 2 && b.Behavior == "feeding" {
 		b.tactic("hunting", bossHuntTicks)
 	}
 }
 
-// Rush through the intercept instead of braking at the player's old position.
-// Ray clipping preserves the attack line even when its end meets an arena wall.
-func (w *World) prepareBossRush(target *playerState, previous map[string]position) {
+func (w *World) prepareBossRush(target bossTarget, previous map[string]position) {
 	b := &w.boss
 	before, ok := previous[target.ID]
 	vx, vy := 0.0, 0.0
@@ -154,20 +150,20 @@ func (w *World) prepareBossRush(target *playerState, previous map[string]positio
 	dx, dy = dx/distance, dy/distance
 	travel := distance + 200
 	if dx > 0 {
-		travel = min(travel, (ArenaRight-BossSize-b.X)/dx)
+		travel = min(travel, (MapMax-BossSize-b.X)/dx)
 	} else if dx < 0 {
-		travel = min(travel, (ArenaLeft-b.X)/dx)
+		travel = min(travel, (MapMin-b.X)/dx)
 	}
 	if dy > 0 {
-		travel = min(travel, (ArenaBottom-BossSize-b.Y)/dy)
+		travel = min(travel, (MapMax-BossSize-b.Y)/dy)
 	} else if dy < 0 {
-		travel = min(travel, (ArenaTop-b.Y)/dy)
+		travel = min(travel, (MapMin-b.Y)/dy)
 	}
 	b.AttackTarget = Point{b.X + dx*max(0, travel), b.Y + dy*max(0, travel)}
 	b.tactic("winding", bossWindupTicks)
 }
 
-func (w *World) finishBossRush(players []*playerState, previous map[string]position) {
+func (w *World) finishBossRush(targets []bossTarget, previous map[string]position) {
 	b := &w.boss
 	b.attackCount++
 	limit := 2
@@ -176,18 +172,16 @@ func (w *World) finishBossRush(players []*playerState, previous map[string]posit
 	}
 	if b.Chain < limit {
 		b.Chain++
-		// With friends, the follow-up threatens another player rather than always
-		// dogpiling the same one. The warning reveals the new committed path.
 		oldTarget := b.targetID
-		var alternatives []*playerState
-		for _, p := range players {
-			if p.ID != oldTarget {
-				alternatives = append(alternatives, p)
+		var alternatives []bossTarget
+		for _, target := range targets {
+			if target.ID != oldTarget {
+				alternatives = append(alternatives, target)
 			}
 		}
 		b.targetID = ""
 		if len(alternatives) == 0 {
-			alternatives = players
+			alternatives = targets
 		}
 		target := b.chooseTarget(alternatives)
 		w.prepareBossRush(target, previous)

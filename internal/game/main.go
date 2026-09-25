@@ -176,7 +176,7 @@ func (g *Game) run() {
 				g.world.draw(RenderContext{Camera: g.camera, WindowWidth: g.window.width, WindowHeight: g.window.height})
 				rl.EndMode2D()
 				g.hud.draw()
-				drawBossHUD(g.world.snapshot.Boss, float64(g.world.player.pos.X), float64(g.world.player.pos.Y), g.window.width)
+				drawBossSpawnTimer(g.world.snapshot.Boss, g.window.width)
 				g.world.drawMinimap(g.window.width)
 				drawDungeonLocation(g.world.player.pos.X, g.world.player.pos.Y, g.window.width, g.window.height)
 			}

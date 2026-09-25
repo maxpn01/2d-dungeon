@@ -217,7 +217,7 @@ func (m *multiplayer) drawRadar(windowWidth, windowHeight int32) {
 }
 
 func (v radarView) bossMarker(b simulation.Boss) {
-	if b.Phase != "defeated" && b.Phase != "" {
+	if b.Phase == "gathering" || b.Phase == "fighting" {
 		v.marker(rl.NewVector2(float32(b.X+simulation.BossSize/2), float32(b.Y+simulation.BossSize/2)), 5, rl.Gold)
 	}
 }

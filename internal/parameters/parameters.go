@@ -36,9 +36,9 @@ const (
 
 // Progression, food, and refuges.
 const (
-	MaxLevel                   = 100
+	MaxLevel                   = 1000
 	StartingHP                 = 5.0
-	StartingMaxHP              = 10.0
+	StartingMaxHP              = 100.0
 	FruitXP                    = 0.25
 	FruitHP                    = 1.0
 	ActorHPFraction            = 0.5
@@ -57,7 +57,7 @@ const (
 	BossDropLifetimeTicks      = 15 * TickRate
 	XPFirstLevelCost           = 5.0
 	XPLevelCostIncrease        = 2.0
-	HPFirstLevelIncrease       = 4
+	HPPerLevelIncrease         = 50
 	MassSpeedMinimumMultiplier = 1.0 / 3
 	MassSpeedMaximumMultiplier = 4.0 / 3
 	MassSpeedExponent          = .18
@@ -114,21 +114,31 @@ const (
 
 // Boss arena and attack cycle.
 const (
-	BossStartingHP   = 30.0
-	BossMaxHP        = 1000.0
-	BossMaxTail      = 100
-	BossSize         = 36.0
-	BossDashDamage   = 8.0
-	BossCountdown    = 3.0
-	PortalSeconds    = 0.8
-	ArenaLeft        = 12 * Tile
-	ArenaRight       = 38 * Tile
-	ArenaTop         = -134 * Tile
-	ArenaBottom      = -118 * Tile
-	BossHuntTicks    = 24
-	BossWindupTicks  = 12
-	BossRushTicks    = 27
-	BossRecoverTicks = 22
+	BossStartingHP             = 30.0
+	BossMaxHP                  = 1000.0
+	BossMaxTail                = 100
+	BossPartHP                 = 10.0
+	BossFirstUnits             = 5
+	BossUnitsPerRespawn        = 5
+	BossSize                   = 36.0
+	BossSpawnMinX              = 700.0
+	BossSpawnMaxX              = 1240.0
+	BossSpawnMinY              = 60.0
+	BossSpawnMaxY              = 645.0
+	BossAggroRadius            = 900.0
+	BossDashDamage             = 8.0
+	BossCountdown              = 3.0
+	BossFirstSpawnSeconds      = 300
+	BossRespawnIncreaseSeconds = 300
+	PortalSeconds              = 0.8
+	ArenaLeft                  = 12 * Tile
+	ArenaRight                 = 38 * Tile
+	ArenaTop                   = -134 * Tile
+	ArenaBottom                = -118 * Tile
+	BossHuntTicks              = 24
+	BossWindupTicks            = 12
+	BossRushTicks              = 27
+	BossRecoverTicks           = 22
 )
 
 // Client display, feedback, and network smoothing.

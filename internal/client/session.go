@@ -431,7 +431,11 @@ func validateFruits(fruits []protocol.Fruit) error {
 				return errors.New("server sent invalid fruit coordinates")
 			}
 		}
-		if fruit.Source != "" && (math.IsNaN(fruit.HP) || fruit.HP <= 0 || fruit.HP > 1) {
+		maxDropHP := 1.0
+		if fruit.Source == "boss" {
+			maxDropHP = simulation.BossPartHP
+		}
+		if fruit.Source != "" && (math.IsNaN(fruit.HP) || fruit.HP <= 0 || fruit.HP > maxDropHP) {
 			return errors.New("server sent invalid mass pickup")
 		}
 		if fruit.Size <= 0 || !terrain.Walkable(fruit.X, fruit.Y, fruit.Size, fruit.Size) {
@@ -553,7 +557,7 @@ func validateBoss(b simulation.Boss) error {
 		return errors.New("server sent invalid boss phase")
 	}
 	switch b.Behavior {
-	case "", "hunting", "winding", "rushing", "recovering", "feeding", "patrolling":
+	case "", "hunting", "winding", "rushing", "recovering", "feeding", "patrolling", "fleeing":
 	default:
 		return errors.New("server sent invalid boss behavior")
 	}
@@ -563,7 +567,7 @@ func validateBoss(b simulation.Boss) error {
 	if b.Chain < 0 || b.Chain > 3 {
 		return errors.New("server sent invalid boss combo")
 	}
-	if len(b.Tail) > simulation.BossMaxTail || b.Level < 1 || b.Level > simulation.MaxLevel || b.HP < 0 || b.HP > b.MaxHP || b.MaxHP > simulation.BossMaxHP || b.MaxHP <= 0 || b.Countdown < 0 || b.Countdown > simulation.BossCountdown {
+	if len(b.Tail) > simulation.BossMaxTail || b.Level < 1 || b.Level > simulation.MaxLevel || b.HP < 0 || b.HP > b.MaxHP || b.MaxHP > simulation.BossMaxHP || b.MaxHP <= 0 || b.Countdown < 0 || b.Countdown > simulation.BossCountdown || b.SpawnDuration < 0 || b.SpawnTicks < 0 || b.SpawnTicks > b.SpawnDuration || b.Defeats < 0 {
 		return errors.New("server sent invalid boss stats")
 	}
 	for _, v := range []float64{b.X, b.Y, b.HP, b.MaxHP, b.Countdown, b.XP, b.AttackTarget.X, b.AttackTarget.Y} {
@@ -571,11 +575,11 @@ func validateBoss(b simulation.Boss) error {
 			return errors.New("server sent invalid boss values")
 		}
 	}
-	if !simulation.InsideArena(b.X, b.Y, simulation.BossSize) {
-		return errors.New("server sent boss outside arena")
+	if b.X < simulation.MapMin || b.Y < simulation.MapMin || b.X+simulation.BossSize > simulation.MapMax || b.Y+simulation.BossSize > simulation.MapMax {
+		return errors.New("server sent boss outside surface")
 	}
 	for _, segment := range b.Tail {
-		if math.IsNaN(segment.X) || math.IsNaN(segment.Y) || !simulation.InsideArena(segment.X, segment.Y, simulation.BossSize) {
+		if math.IsNaN(segment.X) || math.IsNaN(segment.Y) || math.IsInf(segment.X, 0) || math.IsInf(segment.Y, 0) || segment.X < simulation.MapMin || segment.Y < simulation.MapMin || segment.X+simulation.BossSize > simulation.MapMax || segment.Y+simulation.BossSize > simulation.MapMax {
 			return errors.New("server sent invalid boss tail")
 		}
 	}

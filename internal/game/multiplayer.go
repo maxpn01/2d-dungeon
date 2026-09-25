@@ -217,7 +217,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		xp: float32(stats.XP), nextXP: float32(simulation.XPForNextLevel(stats.Level)),
 		speed: float32(effectivePlayerSpeed(m.view.Local.Character, stats.Speed, stats.HP, m.view.Local.Split)), fruit: len(m.view.Fruits), ais: len(m.view.AIs), players: alive,
 	}, window.width)
-	drawBossHUD(m.view.Boss, m.view.Local.X, m.view.Local.Y, window.width)
+	drawBossSpawnTimer(m.view.Boss, window.width)
 	m.drawMinimap(window.width)
 	m.chat.draw(window, m.session.Chat())
 }

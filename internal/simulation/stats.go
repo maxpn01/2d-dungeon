@@ -46,7 +46,7 @@ func (s *Stats) GainXP(amount float64) {
 func MaxHPForLevel(level int) float64 {
 	level = max(1, min(MaxLevel, level))
 	levelsGained := level - 1
-	return StartingMaxHP + float64(parameters.HPFirstLevelIncrease*levelsGained+levelsGained*(levelsGained-1)/2)
+	return StartingMaxHP + float64(parameters.HPPerLevelIncrease*levelsGained)
 }
 
 func (s *Stats) Eat(hp, xp float64) {

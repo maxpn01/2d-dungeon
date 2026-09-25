@@ -105,11 +105,26 @@ func (w *World) aiInput(ai *aiState) Direction {
 		ai.Behavior = "emerging"
 		return Direction{}
 	}
-	if threat, distance := w.nearestPlayer(ai, true); threat != nil {
+	bossDistance := math.Inf(1)
+	bossNearby := w.boss.Phase == "fighting" && ai.Y >= MapMin && w.boss.Y >= MapMin && ai.sees(w.boss.X, w.boss.Y)
+	if bossNearby {
+		dx, dy := w.boss.X-ai.X, w.boss.Y-ai.Y
+		bossDistance = dx*dx + dy*dy
+		bossNearby = bossDistance <= AIDetectionRadius*AIDetectionRadius
+	}
+	threat, threatDistance := w.nearestPlayer(ai, true)
+	if bossNearby && w.boss.HP > ai.Stats.HP && (threat == nil || bossDistance < threatDistance) {
 		ai.observeTarget(nil)
 		ai.Behavior = "fleeing"
-		d := ai.flee(threat)
-		d.Boost = distance < 180*180 && ai.Stats.HP > BoostMinimumMass
+		d := ai.fleeFrom(w.boss.X, w.boss.Y)
+		d.Boost = bossDistance < 180*180 && ai.Stats.HP > BoostMinimumMass
+		return d
+	}
+	if threat != nil {
+		ai.observeTarget(nil)
+		ai.Behavior = "fleeing"
+		d := ai.fleeFrom(threat.X, threat.Y)
+		d.Boost = threatDistance < 180*180 && ai.Stats.HP > BoostMinimumMass
 		return d
 	}
 	ai.escapeTicks = 0
@@ -118,6 +133,11 @@ func (w *World) aiInput(ai *aiState) Direction {
 	fruit, found := w.nearestFruit(ai)
 	fx, fy := fruit.X+(fruit.Size-AISize)/2, fruit.Y+(fruit.Size-AISize)/2
 	foodDistance := (fx-ai.X)*(fx-ai.X) + (fy-ai.Y)*(fy-ai.Y)
+	if bossNearby && ai.Stats.HP > w.boss.HP && bossDistance < preyDistance && (!found || bossDistance < foodDistance) {
+		ai.observeTarget(nil)
+		ai.Behavior = "chasing"
+		return w.aiApproach(ai, w.boss.X, w.boss.Y)
+	}
 	if prey != nil && (!found || preyDistance <= foodDistance) {
 		ai.Behavior = "chasing"
 		d := w.aiApproach(ai, prey.X, prey.Y)

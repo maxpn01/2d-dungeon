@@ -241,8 +241,8 @@ func (ai *aiState) approach(x, y float64) Direction {
 	return Direction{}
 }
 
-func (ai *aiState) flee(player *playerState) Direction {
-	dx, dy := ai.X-player.X, ai.Y-player.Y
+func (ai *aiState) fleeFrom(threatX, threatY float64) Direction {
+	dx, dy := ai.X-threatX, ai.Y-threatY
 	length := math.Hypot(dx, dy)
 	d := Direction{X: 1}
 	if length > 0 {
@@ -261,7 +261,7 @@ func (ai *aiState) flee(player *playerState) Direction {
 			if x == ai.X && y == ai.Y {
 				continue
 			}
-			score := (x-player.X)*(x-player.X) + (y-player.Y)*(y-player.Y)
+			score := (x-threatX)*(x-threatX) + (y-threatY)*(y-threatY)
 			if score > best {
 				best = score
 				d = candidate

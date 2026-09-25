@@ -70,6 +70,7 @@ func (w *World) SetCharacter(id string, character Character) {
 }
 
 func AdvancePlayer(p *Player, input Direction, dt float64, zones ...[]SafeZone) {
+	defer clampPlayerBodies(p)
 	if len(zones) > 0 {
 		before := *p
 		defer func() { RepelPlayer(p, before, zones[0]) }()
@@ -85,6 +86,28 @@ func AdvancePlayer(p *Player, input Direction, dt float64, zones ...[]SafeZone) 
 	default:
 		advanceBoostPlayer(p, input, dt)
 	}
+}
+
+// Simulation positions use a fixed anchor; visible bodies grow with HP.
+// Keep the entire visible body inside the surface, including split cells.
+func clampPlayerBodies(p *Player) {
+	ClampSurfaceBody(&p.X, &p.Y, PlayerSize, p.Stats.HP)
+	for i := range p.Split {
+		if p.Split[i].Active {
+			cell := &p.Split[i]
+			ClampSurfaceBody(&cell.X, &cell.Y, PlayerSize, cell.Stats.HP)
+		}
+	}
+}
+
+func ClampSurfaceBody(x, y *float64, size, hp float64) {
+	if *y < MapMin {
+		return // the dungeon is governed by its own passages
+	}
+	radius := min(BodySize(size, hp)/2, (MapMax-MapMin)/2)
+	centerX := max(MapMin+radius, min(MapMax-radius, *x+size/2))
+	centerY := max(MapMin+radius, min(MapMax-radius, *y+size/2))
+	*x, *y = centerX-size/2, centerY-size/2
 }
 
 func advanceCircle(p *Player, input Direction, dt float64) {

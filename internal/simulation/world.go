@@ -85,7 +85,7 @@ type World struct {
 }
 
 func NewWorld() *World {
-	w := &World{safeZones: newSafeZones(), bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
+	w := &World{safeZones: newSafeZones(), boss: newBoss(), bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
 	for range InitialFruits {
 		w.spawnFruit()
 	}
@@ -99,7 +99,7 @@ func (w *World) Join(id string) {
 	x, y := w.spawnPosition(w.nextSpawn)
 	w.nextSpawn++
 	w.players[id] = &playerState{Player: Player{
-		Character: Square, Stats: NewStats(), ID: id, X: x, Y: y, GatesClosed: w.boss.Phase == "fighting",
+		Character: Square, Stats: NewStats(), ID: id, X: x, Y: y,
 	}}
 }
 
@@ -242,13 +242,22 @@ func (w *World) Step(now time.Time) {
 	}
 	w.consumeFruits(eaters)
 	w.finishSplitCells()
+	w.updateBoss(previous)
 	for _, p := range w.players {
 		RepelPlayer(&p.Player, p.Player, w.safeZones)
+		clampPlayerBodies(&p.Player)
 	}
 	for i := range w.ais {
 		ai := &w.ais[i]
 		if ai.Stats.HP > SafeZoneMaxMass {
 			ai.X, ai.Y = repelBody(ai.X, ai.Y, ai.X, ai.Y, ai.Stats.HP, w.safeZones)
+		}
+		ClampSurfaceBody(&ai.X, &ai.Y, AISize, ai.Stats.HP)
+		for j := range ai.Split {
+			if ai.Split[j].Active {
+				cell := &ai.Split[j]
+				ClampSurfaceBody(&cell.X, &cell.Y, AISize, cell.Stats.HP)
+			}
 		}
 	}
 	w.updatePortals()
