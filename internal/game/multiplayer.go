@@ -157,6 +157,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 			continue
 		}
 		mass := ai.Stats.HP + ai.Split.Mass()
+		count := ai.Split.Count()
 		if headVisible {
 			drawSafeProtection(ai.X, ai.Y, ai.Size, mass, m.view.SafeZones)
 			bounds := drawActor(ai.X, ai.Y, ai.Size, ai.Stats.HP, ai.Combat, rl.Green, ai.Character)
@@ -165,7 +166,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		for _, cell := range ai.Split {
 			if cell.Active && m.gameMap.exploration.entityVisible(cell.X, cell.Y, ai.Size) {
 				drawSafeProtection(cell.X, cell.Y, ai.Size, mass, m.view.SafeZones)
-				drawActor(cell.X, cell.Y, ai.Size, cell.Stats.HP, simulation.CombatState{}, rl.Green, ai.Character)
+				drawSplitBody(cell.X, cell.Y, ai.Size, cell.Stats.HP, rl.Green, ai.Character, count)
 			}
 		}
 	}
@@ -180,12 +181,15 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 			label += " (you)"
 		}
 		mass := player.Stats.HP + player.Split.Mass()
+		count := player.Split.Count()
 		drawSafeProtection(player.X, player.Y, player.Size, mass, m.view.SafeZones)
 		bounds := drawActor(player.X, player.Y, player.Size, player.Stats.HP, player.Combat, tint, player.Character)
 		for _, cell := range player.Split {
 			if cell.Active {
 				drawSafeProtection(cell.X, cell.Y, player.Size, mass, m.view.SafeZones)
-				drawActor(cell.X, cell.Y, player.Size, cell.Stats.HP, simulation.CombatState{}, tint, player.Character)
+				if m.gameMap.exploration.entityVisible(cell.X, cell.Y, player.Size) {
+					drawSplitBody(cell.X, cell.Y, player.Size, cell.Stats.HP, tint, player.Character, count)
+				}
 			}
 		}
 		if !player.Dead {

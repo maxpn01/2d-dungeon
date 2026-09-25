@@ -44,6 +44,7 @@ func (ai *AI) drawVisible(exploration *mapExploration) {
 		return
 	}
 	mass := float64(ai.stats.hp) + ai.split.Mass()
+	count := ai.split.Count()
 	if exploration == nil || exploration.entityVisible(float64(ai.pos.X), float64(ai.pos.Y), float64(ai.size.X)) {
 		drawSafeProtection(float64(ai.pos.X), float64(ai.pos.Y), float64(ai.size.X), mass, ai.safeZones)
 		bounds := drawActor(float64(ai.pos.X), float64(ai.pos.Y), float64(ai.size.X), float64(ai.stats.hp), ai.combat, ai.color, ai.character)
@@ -52,7 +53,7 @@ func (ai *AI) drawVisible(exploration *mapExploration) {
 	for _, cell := range ai.split {
 		if cell.Active && (exploration == nil || exploration.entityVisible(cell.X, cell.Y, float64(ai.size.X))) {
 			drawSafeProtection(cell.X, cell.Y, float64(ai.size.X), mass, ai.safeZones)
-			drawActor(cell.X, cell.Y, float64(ai.size.X), cell.Stats.HP, simulation.CombatState{}, ai.color, ai.character)
+			drawSplitBody(cell.X, cell.Y, float64(ai.size.X), cell.Stats.HP, ai.color, ai.character, count)
 		}
 	}
 }

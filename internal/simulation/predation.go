@@ -15,18 +15,60 @@ type encounter struct {
 }
 
 func (w *World) resolvePredation(eaters []eater) {
+	if len(eaters) < 2 {
+		return
+	}
+	firstOwner := any(eaters[0].player)
+	if eaters[0].ai != nil {
+		firstOwner = eaters[0].ai
+	}
+	oneOwner := true
+	for _, actor := range eaters[1:] {
+		owner := any(actor.player)
+		if actor.ai != nil {
+			owner = actor.ai
+		}
+		if owner != firstOwner {
+			oneOwner = false
+			break
+		}
+	}
+	if oneOwner {
+		return
+	}
 	contacts := make([]encounter, 0)
-	for i, first := range eaters {
-		for _, second := range eaters[i+1:] {
-			if first.player != nil && first.player == second.player {
-				continue
-			}
-			if first.ai != nil && first.ai == second.ai {
-				continue
-			}
-			contact, hit := eatingContact(first.start, first.end, first.size, second.start, second.end, second.size)
-			if hit {
-				contacts = append(contacts, encounter{first: first, second: second, time: contact})
+	// Split bodies belonging to one actor cannot eat each other. Grouping them
+	// avoids checking every pair when a player has hundreds of bodies.
+	type group struct {
+		members []eater
+	}
+	groups := make([]group, 0)
+	groupIndex := make(map[any]int)
+	for _, actor := range eaters {
+		var owner any = actor.player
+		if actor.ai != nil {
+			owner = actor.ai
+		}
+		index, ok := groupIndex[owner]
+		if !ok {
+			index = len(groups)
+			groupIndex[owner] = index
+			groups = append(groups, group{})
+		}
+		groups[index].members = append(groups[index].members, actor)
+	}
+	if len(groups) < 2 {
+		return
+	}
+	for i, firstGroup := range groups {
+		for _, secondGroup := range groups[i+1:] {
+			for _, first := range firstGroup.members {
+				for _, second := range secondGroup.members {
+					contact, hit := eatingContact(first.start, first.end, first.size, second.start, second.end, second.size)
+					if hit {
+						contacts = append(contacts, encounter{first: first, second: second, time: contact})
+					}
+				}
 			}
 		}
 	}
@@ -214,7 +256,7 @@ func (w *World) nearestPlayer(ai *aiState, threat bool) (*playerState, float64) 
 			candidates = append(candidates, cell)
 		}
 		for _, player := range candidates {
-			if InSafeZone(player.X, player.Y, PlayerSize, owner.Stats.HP+owner.Split.Mass(), w.safeZones) {
+			if InSafeZone(player.X, player.Y, PlayerSize, player.Stats.HP, w.safeZones) {
 				continue
 			}
 			if !ai.sees(player.X, player.Y) || !ai.inTerritory(player.X, player.Y) || player.Dead || player.Stats.HP <= 0 || threat && player.Stats.HP <= ai.Stats.HP || !threat && player.Stats.HP >= ai.Stats.HP {

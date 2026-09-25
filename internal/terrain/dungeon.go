@@ -150,6 +150,10 @@ func walkableLayout(x, y, w, h float64) bool {
 }
 
 func Move(x, y, dx, dy, w, h float64) (float64, float64) {
+	values := x + y + dx + dy + w + h
+	if y >= SurfaceMin && y+dy >= SurfaceMin && w > 0 && h > 0 && !math.IsNaN(values) && !math.IsInf(values, 0) {
+		return max(SurfaceMin, min(SurfaceMax-w, x+dx)), max(SurfaceMin, min(SurfaceMax-h, y+dy))
+	}
 	steps := max(1, int(math.Ceil(max(math.Abs(dx), math.Abs(dy))/8)))
 	for range steps {
 		nx := x + dx/float64(steps)

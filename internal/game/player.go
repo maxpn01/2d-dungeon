@@ -59,12 +59,13 @@ func NewPlayer(
 
 func (p *Player) draw() {
 	mass := float64(p.stats.hp) + p.split.Mass()
+	count := p.split.Count()
 	drawSafeProtection(float64(p.pos.X), float64(p.pos.Y), float64(p.size.X), mass, p.safeZones)
 	bounds := drawActor(float64(p.pos.X), float64(p.pos.Y), float64(p.size.X), float64(p.stats.hp), p.combat, p.color, p.character)
 	for _, cell := range p.split {
 		if cell.Active {
 			drawSafeProtection(cell.X, cell.Y, float64(p.size.X), mass, p.safeZones)
-			drawActor(cell.X, cell.Y, float64(p.size.X), cell.Stats.HP, simulation.CombatState{}, p.color, p.character)
+			drawSplitBody(cell.X, cell.Y, float64(p.size.X), cell.Stats.HP, p.color, p.character, count)
 		}
 	}
 	drawTextAt(fmt.Sprintf("%s Lv.%d (you)", p.name, p.stats.lvl), rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)

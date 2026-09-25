@@ -89,6 +89,20 @@ func drawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 	return bounds
 }
 
+func drawSplitBody(x, y, size, hp float64, tint color.RGBA, character simulation.Character, count int) {
+	if character == simulation.Circle && count >= 64 {
+		bounds := actorBounds(x, y, size, hp)
+		radius := bounds.Width / 2
+		segments := int32(12)
+		if radius > 12 {
+			segments = 18
+		}
+		rl.DrawCircleSector(rl.NewVector2(bounds.X+radius, bounds.Y+radius), radius, 0, 360, segments, tint)
+		return
+	}
+	drawActor(x, y, size, hp, simulation.CombatState{}, tint, character)
+}
+
 func drawCombat(center rl.Vector2, size float32, c simulation.CombatState) {
 	dir := rl.NewVector2(float32(c.Direction.X), float32(c.Direction.Y))
 	point := func(distance, sideways float32) rl.Vector2 {

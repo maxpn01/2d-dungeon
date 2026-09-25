@@ -27,6 +27,35 @@ type Fruit struct {
 	X, Y, Size           float64
 }
 
+// Natural food comes in three sizes. HP is stored on each fruit so the
+// reward stays tied to the pellet that was spawned, including in snapshots.
+var naturalFood = [...]struct {
+	size, hp float64
+}{
+	{10, 0.5},
+	{FruitSize, FruitHP},
+	{23, 2.5},
+}
+
+func naturalFoodType() (size, hp float64) {
+	roll := rand.IntN(100)
+	switch {
+	case roll < 35:
+		return naturalFood[0].size, naturalFood[0].hp
+	case roll < 85:
+		return naturalFood[1].size, naturalFood[1].hp
+	default:
+		return naturalFood[2].size, naturalFood[2].hp
+	}
+}
+
+func (f Fruit) rewardHP() float64 {
+	if f.HP > 0 {
+		return f.HP
+	}
+	return FruitHP
+}
+
 func (w *World) spawnFruit() {
 	natural := 0
 	for _, fruit := range w.fruits {
@@ -37,13 +66,14 @@ func (w *World) spawnFruit() {
 	if natural >= MaxFruits {
 		return
 	}
+	size, hp := naturalFoodType()
 	for range 32 {
-		x := MapMin + rand.Float64()*(MapMax-MapMin-FruitSize)
-		y := MapMin + rand.Float64()*(MapMax-MapMin-FruitSize)
+		x := MapMin + rand.Float64()*(MapMax-MapMin-size)
+		y := MapMin + rand.Float64()*(MapMax-MapMin-size)
 		overlaps := false
 		for _, fruit := range w.fruits {
-			if x < fruit.X+fruit.Size && x+FruitSize > fruit.X &&
-				y < fruit.Y+fruit.Size && y+FruitSize > fruit.Y {
+			if x < fruit.X+fruit.Size && x+size > fruit.X &&
+				y < fruit.Y+fruit.Size && y+size > fruit.Y {
 				overlaps = true
 				break
 			}
@@ -53,12 +83,12 @@ func (w *World) spawnFruit() {
 				continue
 			}
 			for _, cell := range player.Split {
-				if cell.Active && x < cell.X+PlayerSize && x+FruitSize > cell.X && y < cell.Y+PlayerSize && y+FruitSize > cell.Y {
+				if cell.Active && x < cell.X+PlayerSize && x+size > cell.X && y < cell.Y+PlayerSize && y+size > cell.Y {
 					overlaps = true
 					break
 				}
 			}
-			if x < player.X+PlayerSize && x+FruitSize > player.X && y < player.Y+PlayerSize && y+FruitSize > player.Y {
+			if x < player.X+PlayerSize && x+size > player.X && y < player.Y+PlayerSize && y+size > player.Y {
 				overlaps = true
 				break
 			}
@@ -68,12 +98,12 @@ func (w *World) spawnFruit() {
 				continue
 			}
 			for _, cell := range ai.Split {
-				if cell.Active && x < cell.X+AISize && x+FruitSize > cell.X && y < cell.Y+AISize && y+FruitSize > cell.Y {
+				if cell.Active && x < cell.X+AISize && x+size > cell.X && y < cell.Y+AISize && y+size > cell.Y {
 					overlaps = true
 					break
 				}
 			}
-			if x < ai.X+AISize && x+FruitSize > ai.X && y < ai.Y+AISize && y+FruitSize > ai.Y {
+			if x < ai.X+AISize && x+size > ai.X && y < ai.Y+AISize && y+size > ai.Y {
 				overlaps = true
 				break
 			}
@@ -82,7 +112,7 @@ func (w *World) spawnFruit() {
 			continue
 		}
 		w.nextFruit++
-		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("f%d", w.nextFruit), X: x, Y: y, Size: FruitSize})
+		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("f%d", w.nextFruit), X: x, Y: y, Size: size, HP: hp})
 		return
 	}
 }

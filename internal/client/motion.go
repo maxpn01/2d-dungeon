@@ -40,6 +40,7 @@ func (m *Motion) Apply(update Update) {
 	previousAIs := indexAIs(m.AIs(now))
 	if len(m.frames) == 0 {
 		m.local = update.Local
+		m.local.Split = update.Local.Split.Clone()
 		m.playerTick = float64(update.Tick) - playerBufferTicks
 		m.playerClock = now
 	}
@@ -88,18 +89,21 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 				continue
 			}
 			offsetX, offsetY := cell.X-target.X, cell.Y-target.Y
-			if previous.Split[i].Active {
+			if i < len(previous.Split) && previous.Split[i].Active {
 				oldX, oldY := previous.Split[i].X-previous.X, previous.Split[i].Y-previous.Y
 				blend := 1 - math.Exp(-simulation.SplitFollowResponse*dt)
 				offsetX, offsetY = oldX+(offsetX-oldX)*blend, oldY+(offsetY-oldY)*blend
 			}
-			m.local.Split[i].X, m.local.Split[i].Y = terrain.Move(m.local.X, m.local.Y, offsetX, offsetY, simulation.PlayerSize, simulation.PlayerSize)
+			if i < len(m.local.Split) {
+				m.local.Split[i].X, m.local.Split[i].Y = terrain.Move(m.local.X, m.local.Y, offsetX, offsetY, simulation.PlayerSize, simulation.PlayerSize)
+			}
 		}
 	}()
 	dx, dy := target.X-m.local.X, target.Y-m.local.Y
 	distance := math.Hypot(dx, dy)
 	if distance > 200 {
 		m.local = target
+		m.local.Split = target.Split.Clone()
 		return
 	}
 	speed := playerMovementSpeed(target) * simulation.SpeedScale
@@ -117,10 +121,12 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 	}
 	if distance <= speed*dt || distance == 0 {
 		m.local = target
+		m.local.Split = target.Split.Clone()
 		return
 	}
 	x, y := terrain.Move(m.local.X, m.local.Y, dx/distance*speed*dt, dy/distance*speed*dt, simulation.PlayerSize, simulation.PlayerSize)
 	m.local = target
+	m.local.Split = target.Split.Clone()
 	m.local.X, m.local.Y = x, y
 }
 
@@ -133,6 +139,7 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 	afterByID := indexPlayers(after.Players)
 	positions := make([]protocol.Player, 0, len(before.Players))
 	for _, player := range before.Players {
+		player.Split = player.Split.Clone()
 		if player.ID == latest.PlayerID {
 			if latest.Local.Dead {
 				continue
@@ -148,16 +155,17 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 		if next, ok := afterByID[player.ID]; ok {
 			if math.Hypot(next.X-player.X, next.Y-player.Y) <= teleportDistance {
 				oldX, oldY := player.X, player.Y
+				oldSplit := player.Split
 				player.X, player.Y = interpolatePosition(player.X, player.Y, next.X, next.Y, alpha)
+				player.Split = next.Split.Clone()
 				for i, cell := range next.Split {
 					if !cell.Active {
 						continue
 					}
 					startX, startY := cell.X-next.X, cell.Y-next.Y
-					if player.Split[i].Active {
-						startX, startY = player.Split[i].X-oldX, player.Split[i].Y-oldY
+					if i < len(oldSplit) && oldSplit[i].Active {
+						startX, startY = oldSplit[i].X-oldX, oldSplit[i].Y-oldY
 					}
-					player.Split[i] = cell
 					player.Split[i].X = player.X + startX + (cell.X-next.X-startX)*alpha
 					player.Split[i].Y = player.Y + startY + (cell.Y-next.Y-startY)*alpha
 				}
@@ -239,6 +247,7 @@ func (m *Motion) AIs(now time.Time) []protocol.AI {
 	afterByID := indexAIs(after.AIs)
 	ais := make([]protocol.AI, 0, len(latest.AIs))
 	for _, ai := range latest.AIs {
+		ai.Split = ai.Split.Clone()
 		a, okA := beforeByID[ai.ID]
 		b, okB := afterByID[ai.ID]
 		if okA && okB {
@@ -252,7 +261,7 @@ func (m *Motion) AIs(now time.Time) []protocol.AI {
 			if !cell.Active {
 				continue
 			}
-			if okA && okB && a.Split[i].Active && b.Split[i].Active {
+			if okA && okB && i < len(a.Split) && i < len(b.Split) && a.Split[i].Active && b.Split[i].Active {
 				cell.X, cell.Y = projectPosition(a.Split[i].X, a.Split[i].Y, b.Split[i].X, b.Split[i].Y, alpha)
 			}
 			cell.X += dx

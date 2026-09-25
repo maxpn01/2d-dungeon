@@ -90,12 +90,12 @@ func (w *World) syncSimulation() {
 	}
 	w.player.pos = rl.NewVector2(float32(p.X), float32(p.Y))
 	w.player.stats, w.player.combat = gameStats(p.Stats), p.Combat
-	w.player.character, w.player.split, w.player.color = p.Character, p.Split, characterColor(p.Character)
+	w.player.character, w.player.split, w.player.color = p.Character, p.Split.Clone(), characterColor(p.Character)
 	w.player.isDeadFlag = p.Dead
 	w.ais = nil
 	w.entities = []GameObject{w.player, w.fruitSpawner}
 	for _, state := range snapshot.AIs {
-		ai := &AI{safeZones: snapshot.SafeZones, character: state.Character, combat: state.Combat, split: state.Split, id: state.ID, pos: rl.NewVector2(float32(state.X), float32(state.Y)), size: rl.NewVector2(simulation.AISize, simulation.AISize), color: rl.Green, stats: gameStats(state.Stats)}
+		ai := &AI{safeZones: snapshot.SafeZones, character: state.Character, combat: state.Combat, split: state.Split.Clone(), id: state.ID, pos: rl.NewVector2(float32(state.X), float32(state.Y)), size: rl.NewVector2(simulation.AISize, simulation.AISize), color: rl.Green, stats: gameStats(state.Stats)}
 		switch state.Behavior {
 		case "chasing":
 			ai.actionState = ActionChasing
@@ -193,13 +193,13 @@ func (w *World) interpolateActors() {
 	}
 	before, after := w.previousSnapshot.Players[0], w.snapshot.Players[0]
 	w.player.pos = interpolate(before.X, before.Y, after.X, after.Y)
-	w.player.split = after.Split
+	w.player.split = append(w.player.split[:0], after.Split...)
 	for i, cell := range after.Split {
 		if !cell.Active {
 			continue
 		}
 		startX, startY := cell.X-after.X, cell.Y-after.Y
-		if before.Split[i].Active {
+		if i < len(before.Split) && before.Split[i].Active {
 			startX, startY = before.Split[i].X-before.X, before.Split[i].Y-before.Y
 		}
 		ox := startX + (cell.X-after.X-startX)*alpha
@@ -213,7 +213,7 @@ func (w *World) interpolateActors() {
 			if ai.id == previous.ID {
 				ai.pos = interpolate(previous.X, previous.Y, current.X, current.Y)
 				for j, cell := range current.Split {
-					if cell.Active && previous.Split[j].Active {
+					if cell.Active && j < len(previous.Split) && previous.Split[j].Active {
 						point := interpolate(previous.Split[j].X, previous.Split[j].Y, cell.X, cell.Y)
 						ai.split[j].X, ai.split[j].Y = float64(point.X), float64(point.Y)
 					}

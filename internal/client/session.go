@@ -158,7 +158,9 @@ func (s *Session) takeOutgoingChat() []string {
 func (s *Session) PredictedPlayer() (protocol.Player, bool) {
 	s.inputMu.Lock()
 	defer s.inputMu.Unlock()
-	return s.predicted, s.predictionReady
+	p := s.predicted
+	p.Split = p.Split.Clone()
+	return p, s.predictionReady
 }
 
 func (s *Session) input() protocol.Direction {
@@ -206,7 +208,8 @@ func (s *Session) run(ctx context.Context, url string) error {
 		cancelConnection()
 		<-closerDone
 	}()
-	conn.SetReadLimit(1024 * 1024)
+	// Snapshot size grows with the number of split bodies.
+	conn.SetReadLimit(-1)
 
 	read := func(readCtx context.Context) (protocol.Message, error) {
 		timeoutCtx, stop := context.WithTimeout(readCtx, 5*time.Second)
@@ -358,6 +361,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 			predictPlayer(&local, input.direction, message.SafeZones)
 		}
 		s.predicted, s.predictionReady = local, !s.dead
+		s.predicted.Split = local.Split.Clone()
 		s.inputMu.Unlock()
 		s.publish(Update{SafeZones: message.SafeZones, Boss: message.Boss, PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits, AIs: *message.AIs})
 	}
@@ -508,7 +512,7 @@ func validateAIs(ais []protocol.AI) error {
 }
 
 func predictPlayer(player *protocol.Player, input protocol.Direction, zones []simulation.SafeZone) {
-	p := simulation.Player{EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split, GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, Speed: player.Stats.Speed}}
+	p := simulation.Player{EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split.Clone(), GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, Speed: player.Stats.Speed}}
 	d := simulation.Direction{X: input.X, Y: input.Y, Boost: input.Boost, Dash: input.Dash, Eject: input.Eject, AimX: input.AimX, AimY: input.AimY}
 	simulation.EjectFood(&p, d, simulation.StepSeconds)
 	simulation.AdvancePlayer(&p, d, simulation.StepSeconds, zones)

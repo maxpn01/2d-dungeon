@@ -37,8 +37,9 @@ func InSafeZone(x, y, size, mass float64, zones []SafeZone) bool {
 	if mass <= 0 || mass > SafeZoneMaxMass {
 		return false
 	}
+	bodyRadius := BodySize(size, mass) / 2
 	for _, zone := range zones {
-		if math.Hypot(x+size/2-zone.X, y+size/2-zone.Y)+BodySize(size, mass)/2 <= zone.Radius {
+		if math.Hypot(x+size/2-zone.X, y+size/2-zone.Y)+bodyRadius <= zone.Radius {
 			return true
 		}
 	}
@@ -46,19 +47,26 @@ func InSafeZone(x, y, size, mass float64, zones []SafeZone) bool {
 }
 
 func (e eater) protectedAt(t float64, zones []SafeZone) bool {
-	mass := e.stats.HP
-	if e.player != nil {
-		mass = e.player.Stats.HP + e.player.Split.Mass()
-	} else if e.ai != nil {
-		mass = e.ai.Stats.HP + e.ai.Split.Mass()
-	}
 	x, y := e.start.x+(e.end.x-e.start.x)*t, e.start.y+(e.end.y-e.start.y)*t
-	return InSafeZone(x, y, e.size, mass, zones)
+	return InSafeZone(x, y, e.size, e.stats.HP, zones)
+}
+
+func (p *Player) hasOversizedBody() bool {
+	if p.Stats.HP > SafeZoneMaxMass {
+		return true
+	}
+	for _, cell := range p.Split {
+		if cell.Active && cell.Stats.HP > SafeZoneMaxMass {
+			return true
+		}
+	}
+	return false
 }
 
 func repelBody(x, y, oldX, oldY, hp float64, zones []SafeZone) (float64, float64) {
+	bodyRadius := BodySize(PlayerSize, hp)/2 + 2
 	for _, zone := range zones {
-		radius := zone.Radius + BodySize(PlayerSize, hp)/2 + 2
+		radius := zone.Radius + bodyRadius
 		sx, sy := oldX+PlayerSize/2-zone.X, oldY+PlayerSize/2-zone.Y
 		dx, dy := x-oldX, y-oldY
 		a := dx*dx + dy*dy
@@ -90,17 +98,19 @@ func repelBody(x, y, oldX, oldY, hp float64, zones []SafeZone) (float64, float64
 }
 
 func RepelPlayer(p *Player, before Player, zones []SafeZone) {
-	if p.Dead || p.Stats.HP+p.Split.Mass() <= SafeZoneMaxMass {
+	if p.Dead || !p.hasOversizedBody() {
 		return
 	}
-	p.X, p.Y = repelBody(p.X, p.Y, before.X, before.Y, p.Stats.HP, zones)
+	if p.Stats.HP > SafeZoneMaxMass {
+		p.X, p.Y = repelBody(p.X, p.Y, before.X, before.Y, p.Stats.HP, zones)
+	}
 	for i := range p.Split {
 		cell := &p.Split[i]
-		if !cell.Active {
+		if !cell.Active || cell.Stats.HP <= SafeZoneMaxMass {
 			continue
 		}
 		oldX, oldY := cell.X, cell.Y
-		if before.Split[i].Active {
+		if i < len(before.Split) && before.Split[i].Active {
 			oldX, oldY = before.Split[i].X, before.Split[i].Y
 		}
 		cell.X, cell.Y = repelBody(cell.X, cell.Y, oldX, oldY, cell.Stats.HP, zones)

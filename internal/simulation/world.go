@@ -168,7 +168,14 @@ func (w *World) Step(now time.Time) {
 	if w.tick%fruitSpawnTicks == 0 {
 		w.spawnFruit()
 	}
-	previous := make(map[string]position, len(w.players))
+	previousCapacity := len(w.players) + len(w.ais)
+	for _, player := range w.players {
+		previousCapacity += len(player.Split)
+	}
+	for i := range w.ais {
+		previousCapacity += len(w.ais[i].Split)
+	}
+	previous := make(map[string]position, previousCapacity)
 	for id, player := range w.players {
 		previous[id] = position{player.X, player.Y}
 		for i, cell := range player.Split {
@@ -256,6 +263,9 @@ func (w *World) Step(now time.Time) {
 		for j := range ai.Split {
 			if ai.Split[j].Active {
 				cell := &ai.Split[j]
+				if cell.Stats.HP > SafeZoneMaxMass {
+					cell.X, cell.Y = repelBody(cell.X, cell.Y, cell.X, cell.Y, cell.Stats.HP, w.safeZones)
+				}
 				ClampSurfaceBody(&cell.X, &cell.Y, AISize, cell.Stats.HP)
 			}
 		}
@@ -275,7 +285,9 @@ type Snapshot struct {
 func (w *World) Snapshot() Snapshot {
 	players := make([]Player, 0, len(w.players))
 	for _, player := range w.players {
-		players = append(players, player.Player)
+		state := player.Player
+		state.Split = state.Split.Clone()
+		players = append(players, state)
 	}
 	sort.Slice(players, func(i, j int) bool { return players[i].ID < players[j].ID })
 	fruits := make([]Fruit, len(w.fruits))
@@ -285,7 +297,9 @@ func (w *World) Snapshot() Snapshot {
 		if ai.respawnTick != 0 {
 			continue
 		}
-		ais = append(ais, ai.AI)
+		state := ai.AI
+		state.Split = state.Split.Clone()
+		ais = append(ais, state)
 	}
 	boss := w.boss
 	boss.Tail = append([]Point(nil), boss.Tail...)

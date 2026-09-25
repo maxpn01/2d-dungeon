@@ -54,7 +54,12 @@ func Trace(from, to [2]int) bool {
 func WorldCell(x, y float64) [2]int {
 	return [2]int{int(math.Floor(x / Tile)), int(math.Floor(y / Tile))}
 }
-func Visible(ax, ay, bx, by float64) bool { return Sight(WorldCell(ax, ay), WorldCell(bx, by)) }
+func Visible(ax, ay, bx, by float64) bool {
+	if ay >= SurfaceMin && by >= SurfaceMin {
+		return true
+	}
+	return Sight(WorldCell(ax, ay), WorldCell(bx, by))
+}
 
 func NextStep(x, y, tx, ty, size float64) (float64, float64, bool) {
 	start := WorldCell(x+size/2, y+size/2)

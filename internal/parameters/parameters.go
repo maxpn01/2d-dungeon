@@ -83,8 +83,7 @@ const (
 const (
 	SplitDuration       = 8.0
 	SplitLaunchDuration = .25
-	SplitMinimumMass    = 2.0
-	MaxCircleCells      = 16
+	SplitMinimumMass    = 0.5
 	SplitMergeDuration  = .35
 	SplitTurnResponse   = 7.0
 	SplitFollowResponse = 24.0

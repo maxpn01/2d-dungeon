@@ -120,7 +120,7 @@ func (b *Boss) growTail() {
 func (w *World) bossTargets() []*playerState {
 	var players []*playerState
 	for _, p := range w.players {
-		if !p.Dead && p.Y >= MapMin && !w.bossRefuge(p.X, p.Y, PlayerSize) && math.Hypot(p.X-w.boss.X, p.Y-w.boss.Y) <= BossAggroRadius {
+		if !p.Dead && p.Y >= MapMin && !w.bossRefuge(p.X, p.Y, PlayerSize, p.Stats.HP) && math.Hypot(p.X-w.boss.X, p.Y-w.boss.Y) <= BossAggroRadius {
 			players = append(players, p)
 		}
 	}
@@ -132,7 +132,7 @@ func (w *World) bossAIs() []*aiState {
 	var ais []*aiState
 	for i := range w.ais {
 		ai := &w.ais[i]
-		if ai.respawnTick == 0 && ai.Y >= MapMin && !w.bossRefuge(ai.X, ai.Y, AISize) && math.Hypot(ai.X-w.boss.X, ai.Y-w.boss.Y) <= BossAggroRadius {
+		if ai.respawnTick == 0 && ai.Y >= MapMin && !w.bossRefuge(ai.X, ai.Y, AISize, ai.Stats.HP) && math.Hypot(ai.X-w.boss.X, ai.Y-w.boss.Y) <= BossAggroRadius {
 			ais = append(ais, ai)
 		}
 	}
@@ -140,14 +140,8 @@ func (w *World) bossAIs() []*aiState {
 	return ais
 }
 
-func (w *World) bossRefuge(x, y, size float64) bool {
-	centerX, centerY := x+size/2, y+size/2
-	for _, zone := range w.safeZones {
-		if math.Hypot(centerX-zone.X, centerY-zone.Y) <= zone.Radius {
-			return true
-		}
-	}
-	return false
+func (w *World) bossRefuge(x, y, size, hp float64) bool {
+	return InSafeZone(x, y, size, hp, w.safeZones)
 }
 
 func (w *World) openArena() {
@@ -249,7 +243,7 @@ func (w *World) updateBoss(previous map[string]position) {
 		}
 		atX := start.x + (end.x-start.x)*contact
 		atY := start.y + (end.y-start.y)*contact
-		if w.bossRefuge(atX, atY, PlayerSize) {
+		if w.bossRefuge(atX, atY, PlayerSize, p.Stats.HP) {
 			continue
 		}
 		if segment >= 0 {
@@ -343,7 +337,7 @@ func (w *World) updateBoss(previous map[string]position) {
 			}
 			atX := part.start.x + (part.end.x-part.start.x)*contact
 			atY := part.start.y + (part.end.y-part.start.y)*contact
-			if w.bossRefuge(atX, atY, part.size) {
+			if w.bossRefuge(atX, atY, part.size, part.stats.HP) {
 				continue
 			}
 			if segment >= 0 {
@@ -496,10 +490,7 @@ func (w *World) feedBoss(old position) {
 		}
 		_, hit := eatingContact(old, position{b.X, b.Y}, BossSize, position{f.X, f.Y}, position{f.X, f.Y}, f.Size)
 		if hit && f.Y >= MapMin && w.tick >= f.AvailableTick && f.Source != "boss" && (b.HP < BossMaxHP || b.Level < MaxLevel) {
-			hp := FruitHP
-			if f.Source != "" {
-				hp = f.HP
-			}
+			hp := f.rewardHP()
 			b.eat(hp, FruitXP*hp)
 		} else {
 			remaining = append(remaining, f)
@@ -541,7 +532,7 @@ func (w *World) updatePortals() {
 			p.X, p.Y = toX-PlayerSize/2, toY-PlayerSize/2
 			if p.Split.Count() > 0 {
 				p.Stats.HP += p.Split.Mass()
-				p.Split = SplitCells{}
+				p.Split = nil
 			}
 			p.Combat = CombatState{}
 			p.TeleportCharge = 0

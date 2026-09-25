@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"math"
+	"sort"
 
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/terrain"
@@ -16,7 +17,6 @@ const (
 	SplitDuration                 = parameters.SplitDuration
 	SplitLaunchDuration           = parameters.SplitLaunchDuration
 	SplitMinimumMass              = parameters.SplitMinimumMass
-	MaxCircleCells                = parameters.MaxCircleCells
 	SplitMergeDuration            = parameters.SplitMergeDuration
 	SplitTurnResponse             = parameters.SplitTurnResponse
 	SplitFollowResponse           = parameters.SplitFollowResponse
@@ -31,7 +31,11 @@ func NormalizeCharacter(c Character) Character {
 	}
 }
 
-type SplitCells [MaxCircleCells - 1]SplitCell
+// Stable indices let clients interpolate the same body across snapshots.
+// Vacant slots are reused before the slice grows.
+type SplitCells []SplitCell
+
+func (cells SplitCells) Clone() SplitCells { return append(SplitCells(nil), cells...) }
 
 func (cells SplitCells) Mass() float64 {
 	total := 0.0
@@ -63,7 +67,7 @@ type SplitCell struct {
 func (w *World) SetCharacter(id string, character Character) {
 	if p := w.players[id]; p != nil {
 		p.Stats.HP += p.Split.Mass()
-		p.Split = SplitCells{}
+		p.Split = nil
 		p.Character = NormalizeCharacter(character)
 		p.Combat = CombatState{}
 	}
@@ -71,8 +75,9 @@ func (w *World) SetCharacter(id string, character Character) {
 
 func AdvancePlayer(p *Player, input Direction, dt float64, zones ...[]SafeZone) {
 	defer clampPlayerBodies(p)
-	if len(zones) > 0 {
+	if len(zones) > 0 && p.hasOversizedBody() {
 		before := *p
+		before.Split = p.Split.Clone()
 		defer func() { RepelPlayer(p, before, zones[0]) }()
 	}
 	if p.Dead || !input.Valid() || dt <= 0 {
@@ -132,13 +137,23 @@ func advanceCircle(p *Player, input Direction, dt float64) {
 		moveCircleBody(p, input, dt)
 		return
 	}
+	speed := p.MovementSpeed()
+	turnBlend := 1 - math.Exp(-SplitTurnResponse*dt)
+	followBlend := 1 - math.Exp(-SplitFollowResponse*dt)
 	oldX, oldY := p.X, p.Y
-	p.X, p.Y = Move(p.X, p.Y, input, dt, p.MovementSpeed())
+	p.X, p.Y = Move(p.X, p.Y, input, dt, speed)
 	dx, dy := p.X-oldX, p.Y-oldY
-	count := p.Split.Count()
-	if count == 0 {
-		return
+	order := make([]int, 0, len(p.Split))
+	for i := range p.Split {
+		if p.Split[i].Active {
+			order = append(order, i)
+		}
 	}
+	sort.Slice(order, func(i, j int) bool {
+		a, b := p.Split[order[i]].Stats.HP, p.Split[order[j]].Stats.HP
+		return a > b || a == b && order[i] < order[j]
+	})
+	count := len(order)
 	// Use normalized input, not tiny differences in resolved world coordinates.
 	// At a 180-degree reversal always turn the same way, including diagonals.
 	angle := math.Atan2(c.Direction.Y, c.Direction.X)
@@ -148,33 +163,37 @@ func advanceCircle(p *Player, input Direction, dt float64) {
 		if math.Abs(math.Abs(turn)-math.Pi) < 1e-6 {
 			turn = math.Pi
 		}
-		angle += turn * (1 - math.Exp(-SplitTurnResponse*dt))
+		angle += turn * turnBlend
 		c.Direction = Direction{X: math.Cos(angle), Y: math.Sin(angle)}
 	}
-	rank := 0
-	for i := range p.Split {
+	mainBodySize := BodySize(PlayerSize, p.Stats.HP)
+	rank, ring, ringStart := 0, 1, 0
+	ringDiameter := BodySize(PlayerSize, p.Split[order[0]].Stats.HP)
+	ringRadius := (mainBodySize + ringDiameter) / 2
+	for _, i := range order {
 		cell := &p.Split[i]
-		if !cell.Active {
-			continue
-		}
 		cell.X, cell.Y = terrain.Move(cell.X, cell.Y, dx, dy, PlayerSize, PlayerSize)
 		cell.Remaining = max(0, cell.Remaining-dt)
 		cell.Launch = max(0, cell.Launch-dt)
-		// Pack additional bodies into close rings, instead of stacking them.
-		ring, slot, slots := 1.0, rank, min(count, 6)
-		if rank >= 6 {
-			ring, slot, slots = 2, rank-6, count-6
+		// Each outer ring has more room, even when the body count grows.
+		if rank >= ringStart+6*ring {
+			ringStart += 6 * ring
+			ring++
+			nextDiameter := BodySize(PlayerSize, cell.Stats.HP)
+			ringRadius += (ringDiameter + nextDiameter) / 2
+			ringDiameter = nextDiameter
 		}
+		slot, slots := rank-ringStart, min(count-ringStart, 6*ring)
 		bodyAngle := angle + 2*math.Pi*float64(slot)/float64(slots)
 		oldAngle := math.Atan2(cell.Direction.Y, cell.Direction.X)
 		turn := math.Atan2(math.Sin(bodyAngle-oldAngle), math.Cos(bodyAngle-oldAngle))
 		if math.Abs(math.Abs(turn)-math.Pi) < 1e-6 {
 			turn = math.Pi
 		}
-		oldAngle += turn * (1 - math.Exp(-SplitTurnResponse*dt))
+		oldAngle += turn * turnBlend
 		desiredX, desiredY := math.Cos(oldAngle), math.Sin(oldAngle)
 		cell.Direction = Direction{X: desiredX, Y: desiredY}
-		spacing := ring * (BodySize(PlayerSize, p.Stats.HP) + BodySize(PlayerSize, cell.Stats.HP)) / 2
+		spacing := ringRadius
 		smooth := func(t float64) float64 { t = max(0, min(1, t)); return t * t * (3 - 2*t) }
 		spacing *= smooth(1-cell.Launch/SplitLaunchDuration) * smooth(cell.Remaining/SplitMergeDuration)
 		targetX, targetY := terrain.Move(p.X, p.Y, desiredX*spacing, desiredY*spacing, PlayerSize, PlayerSize)
@@ -183,10 +202,9 @@ func advanceCircle(p *Player, input Direction, dt float64) {
 				targetX, targetY = x, y
 			}
 		}
-		blend := 1 - math.Exp(-SplitFollowResponse*dt)
-		moveX, moveY := (targetX-cell.X)*blend, (targetY-cell.Y)*blend
+		moveX, moveY := (targetX-cell.X)*followBlend, (targetY-cell.Y)*followBlend
 		distance := math.Hypot(moveX, moveY)
-		limit := p.MovementSpeed() * SpeedScale * dt
+		limit := speed * SpeedScale * dt
 		if distance > limit {
 			moveX *= limit / distance
 			moveY *= limit / distance
@@ -211,40 +229,38 @@ func moveCircleBody(p *Player, input Direction, dt float64) {
 }
 
 func splitCircle(p *Player, direction Direction) {
-	sources := []int{}
+	sources := make([]int, 0, len(p.Split)+1)
+	free := make([]int, 0)
 	if p.Stats.HP >= SplitMinimumMass {
 		sources = append(sources, -1)
 	}
 	for i, c := range p.Split {
-		if c.Active && c.Stats.HP >= SplitMinimumMass {
+		if !c.Active {
+			free = append(free, i)
+		} else if c.Stats.HP >= SplitMinimumMass {
 			sources = append(sources, i)
 		}
 	}
 	if p.Split.Count() == 0 {
 		p.Combat.Direction = direction
 	}
-	created := false
 	for _, source := range sources {
-		free := -1
-		for i, c := range p.Split {
-			if !c.Active {
-				free = i
-				break
-			}
-		}
-		if free < 0 {
-			break
-		}
 		stats, x, y := &p.Stats, p.X, p.Y
 		if source >= 0 {
 			stats = &p.Split[source].Stats
 			x, y = p.Split[source].X, p.Split[source].Y
 		}
-		created = true
 		stats.HP /= 2
-		p.Split[free] = SplitCell{Active: true, X: x, Y: y, Stats: *stats, Remaining: SplitDuration, Launch: SplitLaunchDuration, Direction: direction}
+		child := SplitCell{Active: true, X: x, Y: y, Stats: *stats, Remaining: SplitDuration, Launch: SplitLaunchDuration, Direction: direction}
+		if len(free) > 0 {
+			index := free[len(free)-1]
+			free = free[:len(free)-1]
+			p.Split[index] = child
+		} else {
+			p.Split = append(p.Split, child)
+		}
 	}
-	if created {
+	if len(sources) > 0 {
 		for i := range p.Split {
 			if p.Split[i].Active {
 				p.Split[i].Remaining = SplitDuration
@@ -266,8 +282,8 @@ func (w *World) finishSplitCells() {
 }
 
 func finishActorSplit(x, y *float64, stats *Stats, split *SplitCells) {
-	for i := range split {
-		cell := &split[i]
+	for i := range *split {
+		cell := &(*split)[i]
 		if !cell.Active {
 			continue
 		}
@@ -280,9 +296,12 @@ func finishActorSplit(x, y *float64, stats *Stats, split *SplitCells) {
 			*cell = SplitCell{}
 		}
 	}
+	for len(*split) > 0 && !(*split)[len(*split)-1].Active {
+		*split = (*split)[:len(*split)-1]
+	}
 }
 
 // BodySize is shared with rendering so clustered circles touch at any mass.
 func BodySize(size, hp float64) float64 {
-	return size * math.Pow(max(1, hp)/StartingHP, .3)
+	return size * math.Pow(max(0.25, hp)/StartingHP, .3)
 }
