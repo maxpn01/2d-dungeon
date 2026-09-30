@@ -63,20 +63,9 @@ func NewMap(size, cellSize rl.Vector2, bgColor, accentColor color.RGBA) *Map {
 }
 
 func (m *Map) draw(ctx RenderContext) {
-	rl.DrawRectangle(0, 0, int32(m.size.X), int32(m.size.Y), m.background)
-	colStart, rowStart, colEnd, rowEnd := m.visibleCellRange(ctx.Camera, ctx.WindowWidth, ctx.WindowHeight)
-	for row := rowStart; row < rowEnd; row++ {
-		for col := colStart; col < colEnd; col++ {
-			cell := m.cells[row][col]
-			if cell.color == m.background {
-				continue
-			}
-			x := float32(col) * cell.size.X
-			y := float32(row) * cell.size.Y
-			rl.DrawRectangle(int32(x), int32(y), int32(cell.size.X), int32(cell.size.Y), cell.color)
-		}
-	}
+	m.drawSanctuary(ctx)
 	drawSafeZones(m.safeZones)
+	m.drawSanctuaryAltar(ctx)
 	m.drawDungeon(ctx)
 }
 

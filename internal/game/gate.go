@@ -16,9 +16,6 @@ func drawStatueGate(gate simulation.EntranceGateState, prompt bool) {
 	inset := color.RGBA{32, 39, 49, 255}
 	iron := color.RGBA{67, 78, 87, 255}
 	eye := color.RGBA{166, 79, 87, 255}
-	dungeonRect(x, y-32, w, 64, color.RGBA{26, 32, 40, 255})
-	dungeonRect(x, y-32, w, 2, inset)
-	dungeonRect(x, y+30, w, 2, inset)
 	leaf := int(float64(w/2) * (1 - gate.Open))
 	for side := 0; side < 2; side++ {
 		dx := x
