@@ -63,7 +63,7 @@ const (
 	BossDropLifetimeTicks      = 15 * TickRate
 	XPFirstLevelCost           = 5.0
 	XPLevelCostIncrease        = 2.0
-	HPPerLevelIncrease         = 50
+	HPPerLevelIncrease         = 10
 	MassSpeedMinimumMultiplier = 1.0 / 3
 	MassSpeedMaximumMultiplier = 4.0 / 3
 	MassSpeedExponent          = .18
