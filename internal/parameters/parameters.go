@@ -8,16 +8,16 @@ const (
 	Tile           = 40
 	MinCellX       = -27
 	MaxCellX       = 100
-	MinCellY       = -234
+	MinCellY       = -158
 	SurfaceCells   = 36
 	SurfaceMin     = 10
 	SurfaceMax     = SurfaceCells*Tile - 10
 	North          = MinCellY * Tile
 	ActorSize      = 30
 	DescentCircleX = 720
-	DescentCircleY = -7260
+	DescentCircleY = -4880
 	ReturnCircleX  = 720
-	ReturnCircleY  = -8440
+	ReturnCircleY  = -5800
 )
 
 // Simulation timing and movement.
@@ -130,10 +130,10 @@ const (
 	BossFirstSpawnSeconds      = 300
 	BossRespawnIncreaseSeconds = 300
 	PortalSeconds              = 0.8
-	ArenaLeft                  = 5 * Tile
-	ArenaRight                 = 31 * Tile
-	ArenaTop                   = -176 * Tile
-	ArenaBottom                = -160 * Tile
+	ArenaLeft                  = 9 * Tile
+	ArenaRight                 = 27 * Tile
+	ArenaTop                   = -112 * Tile
+	ArenaBottom                = -92 * Tile
 	BossHuntTicks              = 24
 	BossWindupTicks            = 12
 	BossRushTicks              = 27

@@ -17,6 +17,13 @@ func dungeonRect(x, y, w, h int, c color.RGBA) {
 }
 
 func (m *Map) drawDungeon(ctx RenderContext) {
+	sanctumID := 0
+	for i, room := range terrain.Rooms {
+		if room.ID == "the-descent" {
+			sanctumID = i + 2
+			break
+		}
+	}
 	zoom := max(ctx.Camera.Zoom, .1)
 	left := int(math.Floor(float64(ctx.Camera.Target.X-ctx.Camera.Offset.X/zoom)/40)) - 1
 	right := int(math.Ceil(float64(ctx.Camera.Target.X+(float32(ctx.WindowWidth)-ctx.Camera.Offset.X)/zoom)/40)) + 1
@@ -30,6 +37,9 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 			if id != 0 {
 				tone := uint8(hash % 7)
 				c := color.RGBA{26 + tone, 32 + tone, 40 + tone, 255}
+				if id == sanctumID {
+					c = color.RGBA{22 + tone, 40 + tone, 46 + tone, 255}
+				}
 				dungeonRect(px, py, 40, 40, c)
 				dungeonRect(px, py, 40, 1, color.RGBA{43, 49, 57, 255})
 				dungeonRect(px, py, 1, 40, color.RGBA{43, 49, 57, 255})
@@ -53,7 +63,7 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 					dungeonRect(px, py, 40, 10, color.RGBA{8, 13, 20, 150})
 				}
 			} else if terrain.Pool(x, y) {
-				// Pools are drawn as continuous basins below, without tile noise.
+				continue
 			} else {
 				near := false
 				for dy := -1; dy <= 1; dy++ {
@@ -76,32 +86,38 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 			}
 		}
 	}
-	if top <= 0 && bottom >= -74 && left <= 34 && right >= 2 {
+	if top <= 0 && bottom >= -76 && left <= 34 && right >= 2 {
 		drawEntranceHall()
 	}
-	for _, y := range []int{-97, -89} {
-		for _, x := range []int{11, 20} {
-			if x+5 >= left && x <= right && y+4 >= top && y <= bottom {
-				drawDungeonPool(x*40, y*40)
+	for _, pool := range terrain.Pools {
+		if pool.X+pool.W >= left && pool.X <= right && pool.Y+pool.H >= top && pool.Y <= bottom {
+			drawDungeonPool(pool.X*terrain.Tile, pool.Y*terrain.Tile)
+		}
+	}
+	for _, room := range terrain.Rooms {
+		if room.ID == "the-descent" && room.Y+room.H >= top && room.Y <= bottom {
+			center := rl.NewVector2(terrain.DescentCircleX, terrain.DescentCircleY)
+			rl.DrawPolyLines(center, 8, 164, 22.5, rl.Fade(runeColor, .35))
+			rl.DrawCircleLinesV(center, 150, rl.Fade(runeColor, .2))
+			rl.DrawRectangleLinesEx(rl.NewRectangle(float32(room.X*terrain.Tile+24), float32(room.Y*terrain.Tile+24), float32(room.W*terrain.Tile-48), float32(room.H*terrain.Tile-48)), 2, rl.Fade(runeColor, .25))
+			for _, x := range []int{16*terrain.Tile - 24, 20*terrain.Tile + 8} {
+				y := (room.Y + room.H) * terrain.Tile
+				dungeonRect(x, y-24, 16, 48, paleStone)
+				dungeonRect(x+5, y-14, 6, 28, runeColor)
 			}
 		}
+		if room.ID != "the-crown-boss-arena" || room.Y+room.H < top || room.Y > bottom {
+			continue
+		}
+		center := rl.NewVector2(float32((room.X*2+room.W)*20), -99*terrain.Tile)
+		rl.DrawPolyLines(center, 8, 105, 22.5, stone)
+		rl.DrawCircleLinesV(center, 75, paleStone)
 	}
 	for _, x := range []int{520, 840} {
 		dungeonRect(x, -80, 80, 80, stone)
 		dungeonRect(x+6, -74, 68, 5, paleStone)
 		dungeonRect(x+12, -60, 56, 48, color.RGBA{31, 39, 49, 255})
 		dungeonRect(x+34, -52, 12, 28, runeColor)
-	}
-	for _, r := range terrain.Rooms {
-		if r.Y+r.H < top || r.Y > bottom {
-			continue
-		}
-		cx, cy := float32((r.X*2+r.W)*20), float32((r.Y*2+r.H)*20)
-		if r.Name == "THE THRESHOLD HALL" {
-			rl.DrawRectangleLines(int32(r.X*40+100), int32(r.Y*40+100), int32(r.W*40-200), int32(r.H*40-200), stone)
-			rl.DrawPolyLines(rl.NewVector2(cx, cy), 8, 145, 22.5, stone)
-			rl.DrawCircleLines(int32(cx), int32(cy), 110, stone)
-		}
 	}
 
 }
@@ -143,7 +159,7 @@ func drawDungeonLocation(x, y float32, width, height int32) {
 func drawEntranceHall() {
 	const tile = terrain.Tile
 	border := color.RGBA{71, 86, 94, 255}
-	for row := -74; row < 0; row++ {
+	for row := -64; row < 0; row++ {
 		for _, col := range []int{17, 18} {
 			dungeonRect(col*tile+4, row*tile+3, 32, 34, color.RGBA{47, 52, 58, 255})
 			dungeonRect(col*tile+7, row*tile+6, 26, 1, color.RGBA{69, 70, 66, 255})

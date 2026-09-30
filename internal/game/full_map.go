@@ -8,12 +8,13 @@ import (
 
 func newFullMapView(windowWidth, windowHeight int32, m *Map) radarView {
 	const margin float32 = 72
-	width := float32((terrain.MaxCellX - terrain.MinCellX) * terrain.Tile)
-	height := m.size.Y - terrain.North
+	left, top, right, bottom := terrain.Bounds()
+	width := max(m.size.X, float32(right)) - float32(left)
+	height := max(m.size.Y, float32(bottom)) - float32(top)
 	scale := min(max(1, float32(windowWidth)-2*margin)/width, max(1, float32(windowHeight)-2*margin)/height)
 	return radarView{
 		bounds: rl.NewRectangle((float32(windowWidth)-width*scale)/2, (float32(windowHeight)-height*scale)/2, width*scale, height*scale),
-		focus:  rl.NewVector2(terrain.MinCellX*terrain.Tile+width/2, terrain.North+height/2),
+		focus:  rl.NewVector2(float32(left)+width/2, float32(top)+height/2),
 		scale:  scale,
 	}
 }

@@ -141,12 +141,16 @@ func (v radarView) fog() {
 }
 
 func (v radarView) end(player rl.Vector2) {
-	circle := rl.NewVector2(terrain.DescentCircleX, terrain.DescentCircleY)
-	if v.exploration.explored[explorationCell(circle)] {
-		p := v.point(circle)
-		rl.DrawCircleV(p, 9, rl.Black)
-		rl.DrawCircleLinesV(p, 8, runeColor)
-		rl.DrawCircleLinesV(p, 5, runeColor)
+	for _, circle := range []rl.Vector2{
+		{X: terrain.DescentCircleX, Y: terrain.DescentCircleY},
+		{X: terrain.ReturnCircleX, Y: terrain.ReturnCircleY},
+	} {
+		if v.exploration.explored[explorationCell(circle)] {
+			p := v.point(circle)
+			rl.DrawCircleV(p, 9, rl.Black)
+			rl.DrawCircleLinesV(p, 8, runeColor)
+			rl.DrawCircleLinesV(p, 5, runeColor)
+		}
 	}
 
 	v.marker(player, 4, rl.Red)
