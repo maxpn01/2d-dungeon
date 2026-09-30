@@ -183,7 +183,7 @@ func (g *Game) run() {
 		case screenMultiplayer:
 			m := g.multiplayer
 			switch {
-			case m.view.Local.Dead && m.eating.finished(time.Now()):
+			case m.view.Local.Dead:
 				action = g.multiplayerGameOver.draw()
 			case m.errorText != "":
 				action = g.connectionMenu.draw()
@@ -241,9 +241,10 @@ func (g *Game) run() {
 func (g *Game) startSinglePlayer() {
 	if g.world.player.isDeadFlag || g.world.player.character != g.settings.Character {
 		g.restart()
-		return
 	}
 	g.world.player.name = g.settings.PlayerName
+	g.world.player.input = PlayerInput{}
+	g.world.player.suppressShootUntilRelease = true
 	g.cameraFollowPlayer()
 }
 

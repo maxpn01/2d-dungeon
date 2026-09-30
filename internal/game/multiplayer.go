@@ -15,23 +15,27 @@ import (
 )
 
 type multiplayer struct {
-	feedback    combatFeedback
-	renderedAIs []protocol.AI
-	motion      client.Motion
-	rendered    []protocol.Player
-	session     *client.Session
-	view        client.Update
-	gameMap     *Map
-	errorText   string
-	chat        chatBox
-	eating      *eatingScene
-	otherEating []*eatingScene
+	suppressShootUntilRelease bool
+	previousProjectiles       []simulation.Projectile
+	projectileInterval        float64
+	feedback                  combatFeedback
+	renderedAIs               []protocol.AI
+	motion                    client.Motion
+	rendered                  []protocol.Player
+	session                   *client.Session
+	view                      client.Update
+	gameMap                   *Map
+	errorText                 string
+	chat                      chatBox
+	eating                    *eatingScene
+	otherEating               []*eatingScene
 }
 
 func newMultiplayer(url, name string, character simulation.Character) *multiplayer {
 	return &multiplayer{
-		session: client.ConnectWithCharacter(url, name, character),
-		gameMap: NewMap(rl.NewVector2(terrain.SurfaceCells*terrain.Tile/10, terrain.SurfaceCells*terrain.Tile/10), rl.NewVector2(10, 10), rl.Black, rl.Gray),
+		suppressShootUntilRelease: true,
+		session:                   client.ConnectWithCharacter(url, name, character),
+		gameMap:                   NewMap(rl.NewVector2(terrain.SurfaceCells*terrain.Tile/10, terrain.SurfaceCells*terrain.Tile/10), rl.NewVector2(10, 10), rl.Black, rl.Gray),
 	}
 }
 
@@ -55,7 +59,11 @@ func (m *multiplayer) poll() {
 			return
 		}
 		m.feedback.multiplayer(time.Now(), update.Players, update.AIs, update.Fruits)
-		m.startEatingScenes(time.Now(), update)
+		m.previousProjectiles = m.view.Projectiles
+		m.projectileInterval = simulation.StepSeconds
+		if update.Tick > m.view.Tick && m.view.Ready {
+			m.projectileInterval = float64(update.Tick-m.view.Tick) / simulation.TickRate
+		}
 		m.view = update
 		m.gameMap.safeZones = update.SafeZones
 		m.motion.Apply(update)
@@ -64,12 +72,15 @@ func (m *multiplayer) poll() {
 }
 
 func (m *multiplayer) readInput(dt float32, mapOpen bool, camera rl.Camera2D) {
+	if !rl.IsMouseButtonDown(rl.MouseLeftButton) {
+		m.suppressShootUntilRelease = false
+	}
 	if !mapOpen {
 		m.chat.update(m)
 	}
 	direction := protocol.Direction{}
 	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.open && !mapOpen {
-		direction.Eject = rl.IsKeyDown(rl.KeyE)
+		direction.Shoot = !m.suppressShootUntilRelease && rl.IsMouseButtonDown(rl.MouseLeftButton)
 		direction.Boost = rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
 		direction.Dash = rl.IsKeyPressed(rl.KeyLeftShift) || rl.IsKeyPressed(rl.KeyRightShift)
 		center := rl.NewVector2(float32(m.view.Local.X+m.view.Local.Size/2), float32(m.view.Local.Y+m.view.Local.Size/2))
@@ -171,6 +182,9 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		}
 	}
 	for _, player := range m.rendered {
+		if player.Dead {
+			continue
+		}
 		if player.ID != m.view.PlayerID && !m.gameMap.exploration.entityVisible(player.X, player.Y, player.Size) {
 			continue
 		}
@@ -196,6 +210,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 			drawTextAt(label, rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 		}
 	}
+	drawProjectiles(m.previousProjectiles, m.view.Projectiles, time.Since(m.view.ReceivedAt).Seconds()/max(simulation.StepSeconds, m.projectileInterval), &m.gameMap.exploration)
 	drawEncounter(m.view.Boss, &m.gameMap.exploration)
 	for _, p := range m.view.Players {
 		drawTeleportCharge(p.X, p.Y, p.TeleportCharge)

@@ -24,6 +24,7 @@ const (
 )
 
 type Direction struct {
+	Shoot      bool
 	Eject      bool
 	Boost      bool
 	Dash       bool
@@ -39,6 +40,7 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
+	ShotCooldown   float64
 	EjectCooldown  float64
 	Character      Character
 	Split          SplitCells
@@ -69,6 +71,8 @@ type playerState struct {
 }
 
 type World struct {
+	projectiles    []Projectile
+	nextProjectile uint64
 	safeZones      []SafeZone
 	boss           Boss
 	bossHitUntil   map[string]uint64
@@ -190,28 +194,8 @@ func (w *World) Step(now time.Time) {
 				player.InputSeq = next.sequence
 			}
 		}
-		drops := 0
-		for _, f := range w.fruits {
-			if f.Source != "" {
-				drops++
-			}
-		}
-		ejectInput := direction
-		if drops >= MaxMassDrops {
-			ejectInput.Eject = false
-		}
-		if player.Y >= MapMin {
-			ejectInput.Eject = false
-		}
-		if food := EjectFood(&player.Player, ejectInput, StepSeconds); food != nil {
-			w.nextFruit++
-			food.ID = fmt.Sprintf("m%d", w.nextFruit)
-			food.Source = id
-			food.OwnerPickupTick = w.tick + EjectOwnerDelay
-			food.ExpiresTick = w.tick + parameters.MassDropLifetimeTicks
-			w.fruits = append(w.fruits, *food)
-		}
 		AdvancePlayer(&player.Player, direction, StepSeconds, w.safeZones)
+		w.fire(&player.Player, direction)
 	}
 	for _, ai := range w.ais {
 		previous[ai.ID] = position{ai.X, ai.Y}
@@ -226,7 +210,7 @@ func (w *World) Step(now time.Time) {
 	w.replenishEntranceFood()
 	w.advanceFood()
 	eaters := w.eaters(previous)
-	w.resolvePredation(eaters)
+	w.advanceProjectiles(eaters)
 	for id, p := range w.players {
 		old := previous[id]
 		ConstrainArena(&p.Player, old.x, old.y)
@@ -244,30 +228,13 @@ func (w *World) Step(now time.Time) {
 	w.consumeFruits(eaters)
 	w.finishSplitCells()
 	for _, p := range w.players {
-		RepelPlayer(&p.Player, p.Player, w.safeZones)
 		clampPlayerBodies(&p.Player)
-	}
-	for i := range w.ais {
-		ai := &w.ais[i]
-		if ai.Stats.HP > SafeZoneMaxMass {
-			ai.X, ai.Y = repelBody(ai.X, ai.Y, ai.X, ai.Y, ai.Stats.HP, w.safeZones)
-		}
-		ClampSurfaceBody(&ai.X, &ai.Y, AISize, ai.Stats.HP)
-		for j := range ai.Split {
-			if ai.Split[j].Active {
-				cell := &ai.Split[j]
-				if cell.Stats.HP > SafeZoneMaxMass {
-					cell.X, cell.Y = repelBody(cell.X, cell.Y, cell.X, cell.Y, cell.Stats.HP, w.safeZones)
-				}
-				ClampSurfaceBody(&cell.X, &cell.Y, AISize, cell.Stats.HP)
-			}
-		}
 	}
 	w.updatePortals()
 	// The surface is only a respawn area while floor one is being redesigned.
 	remaining := w.fruits[:0]
 	for _, fruit := range w.fruits {
-		if fruit.Y < 0 {
+		if fruit.Y < 0 || fruit.Source != "" {
 			remaining = append(remaining, fruit)
 		}
 	}
@@ -275,12 +242,13 @@ func (w *World) Step(now time.Time) {
 }
 
 type Snapshot struct {
-	SafeZones []SafeZone
-	Boss      Boss
-	AIs       []AI
-	Tick      uint64
-	Players   []Player
-	Fruits    []Fruit
+	Projectiles []Projectile
+	SafeZones   []SafeZone
+	Boss        Boss
+	AIs         []AI
+	Tick        uint64
+	Players     []Player
+	Fruits      []Fruit
 }
 
 func (w *World) Snapshot() Snapshot {
@@ -304,7 +272,7 @@ func (w *World) Snapshot() Snapshot {
 	}
 	boss := w.boss
 	boss.Tail = append([]Point(nil), boss.Tail...)
-	return Snapshot{SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	return Snapshot{Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }

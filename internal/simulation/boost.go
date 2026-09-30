@@ -13,7 +13,11 @@ const (
 )
 
 func advanceBoostPlayer(p *Player, input Direction, dt float64) {
-	p.Combat = CombatState{}
+	facing := p.Combat.Facing
+	p.Combat = CombatState{Facing: facing}
+	if length := math.Hypot(input.AimX, input.AimY); length > 0 {
+		p.Combat.Facing = Direction{X: input.AimX / length, Y: input.AimY / length}
+	}
 	if p.Dead || !input.Valid() || dt <= 0 {
 		return
 	}
@@ -22,7 +26,9 @@ func advanceBoostPlayer(p *Player, input Direction, dt float64) {
 		return
 	}
 	p.Combat.Direction = Direction{X: input.X / length, Y: input.Y / length}
-	p.Combat.Facing = p.Combat.Direction
+	if input.AimX == 0 && input.AimY == 0 {
+		p.Combat.Facing = p.Combat.Direction
+	}
 	boosted := 0.0
 	if input.Boost && p.Stats.MP > 0 {
 		boosted = min(dt, p.Stats.MP/BoostMPPerSecond)

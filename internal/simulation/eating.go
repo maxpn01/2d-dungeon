@@ -181,7 +181,7 @@ func (w *World) consumeFruits(eaters []eater) {
 		} else {
 			hp := fruit.rewardHP()
 			xp := FruitXP * hp
-			if fruit.Ejected {
+			if fruit.Ejected || fruit.Source != "" {
 				xp = 0
 			}
 			eaters[winner].gain(hp, xp, fruit.MP)

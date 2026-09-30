@@ -21,6 +21,7 @@ type PlayerStats struct {
 }
 
 type PlayerInput struct {
+	Shoot     bool
 	Eject     bool
 	Direction rl.Vector2
 	Aim       rl.Vector2
@@ -29,15 +30,16 @@ type PlayerInput struct {
 }
 
 type Player struct {
-	safeZones []simulation.SafeZone
-	character simulation.Character
-	split     simulation.SplitCells
-	combat    simulation.CombatState
-	name      string
-	input     PlayerInput
-	pos       rl.Vector2
-	size      rl.Vector2
-	color     color.RGBA
+	suppressShootUntilRelease bool
+	safeZones                 []simulation.SafeZone
+	character                 simulation.Character
+	split                     simulation.SplitCells
+	combat                    simulation.CombatState
+	name                      string
+	input                     PlayerInput
+	pos                       rl.Vector2
+	size                      rl.Vector2
+	color                     color.RGBA
 
 	stats PlayerStats
 
@@ -59,6 +61,9 @@ func NewPlayer(
 }
 
 func (p *Player) draw() {
+	if p.isDeadFlag {
+		return
+	}
 	mass := float64(p.stats.hp) + p.split.Mass()
 	count := p.split.Count()
 	drawSafeProtection(float64(p.pos.X), float64(p.pos.Y), float64(p.size.X), mass, p.safeZones)
@@ -73,7 +78,10 @@ func (p *Player) draw() {
 }
 
 func (p *Player) readInput(camera rl.Camera2D) {
-	input := PlayerInput{Eject: p.input.Eject || rl.IsKeyDown(rl.KeyE), Boost: rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift), Dash: p.input.Dash || rl.IsKeyPressed(rl.KeyLeftShift) || rl.IsKeyPressed(rl.KeyRightShift)}
+	if !rl.IsMouseButtonDown(rl.MouseLeftButton) {
+		p.suppressShootUntilRelease = false
+	}
+	input := PlayerInput{Shoot: !p.suppressShootUntilRelease && (p.input.Shoot || rl.IsMouseButtonDown(rl.MouseLeftButton)), Boost: rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift), Dash: p.input.Dash || rl.IsKeyPressed(rl.KeyLeftShift) || rl.IsKeyPressed(rl.KeyRightShift)}
 	input.Aim = mouseAim(camera, entityCenter(p.pos, p.size), p.combat.Facing)
 	if rl.IsKeyDown(rl.KeyW) {
 		input.Direction.Y -= 1

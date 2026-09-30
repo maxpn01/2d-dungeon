@@ -19,17 +19,18 @@ import (
 )
 
 type Update struct {
-	SafeZones  []simulation.SafeZone
-	Boss       simulation.Boss
-	AIs        []protocol.AI
-	Fruits     []protocol.Fruit
-	ReceivedAt time.Time
-	Local      protocol.Player
-	PlayerID   string
-	Players    []protocol.Player
-	Tick       uint64
-	Ready      bool
-	Err        error
+	SafeZones   []simulation.SafeZone
+	Boss        simulation.Boss
+	AIs         []protocol.AI
+	Projectiles []simulation.Projectile
+	Fruits      []protocol.Fruit
+	ReceivedAt  time.Time
+	Local       protocol.Player
+	PlayerID    string
+	Players     []protocol.Player
+	Tick        uint64
+	Ready       bool
+	Err         error
 }
 
 type ChatEntry struct {
@@ -101,9 +102,10 @@ func (s *Session) Close()                 { s.cancel() }
 
 func (s *Session) SetInput(direction protocol.Direction) {
 	s.inputMu.Lock()
-	if s.direction.Dash || s.direction.Eject {
+	if s.direction.Shoot || s.direction.Dash || s.direction.Eject {
 		direction.AimX, direction.AimY = s.direction.AimX, s.direction.AimY
 	}
+	direction.Shoot = direction.Shoot || s.direction.Shoot
 	direction.Dash = direction.Dash || s.direction.Dash
 	direction.Eject = direction.Eject || s.direction.Eject
 	s.direction, s.inputAt = direction, time.Now()
@@ -171,6 +173,7 @@ func (s *Session) input() protocol.Direction {
 		return protocol.Direction{}
 	}
 	direction := s.direction
+	s.direction.Shoot = false
 	s.direction.Dash = false
 	s.direction.Eject = false
 	return direction
@@ -314,6 +317,9 @@ func (s *Session) run(ctx context.Context, url string) error {
 		if err := validateFruits(*message.Fruits); err != nil {
 			return err
 		}
+		if err := validateProjectiles(message.Projectiles); err != nil {
+			return err
+		}
 		if err := validateBoss(message.Boss); err != nil {
 			return err
 		}
@@ -363,7 +369,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 		s.predicted, s.predictionReady = local, !s.dead
 		s.predicted.Split = local.Split.Clone()
 		s.inputMu.Unlock()
-		s.publish(Update{SafeZones: message.SafeZones, Boss: message.Boss, PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits, AIs: *message.AIs})
+		s.publish(Update{Projectiles: message.Projectiles, SafeZones: message.SafeZones, Boss: message.Boss, PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits, AIs: *message.AIs})
 	}
 }
 
@@ -386,7 +392,7 @@ func validatePlayers(players []protocol.Player, localID string) error {
 			return errors.New("server sent invalid character")
 		}
 		if player.Stats.HP+player.Split.Mass() > simulation.MaxHPForLevel(player.Stats.Level)+1e-9 {
-			return errors.New("server sent invalid total mass")
+			return errors.New("server sent invalid total HP")
 		}
 		for _, cell := range player.Split {
 			if !cell.Active {
@@ -406,6 +412,9 @@ func validatePlayers(players []protocol.Player, localID string) error {
 		}
 		if math.IsNaN(player.EjectCooldown) || math.IsInf(player.EjectCooldown, 0) || player.EjectCooldown < 0 || player.EjectCooldown > simulation.EjectInterval {
 			return errors.New("server sent invalid eject cooldown")
+		}
+		if math.IsNaN(player.ShotCooldown) || math.IsInf(player.ShotCooldown, 0) || player.ShotCooldown < 0 || player.ShotCooldown > parameters.ShotCooldown {
+			return errors.New("server sent invalid shot cooldown")
 		}
 		if !validCombat(player.Combat) {
 			return errors.New("server sent invalid combat state")
@@ -430,7 +439,7 @@ func validateFruits(fruits []protocol.Fruit) error {
 			return errors.New("server sent invalid fruit IDs")
 		}
 		ids[fruit.ID] = true
-		if math.IsNaN(fruit.MP) || math.IsInf(fruit.MP, 0) || fruit.MP < 0 || fruit.MP > simulation.MaxMP || fruit.MP > 0 && (fruit.HP != 0 || fruit.Source != "") {
+		if math.IsNaN(fruit.MP) || math.IsInf(fruit.MP, 0) || fruit.MP < 0 || fruit.MP > simulation.MaxMP || fruit.MP > 0 && fruit.HP != 0 {
 			return errors.New("server sent invalid mana pickup")
 		}
 		for _, v := range []float64{fruit.X, fruit.Y, fruit.Size} {
@@ -442,8 +451,8 @@ func validateFruits(fruits []protocol.Fruit) error {
 		if fruit.Source == "boss" {
 			maxDropHP = simulation.BossPartHP
 		}
-		if fruit.Source != "" && (math.IsNaN(fruit.HP) || fruit.HP <= 0 || fruit.HP > maxDropHP) {
-			return errors.New("server sent invalid mass pickup")
+		if fruit.Source != "" && (math.IsNaN(fruit.HP) || fruit.HP < 0 || fruit.HP == 0 && fruit.MP == 0 || fruit.HP > maxDropHP) {
+			return errors.New("server sent invalid loot pickup")
 		}
 		if fruit.Size <= 0 || !terrain.Walkable(fruit.X, fruit.Y, fruit.Size, fruit.Size) {
 			return errors.New("server sent fruit outside the map")
@@ -487,7 +496,7 @@ func validateAIs(ais []protocol.AI) error {
 			return errors.New("server sent invalid AI stats")
 		}
 		if ai.Stats.HP+ai.Split.Mass() > simulation.MaxHPForLevel(ai.Stats.Level)+1e-9 {
-			return errors.New("server sent invalid AI total mass")
+			return errors.New("server sent invalid AI total HP")
 		}
 		for _, cell := range ai.Split {
 			if !cell.Active {
@@ -518,13 +527,17 @@ func validateAIs(ais []protocol.AI) error {
 }
 
 func predictPlayer(player *protocol.Player, input protocol.Direction, zones []simulation.SafeZone) {
-	p := simulation.Player{EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split.Clone(), GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, MP: player.Stats.MP, Speed: player.Stats.Speed}}
-	d := simulation.Direction{X: input.X, Y: input.Y, Boost: input.Boost, Dash: input.Dash, Eject: input.Eject, AimX: input.AimX, AimY: input.AimY}
-	simulation.EjectFood(&p, d, simulation.StepSeconds)
+	p := simulation.Player{ShotCooldown: player.ShotCooldown, EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split.Clone(), GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, MP: player.Stats.MP, Speed: player.Stats.Speed}}
+	d := simulation.Direction{Shoot: input.Shoot, X: input.X, Y: input.Y, Boost: input.Boost, Dash: input.Dash, Eject: input.Eject, AimX: input.AimX, AimY: input.AimY}
 	simulation.AdvancePlayer(&p, d, simulation.StepSeconds, zones)
 	player.X, player.Y, player.Combat, player.Stats.HP = p.X, p.Y, p.Combat, p.Stats.HP
 	player.Stats.MP = p.Stats.MP
 	player.Split = p.Split
+	if !simulation.InSafeZone(p.X, p.Y, simulation.PlayerSize, p.Stats.HP, zones) {
+		simulation.PrepareShot(&p, d)
+	}
+	player.Stats.MP = p.Stats.MP
+	player.ShotCooldown = p.ShotCooldown
 	player.EjectCooldown = p.EjectCooldown
 }
 
@@ -592,6 +605,28 @@ func validateBoss(b simulation.Boss) error {
 	for _, segment := range b.Tail {
 		if math.IsNaN(segment.X) || math.IsNaN(segment.Y) || math.IsInf(segment.X, 0) || math.IsInf(segment.Y, 0) || segment.X < simulation.MapMin || segment.Y < simulation.MapMin || segment.X+simulation.BossSize > simulation.MapMax || segment.Y+simulation.BossSize > simulation.MapMax {
 			return errors.New("server sent invalid boss tail")
+		}
+	}
+	return nil
+}
+
+func validateProjectiles(shots []simulation.Projectile) error {
+	if len(shots) > parameters.MaxProjectiles {
+		return errors.New("server sent too many projectiles")
+	}
+	ids := make(map[string]bool, len(shots))
+	for _, shot := range shots {
+		if shot.ID == "" || shot.Owner == "" || ids[shot.ID] || !shot.Direction.Valid() {
+			return errors.New("server sent invalid projectile")
+		}
+		ids[shot.ID] = true
+		for _, value := range []float64{shot.X, shot.Y, shot.Remaining} {
+			if math.IsNaN(value) || math.IsInf(value, 0) {
+				return errors.New("server sent invalid projectile coordinates")
+			}
+		}
+		if shot.Remaining <= 0 || shot.Remaining > parameters.ShotLifetime || !terrain.Walkable(shot.X, shot.Y, parameters.ShotSize, parameters.ShotSize) {
+			return errors.New("server sent invalid projectile position or lifetime")
 		}
 	}
 	return nil

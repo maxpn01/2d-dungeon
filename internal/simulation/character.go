@@ -33,8 +33,6 @@ func NormalizeCharacter(c Character) Character {
 	return Square
 }
 
-// Stable indices let clients interpolate the same body across snapshots.
-// Vacant slots are reused before the slice grows.
 type SplitCells []SplitCell
 
 func (cells SplitCells) Clone() SplitCells { return append(SplitCells(nil), cells...) }
@@ -77,14 +75,11 @@ func (w *World) SetCharacter(id string, character Character) {
 
 func AdvancePlayer(p *Player, input Direction, dt float64, zones ...[]SafeZone) {
 	defer clampPlayerBodies(p)
-	if len(zones) > 0 && p.hasOversizedBody() {
-		before := *p
-		before.Split = p.Split.Clone()
-		defer func() { RepelPlayer(p, before, zones[0]) }()
-	}
 	if p.Dead || !input.Valid() || dt <= 0 {
 		return
 	}
+	p.Stats.GainMP(parameters.MPRecoveryPerSecond * dt)
+	p.ShotCooldown = max(0, p.ShotCooldown-dt)
 	switch NormalizeCharacter(p.Character) {
 	case Triangle:
 		AdvanceDashPlayer(p, input, dt)
@@ -95,8 +90,6 @@ func AdvancePlayer(p *Player, input Direction, dt float64, zones ...[]SafeZone) 
 	}
 }
 
-// Simulation positions use a fixed anchor; visible bodies grow with HP.
-// Keep the entire visible body inside the surface, including split cells.
 func clampPlayerBodies(p *Player) {
 	ClampSurfaceBody(&p.X, &p.Y, PlayerSize, p.Stats.HP)
 	for i := range p.Split {
@@ -132,9 +125,6 @@ func advanceCircle(p *Player, input Direction, dt float64) {
 	if pressed {
 		splitCircle(p, c.Facing)
 	}
-	// Before the first split, use the same movement integration as the square.
-	// It prevents a separate idle path from fighting client prediction and
-	// producing the visible back-and-forth correction.
 	if p.Split.Count() == 0 {
 		moveCircleBody(p, input, dt)
 		return
@@ -156,8 +146,6 @@ func advanceCircle(p *Player, input Direction, dt float64) {
 		return a > b || a == b && order[i] < order[j]
 	})
 	count := len(order)
-	// Use normalized input, not tiny differences in resolved world coordinates.
-	// At a 180-degree reversal always turn the same way, including diagonals.
 	angle := math.Atan2(c.Direction.Y, c.Direction.X)
 	if math.Hypot(input.X, input.Y) > 0 {
 		desired := math.Atan2(-input.Y, -input.X)
@@ -177,7 +165,6 @@ func advanceCircle(p *Player, input Direction, dt float64) {
 		cell.X, cell.Y = terrain.Move(cell.X, cell.Y, dx, dy, PlayerSize, PlayerSize)
 		cell.Remaining = max(0, cell.Remaining-dt)
 		cell.Launch = max(0, cell.Launch-dt)
-		// Each outer ring has more room, even when the body count grows.
 		if rank >= ringStart+6*ring {
 			ringStart += 6 * ring
 			ring++
@@ -311,7 +298,6 @@ func finishActorSplit(x, y *float64, stats *Stats, split *SplitCells) {
 	}
 }
 
-// BodySize is shared with rendering so clustered circles touch at any mass.
 func BodySize(size, hp float64) float64 {
-	return size * math.Pow(max(0.25, hp)/StartingHP, .3)
+	return size
 }

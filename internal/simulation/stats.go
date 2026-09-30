@@ -66,7 +66,7 @@ func (s *Stats) GainMP(amount float64) {
 }
 
 func SpeedForMass(base, hp float64) float64 {
-	return base * max(parameters.MassSpeedMinimumMultiplier, min(parameters.MassSpeedMaximumMultiplier, math.Pow(StartingHP/max(1, hp), parameters.MassSpeedExponent)))
+	return base
 }
 
 func (s Stats) MovementSpeed() float64 { return SpeedForMass(s.Speed, s.HP) }

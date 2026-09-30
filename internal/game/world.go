@@ -62,7 +62,8 @@ func (w *World) update(dt float32) {
 	for w.accumulator >= simulation.StepSeconds && !w.player.isDeadFlag {
 		now := time.Now()
 		input := w.player.input
-		w.simulation.Input("player", simulation.Direction{X: float64(input.Direction.X), Y: float64(input.Direction.Y), Eject: input.Eject, Boost: input.Boost, Dash: input.Dash, AimX: float64(input.Aim.X), AimY: float64(input.Aim.Y)}, now)
+		w.simulation.Input("player", simulation.Direction{Shoot: input.Shoot, X: float64(input.Direction.X), Y: float64(input.Direction.Y), Eject: input.Eject, Boost: input.Boost, Dash: input.Dash, AimX: float64(input.Aim.X), AimY: float64(input.Aim.Y)}, now)
+		w.player.input.Shoot = false
 		w.player.input.Dash = false
 		w.player.input.Eject = false
 		w.simulation.Step(now)
@@ -84,10 +85,6 @@ func (w *World) syncSimulation() {
 	w.feedback.snapshot(time.Now(), snapshot)
 	w.previousSnapshot, w.snapshot = w.snapshot, snapshot
 	p := snapshot.Players[0]
-	previous := make(map[string]rl.Vector2)
-	for _, ai := range w.ais {
-		previous[ai.id] = ai.pos
-	}
 	w.player.pos = rl.NewVector2(float32(p.X), float32(p.Y))
 	w.player.stats, w.player.combat = gameStats(p.Stats), p.Combat
 	w.player.character, w.player.split, w.player.color = p.Character, p.Split.Clone(), characterColor(p.Character)
@@ -118,13 +115,7 @@ func (w *World) syncSimulation() {
 		}
 		w.ais = append(w.ais, ai)
 		w.entities = append(w.entities, ai)
-		if p.Dead && p.KilledBy == state.ID && w.eating == nil {
-			start, ok := previous[state.ID]
-			if !ok {
-				start = ai.pos
-			}
-			w.startEating(ai, start)
-		}
+
 	}
 	w.fruitSpawner.fruits = nil
 	playerColors := make(map[string]color.RGBA, len(snapshot.Players))
@@ -157,6 +148,7 @@ func (w *World) draw(ctx RenderContext) {
 		}
 		entity.draw()
 	}
+	drawProjectiles(w.previousSnapshot.Projectiles, w.snapshot.Projectiles, w.accumulator/simulation.StepSeconds, &w.gameMap.exploration)
 	drawEncounter(w.snapshot.Boss, &w.gameMap.exploration)
 	for _, p := range w.snapshot.Players {
 		drawTeleportCharge(p.X, p.Y, p.TeleportCharge)

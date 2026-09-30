@@ -5,7 +5,6 @@ import (
 	"math/rand/v2"
 
 	"raylib-2d-sandbox/internal/parameters"
-	"raylib-2d-sandbox/internal/terrain"
 )
 
 const SafeZoneMaxMass = parameters.SafeZoneMaxMass
@@ -34,7 +33,7 @@ func newSafeZones() []SafeZone {
 }
 
 func InSafeZone(x, y, size, mass float64, zones []SafeZone) bool {
-	if mass <= 0 || mass > SafeZoneMaxMass {
+	if mass <= 0 {
 		return false
 	}
 	bodyRadius := BodySize(size, mass) / 2
@@ -49,70 +48,4 @@ func InSafeZone(x, y, size, mass float64, zones []SafeZone) bool {
 func (e eater) protectedAt(t float64, zones []SafeZone) bool {
 	x, y := e.start.x+(e.end.x-e.start.x)*t, e.start.y+(e.end.y-e.start.y)*t
 	return InSafeZone(x, y, e.size, e.stats.HP, zones)
-}
-
-func (p *Player) hasOversizedBody() bool {
-	if p.Stats.HP > SafeZoneMaxMass {
-		return true
-	}
-	for _, cell := range p.Split {
-		if cell.Active && cell.Stats.HP > SafeZoneMaxMass {
-			return true
-		}
-	}
-	return false
-}
-
-func repelBody(x, y, oldX, oldY, hp float64, zones []SafeZone) (float64, float64) {
-	bodyRadius := BodySize(PlayerSize, hp)/2 + 2
-	for _, zone := range zones {
-		radius := zone.Radius + bodyRadius
-		sx, sy := oldX+PlayerSize/2-zone.X, oldY+PlayerSize/2-zone.Y
-		dx, dy := x-oldX, y-oldY
-		a := dx*dx + dy*dy
-		t := -1.0
-		if sx*sx+sy*sy < radius*radius {
-			t = 0
-		} else if a > 0 {
-			b := 2 * (sx*dx + sy*dy)
-			disc := b*b - 4*a*(sx*sx+sy*sy-radius*radius)
-			if disc >= 0 {
-				hit := (-b - math.Sqrt(disc)) / (2 * a)
-				if hit >= 0 && hit <= 1 {
-					t = hit
-				}
-			}
-		}
-		if t < 0 {
-			continue
-		}
-		nx, ny := sx+dx*t, sy+dy*t
-		length := math.Hypot(nx, ny)
-		if length < 1e-6 {
-			nx, ny, length = 1, 0, 1
-		}
-		targetX, targetY := zone.X+nx/length*(radius+1)-PlayerSize/2, zone.Y+ny/length*(radius+1)-PlayerSize/2
-		x, y = terrain.Move(oldX, oldY, targetX-oldX, targetY-oldY, PlayerSize, PlayerSize)
-	}
-	return x, y
-}
-
-func RepelPlayer(p *Player, before Player, zones []SafeZone) {
-	if p.Dead || !p.hasOversizedBody() {
-		return
-	}
-	if p.Stats.HP > SafeZoneMaxMass {
-		p.X, p.Y = repelBody(p.X, p.Y, before.X, before.Y, p.Stats.HP, zones)
-	}
-	for i := range p.Split {
-		cell := &p.Split[i]
-		if !cell.Active || cell.Stats.HP <= SafeZoneMaxMass {
-			continue
-		}
-		oldX, oldY := cell.X, cell.Y
-		if i < len(before.Split) && before.Split[i].Active {
-			oldX, oldY = before.Split[i].X, before.Split[i].Y
-		}
-		cell.X, cell.Y = repelBody(cell.X, cell.Y, oldX, oldY, cell.Stats.HP, zones)
-	}
 }

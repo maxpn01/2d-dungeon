@@ -45,12 +45,15 @@ func (f *combatFeedback) observe(now time.Time, actors map[string]feedbackActor,
 	if f.actors != nil {
 		for id, actor := range actors {
 			old, existed := f.actors[id]
+			if existed && !old.dead && !actor.dead && actor.hp < old.hp {
+				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, rl.RayWhite, "mass")
+			}
 			if existed && !old.dead && !actor.dead && (actor.hp > old.hp || actor.level > old.level || actor.xp > old.xp) {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, float64(actorRenderSize(actor.size, actor.hp)), actor.tint, "eat")
 			}
 		}
 		for id, old := range f.actors {
-			if _, exists := actors[id]; !exists && old.ai {
+			if actor, exists := actors[id]; !old.dead && (!exists || actor.dead) {
 				emit(old.x+old.size/2, old.y+old.size/2, float64(actorRenderSize(old.size, old.hp)), old.tint, "prey")
 			}
 		}

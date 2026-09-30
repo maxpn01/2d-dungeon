@@ -93,8 +93,16 @@ const (
 	SplitMergeDuration  = .35
 	SplitTurnResponse   = 7.0
 	SplitFollowResponse = 24.0
-	BoostMultiplier     = 1.5
+	BoostMultiplier     = 1.5 * 1.25
 	BoostMPPerSecond    = 1.0
+	MPRecoveryPerSecond = 0.1
+	ShotMPCost          = 1.0
+	ShotCooldown        = 0.125
+	ShotDamage          = 2.0
+	ShotSpeed           = 1400.0
+	ShotSize            = 10.0
+	ShotLifetime        = 1.5
+	MaxProjectiles      = 512
 	BoostMinimumMass    = 1.0
 	EjectInterval       = .15
 	EjectSpeed          = 650.0
