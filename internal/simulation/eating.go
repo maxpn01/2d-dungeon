@@ -184,7 +184,7 @@ func (w *World) consumeFruits(eaters []eater) {
 			if fruit.Ejected {
 				xp = 0
 			}
-			eaters[winner].gain(hp, xp)
+			eaters[winner].gain(hp, xp, fruit.MP)
 		}
 	}
 	w.fruits = remaining
@@ -213,7 +213,31 @@ func eatingContact(start, end position, size float64, targetStart, targetEnd pos
 	return enter, enter < 1 && exit > 0
 }
 
-func (e eater) gain(hp, xp float64) {
+func (e eater) ownerStats() *Stats {
+	if e.player != nil {
+		return &e.player.Stats
+	}
+	return &e.ai.Stats
+}
+
+func (e eater) takeMP() float64 {
+	owner := e.ownerStats()
+	totalHP := owner.HP
+	if e.player != nil {
+		totalHP += e.player.Split.Mass()
+	} else {
+		totalHP += e.ai.Split.Mass()
+	}
+	amount := owner.MP * min(1, e.stats.HP/max(e.stats.HP, totalHP))
+	owner.MP = max(0, owner.MP-amount)
+	return amount * ActorMPFraction
+}
+
+func (e eater) gain(hp, xp float64, mana ...float64) {
+	owner := e.ownerStats()
+	for _, mp := range mana {
+		owner.GainMP(mp)
+	}
 	if e.ai != nil && e.ai.den.ID != "" {
 		e.stats.HP = min(e.ai.den.HP, e.stats.HP+hp)
 		return

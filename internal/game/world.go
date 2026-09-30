@@ -74,7 +74,7 @@ func (w *World) update(dt float32) {
 }
 
 func gameStats(s simulation.Stats) PlayerStats {
-	return PlayerStats{lvl: s.Level, exp: s.XP, hp: float32(s.HP), speed: float32(s.Speed), maxLvl: simulation.MaxLevel, maxHP: float32(simulation.MaxHPForLevel(s.Level))}
+	return PlayerStats{lvl: s.Level, exp: s.XP, hp: float32(s.HP), mp: float32(s.MP), speed: float32(s.Speed), maxLvl: simulation.MaxLevel, maxHP: float32(simulation.MaxHPForLevel(s.Level))}
 }
 
 func (w *World) syncSimulation() {
@@ -132,7 +132,7 @@ func (w *World) syncSimulation() {
 		playerColors[player.ID] = characterColor(player.Character)
 	}
 	for _, fruit := range snapshot.Fruits {
-		w.fruitSpawner.fruits = append(w.fruitSpawner.fruits, Fruit{mass: fruit.Source != "", pos: rl.NewVector2(float32(fruit.X), float32(fruit.Y)), size: rl.NewVector2(float32(fruit.Size), float32(fruit.Size)), color: massColor(fruit.Source, playerColors)})
+		w.fruitSpawner.fruits = append(w.fruitSpawner.fruits, Fruit{mana: fruit.MP > 0, mass: fruit.Source != "", pos: rl.NewVector2(float32(fruit.X), float32(fruit.Y)), size: rl.NewVector2(float32(fruit.Size), float32(fruit.Size)), color: massColor(fruit.Source, playerColors)})
 	}
 }
 
@@ -150,7 +150,7 @@ func (w *World) draw(ctx RenderContext) {
 		if entity == w.fruitSpawner {
 			for _, f := range w.fruitSpawner.fruits {
 				if w.gameMap.exploration.entityVisible(float64(f.pos.X), float64(f.pos.Y), float64(f.size.X)) {
-					drawFruit(f.pos.X, f.pos.Y, f.size.X, f.color, f.mass)
+					drawFruit(f.pos.X, f.pos.Y, f.size.X, f.color, f.mass, f.mana)
 				}
 			}
 			continue

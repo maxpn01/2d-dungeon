@@ -3,16 +3,16 @@ package simulation
 import "math"
 
 func (ai *aiState) canAttack(target *playerState) bool {
-	if ai.settleTicks > 0 || ai.targetID != target.ID || ai.targetTicks < AIReactionTicks || ai.attackCooldown > 0 || ai.Combat.Phase != DashIdle || ai.Combat.Held || ai.Stats.HP <= DashCost ||
+	if ai.settleTicks > 0 || ai.targetID != target.ID || ai.targetTicks < AIReactionTicks || ai.attackCooldown > 0 || ai.Combat.Phase != DashIdle || ai.Combat.Held || ai.Stats.MP < DashCost ||
 		CanContactEat(ai.Stats.HP, target.Stats.HP) {
 		return false
 	}
-	hp := ai.Stats.HP - DashCost
+	hp := ai.Stats.HP
 	if CanContactEat(target.Stats.HP, hp) {
 		return false
 	}
 	if hp < target.Stats.HP {
-		if target.Stats.HP <= DashCost || (target.Stats.HP > ai.Stats.HP && target.Combat.Phase != DashRecovering) {
+		if target.Stats.HP > ai.Stats.HP && target.Combat.Phase != DashRecovering {
 			return false
 		}
 	}
@@ -81,8 +81,8 @@ func (ai *aiState) evade(p *playerState) Direction {
 			chosen, best = candidate, score
 		}
 	}
-	chosen.Dash = ai.attackCooldown == 0 && ai.Combat.Phase == DashIdle && ai.Stats.HP > DashCost &&
-		CanContactEat(p.Stats.HP, ai.Stats.HP-DashCost) &&
+	chosen.Dash = ai.attackCooldown == 0 && ai.Combat.Phase == DashIdle && ai.Stats.MP >= DashCost &&
+		CanContactEat(p.Stats.HP, ai.Stats.HP) &&
 		p.Combat.Phase == DashWinding && p.Combat.Remaining >= DashWindup-StepSeconds-1e-9 && ai.clearDash(chosen)
 	return chosen
 }

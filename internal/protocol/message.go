@@ -77,6 +77,7 @@ type PlayerStats struct {
 	Level int     `json:"level"`
 	XP    float64 `json:"xp"`
 	HP    float64 `json:"hp"`
+	MP    float64 `json:"mp"`
 	Speed float64 `json:"speed"`
 }
 
@@ -102,6 +103,7 @@ type Player struct {
 type Fruit struct {
 	Source string  `json:"source,omitempty"`
 	HP     float64 `json:"hp,omitempty"`
+	MP     float64 `json:"mp,omitempty"`
 	ID     string  `json:"id"`
 	X      float64 `json:"x"`
 	Y      float64 `json:"y"`

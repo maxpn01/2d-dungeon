@@ -110,7 +110,7 @@ func (w *World) resolvePredation(eaters []eater) {
 			a.combat().Attack = false
 			a.combat().Phase, a.combat().Remaining = DashRecovering, DashRecovery
 			if a.stats.HP >= b.stats.HP && a.stats.HP > 0 {
-				a.gain(b.stats.HP*ActorHPFraction, b.stats.HP)
+				a.gain(b.stats.HP*ActorHPFraction, b.stats.HP, b.takeMP())
 				killer := a.id
 				if a.player != nil {
 					killer = a.player.ID
@@ -132,7 +132,7 @@ func (w *World) resolvePredation(eaters []eater) {
 			continue
 		}
 		if a.stats.HP > b.stats.HP {
-			a.gain(b.stats.HP*ActorHPFraction, b.stats.HP)
+			a.gain(b.stats.HP*ActorHPFraction, b.stats.HP, b.takeMP())
 			killer := a.id
 			if a.player != nil {
 				killer = a.player.ID

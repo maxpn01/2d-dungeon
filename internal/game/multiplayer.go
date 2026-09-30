@@ -145,7 +145,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		if !m.gameMap.exploration.entityVisible(fruit.X, fruit.Y, fruit.Size) {
 			continue
 		}
-		drawFruit(float32(fruit.X), float32(fruit.Y), float32(fruit.Size), massColor(fruit.Source, playerColors), fruit.Source != "")
+		drawFruit(float32(fruit.X), float32(fruit.Y), float32(fruit.Size), massColor(fruit.Source, playerColors), fruit.Source != "", fruit.MP > 0)
 	}
 	for _, ai := range m.renderedAIs {
 		headVisible := m.gameMap.exploration.entityVisible(ai.X, ai.Y, ai.Size)
@@ -217,7 +217,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	drawPlayerHUD(playerHUD{
 		name: m.view.Local.Name, avatar: characterColor(m.view.Local.Character), character: m.view.Local.Character,
 		level: stats.Level, maxLevel: simulation.MaxLevel,
-		hp: hp, maxHP: float32(simulation.MaxHPForLevel(stats.Level)),
+		mp: float32(stats.MP), maxMP: float32(simulation.MaxMP), hp: hp, maxHP: float32(simulation.MaxHPForLevel(stats.Level)),
 		xp: float32(stats.XP), nextXP: float32(simulation.XPForNextLevel(stats.Level)),
 		speed: float32(effectivePlayerSpeed(m.view.Local.Character, stats.Speed, stats.HP, m.view.Local.Split)), fruit: len(m.view.Fruits), ais: len(m.view.AIs), players: alive,
 	}, window.width)

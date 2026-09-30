@@ -68,19 +68,19 @@ func (h *Hub) Run(ctx context.Context) {
 				players = append(players, protocol.Player{
 					EjectCooldown: state.EjectCooldown, Character: state.Character, Split: state.Split, GatesClosed: state.GatesClosed, InArena: state.InArena, TeleportCharge: state.TeleportCharge, Combat: state.Combat, Name: names[state.ID], Dead: state.Dead, KilledBy: state.KilledBy, ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
 					Stats: protocol.PlayerStats{
-						Level: state.Stats.Level, XP: state.Stats.XP, HP: state.Stats.HP, Speed: state.Stats.Speed,
+						Level: state.Stats.Level, XP: state.Stats.XP, HP: state.Stats.HP, MP: state.Stats.MP, Speed: state.Stats.Speed,
 					},
 				})
 			}
 			fruits := make([]protocol.Fruit, 0, len(snapshot.Fruits))
 			for _, fruit := range snapshot.Fruits {
-				fruits = append(fruits, protocol.Fruit{Source: fruit.Source, HP: fruit.HP, ID: fruit.ID, X: fruit.X, Y: fruit.Y, Size: fruit.Size})
+				fruits = append(fruits, protocol.Fruit{Source: fruit.Source, HP: fruit.HP, MP: fruit.MP, ID: fruit.ID, X: fruit.X, Y: fruit.Y, Size: fruit.Size})
 			}
 			ais := make([]protocol.AI, 0, len(snapshot.AIs))
 			for _, ai := range snapshot.AIs {
 				ais = append(ais, protocol.AI{
 					Combat: ai.Combat, Behavior: ai.Behavior, Character: ai.Character, Split: ai.Split, ID: ai.ID, X: ai.X, Y: ai.Y, Size: simulation.AISize,
-					Stats: protocol.PlayerStats{Level: ai.Stats.Level, XP: ai.Stats.XP, HP: ai.Stats.HP, Speed: ai.Stats.Speed},
+					Stats: protocol.PlayerStats{Level: ai.Stats.Level, XP: ai.Stats.XP, HP: ai.Stats.HP, MP: ai.Stats.MP, Speed: ai.Stats.Speed},
 				})
 			}
 			message := protocol.Message{SafeZones: snapshot.SafeZones, Boss: snapshot.Boss, Type: protocol.TypeSnapshot, Tick: snapshot.Tick, Players: &players, Fruits: &fruits, AIs: &ais}

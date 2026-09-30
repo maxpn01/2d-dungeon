@@ -430,6 +430,9 @@ func validateFruits(fruits []protocol.Fruit) error {
 			return errors.New("server sent invalid fruit IDs")
 		}
 		ids[fruit.ID] = true
+		if math.IsNaN(fruit.MP) || math.IsInf(fruit.MP, 0) || fruit.MP < 0 || fruit.MP > simulation.MaxMP || fruit.MP > 0 && (fruit.HP != 0 || fruit.Source != "") {
+			return errors.New("server sent invalid mana pickup")
+		}
 		for _, v := range []float64{fruit.X, fruit.Y, fruit.Size} {
 			if math.IsNaN(v) || math.IsInf(v, 0) {
 				return errors.New("server sent invalid fruit coordinates")
@@ -450,6 +453,9 @@ func validateFruits(fruits []protocol.Fruit) error {
 }
 
 func validStats(stats protocol.PlayerStats, baseSpeed float64) bool {
+	if math.IsNaN(stats.MP) || math.IsInf(stats.MP, 0) || stats.MP < 0 || stats.MP > simulation.MaxMP {
+		return false
+	}
 	if stats.Level < 1 || stats.Level > simulation.MaxLevel || math.IsNaN(stats.XP) || math.IsInf(stats.XP, 0) ||
 		stats.XP < 0 || stats.HP < 0 || stats.HP > simulation.MaxHPForLevel(stats.Level) || math.IsNaN(stats.HP) ||
 		stats.Speed != baseSpeed {
@@ -512,11 +518,12 @@ func validateAIs(ais []protocol.AI) error {
 }
 
 func predictPlayer(player *protocol.Player, input protocol.Direction, zones []simulation.SafeZone) {
-	p := simulation.Player{EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split.Clone(), GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, Speed: player.Stats.Speed}}
+	p := simulation.Player{EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split.Clone(), GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, MP: player.Stats.MP, Speed: player.Stats.Speed}}
 	d := simulation.Direction{X: input.X, Y: input.Y, Boost: input.Boost, Dash: input.Dash, Eject: input.Eject, AimX: input.AimX, AimY: input.AimY}
 	simulation.EjectFood(&p, d, simulation.StepSeconds)
 	simulation.AdvancePlayer(&p, d, simulation.StepSeconds, zones)
 	player.X, player.Y, player.Combat, player.Stats.HP = p.X, p.Y, p.Combat, p.Stats.HP
+	player.Stats.MP = p.Stats.MP
 	player.Split = p.Split
 	player.EjectCooldown = p.EjectCooldown
 }

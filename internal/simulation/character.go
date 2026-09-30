@@ -229,6 +229,9 @@ func moveCircleBody(p *Player, input Direction, dt float64) {
 }
 
 func splitCircle(p *Player, direction Direction) {
+	if p.Stats.MP < parameters.SplitMPCost {
+		return
+	}
 	sources := make([]int, 0, len(p.Split)+1)
 	free := make([]int, 0)
 	if p.Stats.HP >= SplitMinimumMass {
@@ -241,6 +244,10 @@ func splitCircle(p *Player, direction Direction) {
 			sources = append(sources, i)
 		}
 	}
+	if len(sources) == 0 {
+		return
+	}
+	p.Stats.MP -= parameters.SplitMPCost
 	if p.Split.Count() == 0 {
 		p.Combat.Direction = direction
 	}
@@ -252,6 +259,7 @@ func splitCircle(p *Player, direction Direction) {
 		}
 		stats.HP /= 2
 		child := SplitCell{Active: true, X: x, Y: y, Stats: *stats, Remaining: SplitDuration, Launch: SplitLaunchDuration, Direction: direction}
+		child.Stats.MP = 0
 		if len(free) > 0 {
 			index := free[len(free)-1]
 			free = free[:len(free)-1]

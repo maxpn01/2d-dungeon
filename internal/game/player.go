@@ -13,6 +13,7 @@ type PlayerStats struct {
 	exp float64
 
 	hp    float32
+	mp    float32
 	speed float32
 
 	maxLvl int

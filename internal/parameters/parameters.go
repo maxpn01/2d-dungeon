@@ -37,6 +37,12 @@ const (
 // Progression, food, and refuges.
 const (
 	MaxLevel                   = 1000
+	StartingMP                 = 20.0
+	MaxMP                      = 20.0
+	FruitMP                    = 3.0
+	ManaFoodChance             = 30
+	ActorMPFraction            = 0.5
+	SplitMPCost                = 2.0
 	StartingHP                 = 5.0
 	StartingMaxHP              = 100.0
 	FruitXP                    = 0.25
@@ -88,7 +94,7 @@ const (
 	SplitTurnResponse   = 7.0
 	SplitFollowResponse = 24.0
 	BoostMultiplier     = 1.5
-	BoostMassPerSecond  = 1.0
+	BoostMPPerSecond    = 1.0
 	BoostMinimumMass    = 1.0
 	EjectInterval       = .15
 	EjectSpeed          = 650.0

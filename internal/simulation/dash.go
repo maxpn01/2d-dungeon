@@ -72,8 +72,8 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 		c.Facing.X = 1
 	}
 	if c.Phase == DashIdle {
-		if pressed && p.Stats.HP >= DashCost+BoostMinimumMass {
-			p.Stats.HP -= DashCost
+		if pressed && p.Stats.MP >= DashCost {
+			p.Stats.MP -= DashCost
 			c.Direction = c.Facing
 			c.Phase, c.Remaining = DashWinding, DashWindup
 		}

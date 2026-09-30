@@ -20,13 +20,13 @@ func NewHUD(world *World, window *Window) *HUD {
 }
 
 type playerHUD struct {
-	character             simulation.Character
-	name                  string
-	avatar                color.RGBA
-	level, maxLevel       int
-	hp, maxHP, xp, nextXP float32
-	speed                 float32
-	fruit, ais, players   int
+	character                        simulation.Character
+	name                             string
+	avatar                           color.RGBA
+	level, maxLevel                  int
+	hp, maxHP, mp, maxMP, xp, nextXP float32
+	speed                            float32
+	fruit, ais, players              int
 }
 
 func (h *HUD) draw() {
@@ -35,7 +35,7 @@ func (h *HUD) draw() {
 	drawPlayerHUD(playerHUD{
 		name: w.player.name, avatar: w.player.color, character: w.player.character,
 		level: s.lvl, maxLevel: s.maxLvl,
-		hp: s.hp + float32(w.player.split.Mass()), maxHP: s.maxHP, xp: float32(s.exp), nextXP: calcExpForNextLvl(s.lvl),
+		mp: s.mp, maxMP: float32(simulation.MaxMP), hp: s.hp + float32(w.player.split.Mass()), maxHP: s.maxHP, xp: float32(s.exp), nextXP: calcExpForNextLvl(s.lvl),
 		speed: float32(effectivePlayerSpeed(w.player.character, float64(s.speed), float64(s.hp), w.player.split)), fruit: len(w.fruitSpawner.fruits), ais: len(w.ais),
 	}, h.window.width)
 }
@@ -47,7 +47,7 @@ func drawPlayerHUD(p playerHUD, windowWidth int32) {
 		return
 	}
 	background := rl.Fade(rl.Black, .8)
-	rl.DrawRectangle(x, y, width, 178, background)
+	rl.DrawRectangle(x, y, width, 220, background)
 
 	rl.DrawRectangle(x+12, y+10, 36, 36, color.RGBA{48, 48, 48, 255})
 	drawCharacterShape(p.character, rl.NewRectangle(float32(x+18), float32(y+16), 24, 24), p.avatar)
@@ -62,17 +62,18 @@ func drawPlayerHUD(p playerHUD, windowWidth int32) {
 
 	barWidth := width - 24
 	drawHUDMeter(x+12, y+58, barWidth, "HP", fmt.Sprintf("%.2f / %.0f", p.hp, p.maxHP), p.hp, p.maxHP, color.RGBA{230, 0, 18, 255})
+	drawHUDMeter(x+12, y+100, barWidth, "MP", fmt.Sprintf("%.2f / %.0f", p.mp, p.maxMP), p.mp, p.maxMP, rl.SkyBlue)
 	xpLabel := fmt.Sprintf("%.2f / %.2f", p.xp, p.nextXP)
 	xp, nextXP := p.xp, p.nextXP
 	if p.level >= p.maxLevel {
 		xpLabel, xp, nextXP = "MAX LEVEL", 1, 1
 	}
-	drawHUDMeter(x+12, y+100, barWidth, "EXP", xpLabel, xp, nextXP, rl.Yellow)
+	drawHUDMeter(x+12, y+142, barWidth, "EXP", xpLabel, xp, nextXP, rl.Yellow)
 	muted := color.RGBA{160, 170, 180, 255}
-	cx, cy := x+19, y+157
+	cx, cy := x+19, y+199
 	rl.DrawCircleLines(cx, cy, 7, muted)
 	rl.DrawLine(cx, cy, cx+4, cy-4, rl.RayWhite)
-	drawText(fmt.Sprintf("SPEED %.2f", p.speed), x+34, y+148, 18, muted)
+	drawText(fmt.Sprintf("SPEED %.2f", p.speed), x+34, y+190, 18, muted)
 
 	counts := fmt.Sprintf("Food: %d    AIs: %d", p.fruit, p.ais)
 	if p.players > 0 {

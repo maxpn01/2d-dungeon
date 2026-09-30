@@ -134,14 +134,14 @@ func (w *World) aiInput(ai *aiState) Direction {
 		ai.observeTarget(nil)
 		ai.Behavior = "fleeing"
 		d := ai.fleeFrom(w.boss.X, w.boss.Y)
-		d.Boost = bossDistance < 180*180 && ai.Stats.HP > BoostMinimumMass
+		d.Boost = bossDistance < 180*180 && ai.Stats.MP > 0
 		return d
 	}
 	if threat != nil {
 		ai.observeTarget(nil)
 		ai.Behavior = "fleeing"
 		d := ai.fleeFrom(threat.X, threat.Y)
-		d.Boost = threatDistance < 180*180 && ai.Stats.HP > BoostMinimumMass
+		d.Boost = threatDistance < 180*180 && ai.Stats.MP > 0
 		return d
 	}
 	ai.escapeTicks = 0
@@ -173,7 +173,7 @@ func (w *World) aiInput(ai *aiState) Direction {
 		if closingSpeed > 0 {
 			catchSeconds = math.Sqrt(preyDistance) / closingSpeed
 		}
-		d.Boost = ai.Character == Square && ai.Stats.HP-BoostMassPerSecond*catchSeconds > max(BoostMinimumMass, prey.Stats.HP+1)
+		d.Boost = ai.Character == Square && ai.Stats.MP >= BoostMPPerSecond*catchSeconds
 		return d
 	}
 	if found {
@@ -318,7 +318,7 @@ func (w *World) nearestFruit(ai *aiState) (Fruit, bool) {
 	best := AIDetectionRadius * AIDetectionRadius
 	found := false
 	for _, fruit := range w.fruits {
-		if !ai.sees(fruit.X, fruit.Y) || !ai.inTerritory(fruit.X, fruit.Y) || w.fruitInsideBlockedRefuge(ai, fruit) || (ai.Stats.HP >= MaxHPForLevel(ai.Stats.Level) && ai.Stats.Level >= MaxLevel) {
+		if !ai.sees(fruit.X, fruit.Y) || !ai.inTerritory(fruit.X, fruit.Y) || w.fruitInsideBlockedRefuge(ai, fruit) || (fruit.MP > 0 && ai.Stats.MP >= MaxMP || fruit.MP == 0 && ai.Stats.HP >= MaxHPForLevel(ai.Stats.Level) && ai.Stats.Level >= MaxLevel) {
 			continue
 		}
 		dx := fruit.X + fruit.Size/2 - (ai.X + AISize/2)

@@ -8,6 +8,9 @@ import (
 
 const (
 	MaxLevel        = parameters.MaxLevel
+	StartingMP      = parameters.StartingMP
+	MaxMP           = parameters.MaxMP
+	ActorMPFraction = parameters.ActorMPFraction
 	StartingHP      = parameters.StartingHP
 	StartingMaxHP   = parameters.StartingMaxHP
 	FruitXP         = parameters.FruitXP
@@ -16,11 +19,11 @@ const (
 )
 
 type Stats struct {
-	Level         int
-	XP, HP, Speed float64
+	Level             int
+	XP, HP, MP, Speed float64
 }
 
-func NewStats() Stats { return Stats{Level: 1, HP: StartingHP, Speed: PlayerSpeed} }
+func NewStats() Stats { return Stats{Level: 1, HP: StartingHP, MP: StartingMP, Speed: PlayerSpeed} }
 
 func XPForNextLevel(level int) float64 {
 	if level >= MaxLevel {
@@ -53,6 +56,12 @@ func (s *Stats) Eat(hp, xp float64) {
 	s.GainXP(xp)
 	if hp > 0 && !math.IsNaN(hp) && !math.IsInf(hp, 0) {
 		s.HP = min(MaxHPForLevel(s.Level), s.HP+hp)
+	}
+}
+
+func (s *Stats) GainMP(amount float64) {
+	if amount > 0 && !math.IsNaN(amount) && !math.IsInf(amount, 0) {
+		s.MP = min(MaxMP, s.MP+amount)
 	}
 }
 

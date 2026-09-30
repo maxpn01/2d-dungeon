@@ -21,7 +21,7 @@ type Fruit struct {
 	OwnerPickupTick      uint64
 	Patch                string
 	Source               string
-	HP                   float64
+	HP, MP               float64
 	AvailableTick        uint64
 	ExpiresTick          uint64
 	ID                   string
@@ -49,10 +49,20 @@ func naturalFoodType() (size, hp float64) {
 }
 
 func (f Fruit) rewardHP() float64 {
+	if f.MP > 0 {
+		return 0
+	}
 	if f.HP > 0 {
 		return f.HP
 	}
 	return FruitHP
+}
+
+func naturalFoodReward(hp float64) (float64, float64) {
+	if rand.IntN(100) < parameters.ManaFoodChance {
+		return 0, parameters.FruitMP * hp / FruitHP
+	}
+	return hp, 0
 }
 
 func (w *World) spawnFruit() {
@@ -110,8 +120,9 @@ func (w *World) spawnFruit() {
 		if overlaps {
 			continue
 		}
+		hp, mp := naturalFoodReward(hp)
 		w.nextFruit++
-		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("f%d", w.nextFruit), X: x, Y: y, Size: size, HP: hp})
+		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("f%d", w.nextFruit), X: x, Y: y, Size: size, HP: hp, MP: mp})
 		return
 	}
 }
@@ -160,8 +171,9 @@ func (w *World) spawnPatchFruit(patch terrain.FeedingPatch) bool {
 		if occupied {
 			continue
 		}
+		hp, mp := naturalFoodReward(hp)
 		w.nextFruit++
-		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("f%d", w.nextFruit), Patch: patch.ID, X: x, Y: y, Size: size, HP: hp})
+		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("f%d", w.nextFruit), Patch: patch.ID, X: x, Y: y, Size: size, HP: hp, MP: mp})
 		return true
 	}
 	return false
