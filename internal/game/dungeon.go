@@ -3,6 +3,7 @@ package game
 import (
 	"image/color"
 	"math"
+	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/terrain"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -87,7 +88,7 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 		}
 	}
 	if top <= 0 && bottom >= -76 && left <= 34 && right >= 2 {
-		drawEntranceHall()
+		drawEntranceHall(m.gate, m.gatePrompt)
 	}
 	for _, pool := range terrain.Pools {
 		if pool.X+pool.W >= left && pool.X <= right && pool.Y+pool.H >= top && pool.Y <= bottom {
@@ -133,7 +134,7 @@ func drawDungeonLocation(x, y float32, width, height int32) {
 			if x >= float32(r.X*40) && x < float32((r.X+r.W)*40) && y >= float32(r.Y*40) && y < float32((r.Y+r.H)*40) {
 				name = "I / " + r.Name
 				if r.ID == "the-provision-hall" || r.ID == "western-garden" || r.ID == "eastern-garden" {
-					hint = "Gather food in the gardens. The north gate leads to the gate hall."
+					hint = "The statues guard the north gate. Press E nearby to open it."
 				}
 				for _, tag := range r.Tags {
 					if tag == "refuge" {
@@ -156,7 +157,7 @@ func drawDungeonLocation(x, y float32, width, height int32) {
 	drawText(hint, 24, height-29, 16, rl.LightGray)
 }
 
-func drawEntranceHall() {
+func drawEntranceHall(gate simulation.EntranceGateState, prompt bool) {
 	const tile = terrain.Tile
 	border := color.RGBA{71, 86, 94, 255}
 	for row := -64; row < 0; row++ {
@@ -191,26 +192,7 @@ func drawEntranceHall() {
 	line(34*tile-12, -56*tile+12, 34*tile-12, -24*tile-12)
 	line(2*tile+12, -24*tile-12, 15*tile, -24*tile-12)
 	line(21*tile, -24*tile-12, 34*tile-12, -24*tile-12)
-	gateX, gateY := terrain.EntranceGateLeft, terrain.EntranceGateY
-	gateW := terrain.EntranceGateRight - gateX
-	for _, x := range []int{gateX - tile, gateX + gateW} {
-		dungeonRect(x-4, gateY-48, tile+8, 96, color.RGBA{22, 29, 38, 255})
-		dungeonRect(x, gateY-44, tile, 88, stone)
-		dungeonRect(x+4, gateY-40, tile-8, 5, paleStone)
-		dungeonRect(x+14, gateY-22, 12, 44, runeColor)
-	}
-	dungeonRect(gateX, gateY-34, gateW, 68, color.RGBA{24, 31, 44, 255})
-	dungeonRect(gateX, gateY-34, gateW, 5, paleStone)
-	dungeonRect(gateX, gateY+29, gateW, 5, paleStone)
-	phase := rl.GetTime()
-	pulse := float32(.48 + .10*math.Sin(phase*1.6))
-	for row := -28; row < 28; row++ {
-		distance := float64(row) / 28
-		glow := float32(1 - distance*distance)
-		shimmer := float32(.025 * math.Sin(phase*2+float64(row)*.06))
-		tint := color.RGBA{143, 123, 220, 255}
-		dungeonRect(gateX, gateY+row, gateW, 1, rl.Fade(tint, pulse*(.65+.35*glow)+shimmer))
-	}
+	drawStatueGate(gate, prompt)
 
 }
 

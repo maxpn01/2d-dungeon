@@ -102,12 +102,12 @@ func (s *Session) Close()                 { s.cancel() }
 
 func (s *Session) SetInput(direction protocol.Direction) {
 	s.inputMu.Lock()
-	if s.direction.Shoot || s.direction.Dash || s.direction.Eject {
+	if s.direction.Shoot || s.direction.Dash || s.direction.Interact {
 		direction.AimX, direction.AimY = s.direction.AimX, s.direction.AimY
 	}
 	direction.Shoot = direction.Shoot || s.direction.Shoot
 	direction.Dash = direction.Dash || s.direction.Dash
-	direction.Eject = direction.Eject || s.direction.Eject
+	direction.Interact = direction.Interact || s.direction.Interact
 	s.direction, s.inputAt = direction, time.Now()
 	s.inputMu.Unlock()
 }
@@ -175,7 +175,7 @@ func (s *Session) input() protocol.Direction {
 	direction := s.direction
 	s.direction.Shoot = false
 	s.direction.Dash = false
-	s.direction.Eject = false
+	s.direction.Interact = false
 	return direction
 }
 
@@ -410,6 +410,10 @@ func validatePlayers(players []protocol.Player, localID string) error {
 				return errors.New("server sent invalid split position or timer")
 			}
 		}
+		gate := player.EntranceGate
+		if math.IsNaN(gate.Open) || math.IsInf(gate.Open, 0) || gate.Open < 0 || gate.Open > 1 || math.IsNaN(gate.Remaining) || math.IsInf(gate.Remaining, 0) || gate.Remaining < 0 || gate.Remaining > 6 || gate.Side < -1 || gate.Side > 1 {
+			return errors.New("server sent invalid entrance gate state")
+		}
 		if math.IsNaN(player.EjectCooldown) || math.IsInf(player.EjectCooldown, 0) || player.EjectCooldown < 0 || player.EjectCooldown > simulation.EjectInterval {
 			return errors.New("server sent invalid eject cooldown")
 		}
@@ -527,8 +531,8 @@ func validateAIs(ais []protocol.AI) error {
 }
 
 func predictPlayer(player *protocol.Player, input protocol.Direction, zones []simulation.SafeZone) {
-	p := simulation.Player{ShotCooldown: player.ShotCooldown, EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split.Clone(), GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, MP: player.Stats.MP, Speed: player.Stats.Speed}}
-	d := simulation.Direction{Shoot: input.Shoot, X: input.X, Y: input.Y, Boost: input.Boost, Dash: input.Dash, Eject: input.Eject, AimX: input.AimX, AimY: input.AimY}
+	p := simulation.Player{EntranceGate: player.EntranceGate, ShotCooldown: player.ShotCooldown, EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split.Clone(), GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, MP: player.Stats.MP, Speed: player.Stats.Speed}}
+	d := simulation.Direction{Shoot: input.Shoot, X: input.X, Y: input.Y, Boost: input.Boost, Dash: input.Dash, Interact: input.Interact, AimX: input.AimX, AimY: input.AimY}
 	simulation.AdvancePlayer(&p, d, simulation.StepSeconds, zones)
 	player.X, player.Y, player.Combat, player.Stats.HP = p.X, p.Y, p.Combat, p.Stats.HP
 	player.Stats.MP = p.Stats.MP
@@ -539,6 +543,7 @@ func predictPlayer(player *protocol.Player, input protocol.Direction, zones []si
 	player.Stats.MP = p.Stats.MP
 	player.ShotCooldown = p.ShotCooldown
 	player.EjectCooldown = p.EjectCooldown
+	player.EntranceGate = p.EntranceGate
 }
 
 func validCombat(c simulation.CombatState) bool {

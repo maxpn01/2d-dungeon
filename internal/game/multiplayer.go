@@ -80,6 +80,7 @@ func (m *multiplayer) readInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 	}
 	direction := protocol.Direction{}
 	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.open && !mapOpen {
+		direction.Interact = rl.IsKeyPressed(rl.KeyE)
 		direction.Shoot = !m.suppressShootUntilRelease && rl.IsMouseButtonDown(rl.MouseLeftButton)
 		direction.Boost = rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
 		direction.Dash = rl.IsKeyPressed(rl.KeyLeftShift) || rl.IsKeyPressed(rl.KeyRightShift)
@@ -147,6 +148,8 @@ func (m *multiplayer) follow(camera *rl.Camera2D) {
 
 func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	rl.BeginMode2D(camera)
+	m.gameMap.gate = m.view.Local.EntranceGate
+	m.gameMap.gatePrompt = !m.view.Local.Dead && simulation.NearEntranceGate(m.view.Local.X, m.view.Local.Y)
 	m.gameMap.draw(RenderContext{Camera: camera, WindowWidth: window.width, WindowHeight: window.height})
 	playerColors := make(map[string]color.RGBA, len(m.view.Players))
 	for _, player := range m.view.Players {

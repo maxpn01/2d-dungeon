@@ -19,6 +19,8 @@ type EdgePos struct {
 }
 
 type Map struct {
+	gate        simulation.EntranceGateState
+	gatePrompt  bool
 	safeZones   []simulation.SafeZone
 	exploration mapExploration
 	background  color.RGBA

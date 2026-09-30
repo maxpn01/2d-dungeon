@@ -18,14 +18,14 @@ const (
 )
 
 type Direction struct {
-	Shoot bool    `json:"shoot,omitempty"`
-	Eject bool    `json:"eject,omitempty"`
-	Boost bool    `json:"boost,omitempty"`
-	AimX  float64 `json:"aim_x,omitempty"`
-	AimY  float64 `json:"aim_y,omitempty"`
-	Dash  bool    `json:"dash,omitempty"`
-	X     float64 `json:"x"`
-	Y     float64 `json:"y"`
+	Shoot    bool    `json:"shoot,omitempty"`
+	Interact bool    `json:"interact,omitempty"`
+	Boost    bool    `json:"boost,omitempty"`
+	AimX     float64 `json:"aim_x,omitempty"`
+	AimY     float64 `json:"aim_y,omitempty"`
+	Dash     bool    `json:"dash,omitempty"`
+	X        float64 `json:"x"`
+	Y        float64 `json:"y"`
 }
 
 type ClientMessage struct {
@@ -83,23 +83,24 @@ type PlayerStats struct {
 }
 
 type Player struct {
-	ShotCooldown   float64                `json:"shot_cooldown,omitempty"`
-	EjectCooldown  float64                `json:"eject_cooldown,omitempty"`
-	Character      simulation.Character   `json:"character"`
-	Split          simulation.SplitCells  `json:"split"`
-	GatesClosed    bool                   `json:"gates_closed,omitempty"`
-	InArena        bool                   `json:"in_arena,omitempty"`
-	TeleportCharge float64                `json:"teleport_charge,omitempty"`
-	Combat         simulation.CombatState `json:"combat"`
-	Name           string                 `json:"name"`
-	Dead           bool                   `json:"dead"`
-	KilledBy       string                 `json:"killed_by,omitempty"`
-	Stats          PlayerStats            `json:"stats"`
-	InputSeq       uint64                 `json:"input_seq"`
-	ID             string                 `json:"id"`
-	X              float64                `json:"x"`
-	Y              float64                `json:"y"`
-	Size           float64                `json:"size"`
+	EntranceGate   simulation.EntranceGateState `json:"entrance_gate"`
+	ShotCooldown   float64                      `json:"shot_cooldown,omitempty"`
+	EjectCooldown  float64                      `json:"eject_cooldown,omitempty"`
+	Character      simulation.Character         `json:"character"`
+	Split          simulation.SplitCells        `json:"split"`
+	GatesClosed    bool                         `json:"gates_closed,omitempty"`
+	InArena        bool                         `json:"in_arena,omitempty"`
+	TeleportCharge float64                      `json:"teleport_charge,omitempty"`
+	Combat         simulation.CombatState       `json:"combat"`
+	Name           string                       `json:"name"`
+	Dead           bool                         `json:"dead"`
+	KilledBy       string                       `json:"killed_by,omitempty"`
+	Stats          PlayerStats                  `json:"stats"`
+	InputSeq       uint64                       `json:"input_seq"`
+	ID             string                       `json:"id"`
+	X              float64                      `json:"x"`
+	Y              float64                      `json:"y"`
+	Size           float64                      `json:"size"`
 }
 
 type Fruit struct {

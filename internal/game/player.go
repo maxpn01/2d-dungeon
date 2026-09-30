@@ -22,7 +22,7 @@ type PlayerStats struct {
 
 type PlayerInput struct {
 	Shoot     bool
-	Eject     bool
+	Interact  bool
 	Direction rl.Vector2
 	Aim       rl.Vector2
 	Boost     bool
@@ -82,6 +82,7 @@ func (p *Player) readInput(camera rl.Camera2D) {
 		p.suppressShootUntilRelease = false
 	}
 	input := PlayerInput{Shoot: !p.suppressShootUntilRelease && (p.input.Shoot || rl.IsMouseButtonDown(rl.MouseLeftButton)), Boost: rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift), Dash: p.input.Dash || rl.IsKeyPressed(rl.KeyLeftShift) || rl.IsKeyPressed(rl.KeyRightShift)}
+	input.Interact = p.input.Interact || rl.IsKeyPressed(rl.KeyE)
 	input.Aim = mouseAim(camera, entityCenter(p.pos, p.size), p.combat.Facing)
 	if rl.IsKeyDown(rl.KeyW) {
 		input.Direction.Y -= 1

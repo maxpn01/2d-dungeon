@@ -66,7 +66,7 @@ func (h *Hub) Run(ctx context.Context) {
 			players := make([]protocol.Player, 0, len(snapshot.Players))
 			for _, state := range snapshot.Players {
 				players = append(players, protocol.Player{
-					ShotCooldown: state.ShotCooldown, EjectCooldown: state.EjectCooldown, Character: state.Character, Split: state.Split, GatesClosed: state.GatesClosed, InArena: state.InArena, TeleportCharge: state.TeleportCharge, Combat: state.Combat, Name: names[state.ID], Dead: state.Dead, KilledBy: state.KilledBy, ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
+					EntranceGate: state.EntranceGate, ShotCooldown: state.ShotCooldown, EjectCooldown: state.EjectCooldown, Character: state.Character, Split: state.Split, GatesClosed: state.GatesClosed, InArena: state.InArena, TeleportCharge: state.TeleportCharge, Combat: state.Combat, Name: names[state.ID], Dead: state.Dead, KilledBy: state.KilledBy, ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
 					Stats: protocol.PlayerStats{
 						Level: state.Stats.Level, XP: state.Stats.XP, HP: state.Stats.HP, MP: state.Stats.MP, Speed: state.Stats.Speed,
 					},
@@ -126,7 +126,7 @@ func (h *Hub) Run(ctx context.Context) {
 			}
 			if event.message.Type == protocol.TypeInput {
 				d := event.message.Direction
-				if !world.Command(event.client.id, simulation.Direction{Shoot: d.Shoot, X: d.X, Y: d.Y, Eject: d.Eject, Boost: d.Boost, Dash: d.Dash, AimX: d.AimX, AimY: d.AimY}, event.message.Sequence, time.Now()) {
+				if !world.Command(event.client.id, simulation.Direction{Shoot: d.Shoot, X: d.X, Y: d.Y, Interact: d.Interact, Boost: d.Boost, Dash: d.Dash, AimX: d.AimX, AimY: d.AimY}, event.message.Sequence, time.Now()) {
 					remove(event.client)
 					broadcast()
 				}

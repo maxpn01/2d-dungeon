@@ -62,10 +62,10 @@ func (w *World) update(dt float32) {
 	for w.accumulator >= simulation.StepSeconds && !w.player.isDeadFlag {
 		now := time.Now()
 		input := w.player.input
-		w.simulation.Input("player", simulation.Direction{Shoot: input.Shoot, X: float64(input.Direction.X), Y: float64(input.Direction.Y), Eject: input.Eject, Boost: input.Boost, Dash: input.Dash, AimX: float64(input.Aim.X), AimY: float64(input.Aim.Y)}, now)
+		w.simulation.Input("player", simulation.Direction{Shoot: input.Shoot, X: float64(input.Direction.X), Y: float64(input.Direction.Y), Interact: input.Interact, Boost: input.Boost, Dash: input.Dash, AimX: float64(input.Aim.X), AimY: float64(input.Aim.Y)}, now)
 		w.player.input.Shoot = false
 		w.player.input.Dash = false
-		w.player.input.Eject = false
+		w.player.input.Interact = false
 		w.simulation.Step(now)
 		w.accumulator -= simulation.StepSeconds
 		w.syncSimulation()
@@ -85,6 +85,8 @@ func (w *World) syncSimulation() {
 	w.feedback.snapshot(time.Now(), snapshot)
 	w.previousSnapshot, w.snapshot = w.snapshot, snapshot
 	p := snapshot.Players[0]
+	w.gameMap.gate = p.EntranceGate
+	w.gameMap.gatePrompt = !p.Dead && simulation.NearEntranceGate(p.X, p.Y)
 	w.player.pos = rl.NewVector2(float32(p.X), float32(p.Y))
 	w.player.stats, w.player.combat = gameStats(p.Stats), p.Combat
 	w.player.character, w.player.split, w.player.color = p.Character, p.Split.Clone(), characterColor(p.Character)

@@ -78,6 +78,9 @@ func AdvancePlayer(p *Player, input Direction, dt float64, zones ...[]SafeZone) 
 	if p.Dead || !input.Valid() || dt <= 0 {
 		return
 	}
+	oldX, oldY := p.X, p.Y
+	advanceEntranceGate(p, input, dt)
+	defer constrainEntranceGate(p, oldX, oldY)
 	p.Stats.GainMP(parameters.MPRecoveryPerSecond * dt)
 	p.ShotCooldown = max(0, p.ShotCooldown-dt)
 	switch NormalizeCharacter(p.Character) {

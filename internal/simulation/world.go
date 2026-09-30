@@ -25,7 +25,7 @@ const (
 
 type Direction struct {
 	Shoot      bool
-	Eject      bool
+	Interact   bool
 	Boost      bool
 	Dash       bool
 	AimX, AimY float64
@@ -40,6 +40,7 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
+	EntranceGate   EntranceGateState
 	ShotCooldown   float64
 	EjectCooldown  float64
 	Character      Character
