@@ -22,13 +22,15 @@ const (
 	SplitFollowResponse           = parameters.SplitFollowResponse
 )
 
+func CharacterEnabled(c Character) bool {
+	return c == Square
+}
+
 func NormalizeCharacter(c Character) Character {
-	switch c {
-	case Triangle, Circle:
+	if CharacterEnabled(c) {
 		return c
-	default:
-		return Square
 	}
+	return Square
 }
 
 // Stable indices let clients interpolate the same body across snapshots.

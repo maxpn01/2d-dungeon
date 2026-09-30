@@ -70,10 +70,6 @@ func (w *World) spawnEntranceGuards() {
 	}
 }
 
-func randomAICharacter() Character {
-	return [...]Character{Square, Triangle, Circle}[rand.IntN(3)]
-}
-
 func (w *World) spawnAIs() {
 	for i := 0; i < InitialAIs; i++ {
 		ai := w.newSurfaceAI(i)
@@ -90,7 +86,7 @@ func (w *World) newSurfaceAI(slot int) aiState {
 	stats.Speed = AISpeed
 	return aiState{settleTicks: AISettleTicks, AI: AI{
 		ID: fmt.Sprintf("ai-%d", w.nextAI), X: 600 + float64(slot%3)*450,
-		Y: 400 + float64(slot/3)*650, Stats: stats, Behavior: "emerging", Character: randomAICharacter(),
+		Y: 400 + float64(slot/3)*650, Stats: stats, Behavior: "emerging", Character: Square,
 	}}
 }
 
