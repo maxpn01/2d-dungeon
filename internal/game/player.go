@@ -30,6 +30,7 @@ type PlayerInput struct {
 }
 
 type Player struct {
+	feedback                  *combatFeedback
 	suppressShootUntilRelease bool
 	safeZones                 []simulation.SafeZone
 	character                 simulation.Character
@@ -67,7 +68,7 @@ func (p *Player) draw() {
 	mass := float64(p.stats.hp) + p.split.Mass()
 	count := p.split.Count()
 	drawSafeProtection(float64(p.pos.X), float64(p.pos.Y), float64(p.size.X), mass, p.safeZones)
-	bounds := drawActor(float64(p.pos.X), float64(p.pos.Y), float64(p.size.X), float64(p.stats.hp), p.combat, p.color, p.character)
+	bounds := p.feedback.drawPlayer("player", float64(p.pos.X), float64(p.pos.Y), float64(p.size.X), float64(p.stats.hp), p.combat, p.color, p.character)
 	for _, cell := range p.split {
 		if cell.Active {
 			drawSafeProtection(cell.X, cell.Y, float64(p.size.X), mass, p.safeZones)

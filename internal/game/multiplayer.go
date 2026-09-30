@@ -200,7 +200,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		mass := player.Stats.HP + player.Split.Mass()
 		count := player.Split.Count()
 		drawSafeProtection(player.X, player.Y, player.Size, mass, m.view.SafeZones)
-		bounds := drawActor(player.X, player.Y, player.Size, player.Stats.HP, player.Combat, tint, player.Character)
+		bounds := m.feedback.drawPlayer(player.ID, player.X, player.Y, player.Size, player.Stats.HP, player.Combat, tint, player.Character)
 		for _, cell := range player.Split {
 			if cell.Active {
 				drawSafeProtection(cell.X, cell.Y, player.Size, mass, m.view.SafeZones)

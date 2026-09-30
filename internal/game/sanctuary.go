@@ -48,7 +48,7 @@ func (m *Map) drawSanctuary(ctx RenderContext) {
 
 func (m *Map) drawSanctuaryAltar(ctx RenderContext) {
 	cs, rs, ce, re := m.visibleCellRange(ctx.Camera, ctx.WindowWidth, ctx.WindowHeight)
-	center := rl.NewVector2(m.size.X/2, m.size.Y/2)
+	center := rl.NewVector2(terrain.SpawnAltarCenter, terrain.SpawnAltarCenter)
 	if center.X+150 >= float32(cs)*m.cellSize.X && center.X-150 <= float32(ce)*m.cellSize.X && center.Y+150 >= float32(rs)*m.cellSize.Y && center.Y-150 <= float32(re)*m.cellSize.Y {
 		drawSpawnAltar(center)
 	}
@@ -97,7 +97,7 @@ func drawSpawnAltar(center rl.Vector2) {
 	}
 	shadow := rl.NewVector2(center.X, center.Y+8)
 	rl.DrawPoly(shadow, 8, 52, 22.5, rl.NewColor(7, 16, 21, 255))
-	rl.DrawPoly(center, 8, 49, 22.5, stone)
+	rl.DrawPoly(center, 8, terrain.SpawnAltarRadius, 22.5, stone)
 	rl.DrawPolyLines(center, 8, 48, 22.5, rl.Fade(paleStone, .6))
 	rl.DrawPoly(center, 8, 36, 22.5, rl.NewColor(30, 43, 49, 255))
 	rl.DrawPolyLines(center, 8, 35, 22.5, sanctuaryGold)

@@ -16,6 +16,7 @@ type GameObject interface {
 }
 
 type World struct {
+	started          bool
 	feedback         combatFeedback
 	gameMap          *Map
 	player           *Player
@@ -50,6 +51,7 @@ func NewWorld() *World {
 			maxHP:  simulation.StartingMaxHP,
 		},
 	)
+	w.player.feedback = &w.feedback
 	w.fruitSpawner = &FruitSpawner{}
 
 	w.syncSimulation()

@@ -242,6 +242,10 @@ func (g *Game) startSinglePlayer() {
 	if g.world.player.isDeadFlag || g.world.player.character != g.settings.Character {
 		g.restart()
 	}
+	if !g.world.started {
+		g.world.feedback.spawns["player"] = time.Now()
+		g.world.started = true
+	}
 	g.world.player.name = g.settings.PlayerName
 	g.world.player.input = PlayerInput{}
 	g.world.player.suppressShootUntilRelease = true

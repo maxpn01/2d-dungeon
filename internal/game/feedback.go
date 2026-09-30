@@ -26,12 +26,28 @@ type feedbackEffect struct {
 }
 
 type combatFeedback struct {
+	spawns  map[string]time.Time
 	actors  map[string]feedbackActor
 	drops   map[string]bool
 	effects []feedbackEffect
 }
 
 func (f *combatFeedback) observe(now time.Time, actors map[string]feedbackActor, fruits []protocol.Fruit) {
+	if f.spawns == nil {
+		f.spawns = make(map[string]time.Time)
+	}
+	for id, actor := range actors {
+		old, existed := f.actors[id]
+		if !actor.ai && !actor.dead && (!existed || old.dead) {
+			f.spawns[id] = now
+		}
+	}
+	for id, started := range f.spawns {
+		actor, exists := actors[id]
+		if !exists || actor.dead || now.Sub(started) >= materializeDuration {
+			delete(f.spawns, id)
+		}
+	}
 	drops := make(map[string]bool)
 	playerColors := make(map[string]color.RGBA)
 	for id, actor := range actors {
@@ -134,4 +150,50 @@ func (f *combatFeedback) draw(now time.Time, exploration *mapExploration) {
 		}
 	}
 	f.effects = active
+}
+
+const materializeDuration = 850 * time.Millisecond
+
+func (f *combatFeedback) drawPlayer(id string, x, y, size, hp float64, combat simulation.CombatState, tint color.RGBA, character simulation.Character) rl.Rectangle {
+	if f == nil {
+		return drawActor(x, y, size, hp, combat, tint, character)
+	}
+	started, spawning := f.spawns[id]
+	if !spawning {
+		return drawActor(x, y, size, hp, combat, tint, character)
+	}
+	p := float32(time.Since(started).Seconds() / materializeDuration.Seconds())
+	if p >= 1 {
+		return drawActor(x, y, size, hp, combat, tint, character)
+	}
+	p = max(0, p)
+	bounds := actorBounds(x, y, size, hp)
+	center := rl.NewVector2(float32(x+size/2), float32(y+size/2))
+	assembly := min(1, p/0.75)
+	eased := assembly * assembly * (3 - 2*assembly)
+	side := bounds.Width * (0.15 + 0.85*eased)
+	body := rl.NewRectangle(center.X-side/2, center.Y-side/2, side, side)
+	shadow := body
+	shadow.Y += 3
+	drawCharacterShape(character, shadow, rl.Fade(rl.Black, 0.35*eased))
+	drawCharacterShape(character, body, rl.Fade(tint, eased))
+	glow := float32(math.Sin(float64(p) * math.Pi))
+	drawCharacterShape(character, body, rl.Fade(rl.RayWhite, 0.65*glow*(1-eased)))
+	radius := bounds.Width*0.7 + 32*(1-eased)
+	rl.DrawRing(center, radius, radius+2, 0, 360, 48, rl.Fade(tint, 0.7*glow))
+	for i := range 12 {
+		angle := float64(i)*math.Pi/6 + float64(p)*0.8
+		distance := bounds.Width*0.35 + (36+float32(i%3)*8)*(1-eased)
+		particle := 2 + 3*glow
+		px := center.X + float32(math.Cos(angle))*distance
+		py := center.Y + float32(math.Sin(angle))*distance
+		rl.DrawRectangleRec(rl.NewRectangle(px-particle/2, py-particle/2, particle, particle), rl.Fade(rl.RayWhite, glow))
+	}
+	if p > 0.65 {
+		pulse := (p - 0.65) / 0.35
+		radius := bounds.Width*0.6 + 24*pulse
+		rl.DrawRing(center, radius, radius+2*(1-pulse), 0, 360, 48, rl.Fade(tint, 1-pulse))
+	}
+	drawCombat(center, bounds.Width, combat)
+	return bounds
 }

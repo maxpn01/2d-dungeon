@@ -18,6 +18,9 @@ const (
 	ActorSize    = parameters.ActorSize
 )
 
+const SpawnAltarCenter = SurfaceCells * Tile / 2
+const SpawnAltarRadius = 49
+
 const DescentCircleX = parameters.DescentCircleX
 const DescentCircleY = parameters.DescentCircleY
 
@@ -126,7 +129,7 @@ func walkableLayout(x, y, w, h float64) bool {
 		return false
 	}
 	if y >= SurfaceMin {
-		return x >= SurfaceMin && x+w <= SurfaceMax
+		return x >= SurfaceMin && x+w <= SurfaceMax && !overlapsSpawnAltar(x, y, w, h)
 	}
 	for cy := int(math.Floor(y / Tile)); cy <= int(math.Floor((y+h-.001)/Tile)); cy++ {
 		for cx := int(math.Floor(x / Tile)); cx <= int(math.Floor((x+w-.001)/Tile)); cx++ {
@@ -146,19 +149,33 @@ func walkableLayout(x, y, w, h float64) bool {
 
 func Move(x, y, dx, dy, w, h float64) (float64, float64) {
 	values := x + y + dx + dy + w + h
-	if y >= SurfaceMin && y+dy >= SurfaceMin && w > 0 && h > 0 && !math.IsNaN(values) && !math.IsInf(values, 0) {
-		return max(SurfaceMin, min(SurfaceMax-w, x+dx)), max(SurfaceMin, min(SurfaceMax-h, y+dy))
+	if w <= 0 || h <= 0 || math.IsNaN(values) || math.IsInf(values, 0) {
+		return x, y
 	}
 	steps := max(1, int(math.Ceil(max(math.Abs(dx), math.Abs(dy))/8)))
 	for range steps {
 		nx := x + dx/float64(steps)
+		if y >= SurfaceMin {
+			nx = max(SurfaceMin, min(SurfaceMax-w, nx))
+		}
 		if Walkable(nx, y, w, h) {
 			x = nx
 		}
 		ny := y + dy/float64(steps)
+		if y >= SurfaceMin && ny >= SurfaceMin {
+			ny = min(SurfaceMax-h, ny)
+		}
 		if Walkable(x, ny, w, h) {
 			y = ny
 		}
 	}
 	return x, y
+}
+
+func overlapsSpawnAltar(x, y, w, h float64) bool {
+	dx := max(0, math.Abs(x+w/2-SpawnAltarCenter)-w/2)
+	dy := max(0, math.Abs(y+h/2-SpawnAltarCenter)-h/2)
+	extent := SpawnAltarRadius * math.Cos(math.Pi/8)
+	diagonal := SpawnAltarRadius * (math.Cos(math.Pi/8) + math.Sin(math.Pi/8))
+	return dx < extent && dy < extent && dx+dy < diagonal
 }

@@ -6,10 +6,19 @@ import (
 )
 
 func (w *World) spawnPosition(slot uint64) (float64, float64) {
-	bestX, bestY, bestDistance := 900.0, 100.0, -1.0
+	center := float64(terrain.SpawnAltarCenter)
+	bestX, bestY, bestDistance := center-PlayerSize/2, center-80-PlayerSize/2, -1.0
 	for offset := uint64(0); offset < 400; offset++ {
 		cell := (slot + offset) % 400
-		x, y := 700+float64(cell%10)*60, 60+float64(cell/10)*15
+		index := int(cell % 40)
+		spread := (index + 1) / 2
+		if index%2 != 0 {
+			spread = -spread
+		}
+		angle := -math.Pi/2 + float64(spread)*math.Pi/120
+		radius := 80 + float64(cell/40)*8
+		x := center + math.Cos(angle)*radius - PlayerSize/2
+		y := center + math.Sin(angle)*radius - PlayerSize/2
 		distance := math.Inf(1)
 		for _, ai := range w.ais {
 			if ai.respawnTick == 0 {
