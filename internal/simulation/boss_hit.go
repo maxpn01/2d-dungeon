@@ -1,6 +1,10 @@
 package simulation
 
-import "math"
+import (
+	"math"
+
+	"raylib-2d-sandbox/internal/physics"
+)
 
 func (w *World) bossHitEscape(p *playerState) {
 	b := &w.boss
@@ -21,9 +25,7 @@ func (w *World) bossHitEscape(p *playerState) {
 		x := max(MapMin, min(MapMax-PlayerSize, p.X+math.Cos(angle+offset)*BossRecoilDistance))
 		y := max(MapMin, min(MapMax-PlayerSize, p.Y+math.Sin(angle+offset)*BossRecoilDistance))
 		clearance := func(sx, sy float64) float64 {
-			dx := max(0, max(sx-(x+PlayerSize), x-(sx+BossSize)))
-			dy := max(0, max(sy-(y+PlayerSize), y-(sy+BossSize)))
-			return math.Hypot(dx, dy)
+			return physics.Square(x, y, PlayerSize).Distance(physics.Square(sx, sy, BossSize))
 		}
 		score := clearance(b.X, b.Y)
 		for _, segment := range b.Tail {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/terrain"
 )
 
@@ -148,11 +149,20 @@ func Move(x, y float64, d Direction, seconds, speed float64) (float64, float64) 
 }
 
 func MoveBy(x, y float64, d Direction, distance float64) (float64, float64) {
-	length := math.Hypot(d.X, d.Y)
-	if length == 0 || !d.Valid() || distance <= 0 {
-		return x, y
+	motion := moveByMotion(x, y, d, distance)
+	return motion.Bounds.X, motion.Bounds.Y
+}
+
+func moveByMotion(x, y float64, d Direction, distance float64) physics.Motion {
+	body := physics.Square(x, y, PlayerSize)
+	if !d.Valid() || math.IsNaN(distance) || math.IsInf(distance, 0) {
+		return physics.Motion{Bounds: body, Rejected: true}
 	}
-	return terrain.Move(x, y, d.X/length*distance, d.Y/length*distance, PlayerSize, PlayerSize)
+	if distance <= 0 {
+		return physics.Motion{Bounds: body}
+	}
+	delta := (physics.Vector{X: d.X, Y: d.Y}).Normalized().Scale(distance)
+	return terrain.MoveBody(body, delta)
 }
 
 func (w *World) Step(now time.Time) {

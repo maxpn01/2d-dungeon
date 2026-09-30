@@ -1,6 +1,10 @@
 package simulation
 
-import "math"
+import (
+	"math"
+
+	"raylib-2d-sandbox/internal/physics"
+)
 
 func (ai *aiState) canAttack(target *playerState) bool {
 	if ai.settleTicks > 0 || ai.targetID != target.ID || ai.targetTicks < AIReactionTicks || ai.attackCooldown > 0 || ai.Combat.Phase != DashIdle || ai.Combat.Held || ai.Stats.MP < DashCost ||
@@ -29,11 +33,11 @@ func (ai *aiState) clearDash(d Direction) bool {
 	distance := ai.Stats.MovementSpeed() * SpeedScale * DashSpeedMultiplier * DashBurst
 	for distance > 1e-9 {
 		step := min(4, distance)
-		nx, ny := MoveBy(x, y, d, step)
-		if math.Abs(nx-x-d.X*step) > 1e-6 || math.Abs(ny-y-d.Y*step) > 1e-6 {
+		motion := moveByMotion(x, y, d, step)
+		if motion.Blocked() || motion.Rejected {
 			return false
 		}
-		x, y, distance = nx, ny, distance-step
+		x, y, distance = motion.Bounds.X, motion.Bounds.Y, distance-step
 	}
 	return true
 }
@@ -45,12 +49,10 @@ func (w *World) incomingDash(ai *aiState) *playerState {
 		if !ai.sees(p.X, p.Y) || p.Dead || (p.Combat.Phase != DashWinding && p.Combat.Phase != DashRushing) {
 			continue
 		}
-		// A creature needs a moment to read a windup; it cannot dodge on frame one.
 		if p.Combat.Phase == DashWinding && p.Combat.Remaining > DashWindup-0.10 {
 			continue
 		}
-		dx, dy := ai.X-p.X, ai.Y-p.Y
-		distance := dx*dx + dy*dy
+		distance := (physics.Vector{X: ai.X, Y: ai.Y}).DistanceSquared(physics.Vector{X: p.X, Y: p.Y})
 		if distance > AIDetectionRadius*AIDetectionRadius {
 			continue
 		}

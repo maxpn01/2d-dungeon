@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/terrain"
 )
 
@@ -89,8 +90,10 @@ func (w *World) placeBoss() {
 	}
 }
 
+var arenaBounds = physics.Rect{X: ArenaLeft, Y: ArenaTop, W: ArenaRight - ArenaLeft, H: ArenaBottom - ArenaTop}
+
 func InsideArena(x, y, size float64) bool {
-	return x >= ArenaLeft && y >= ArenaTop && x+size <= ArenaRight && y+size <= ArenaBottom
+	return arenaBounds.Contains(physics.Square(x, y, size))
 }
 
 func ConstrainArena(p *Player, oldX, oldY float64) {
@@ -98,9 +101,9 @@ func ConstrainArena(p *Player, oldX, oldY float64) {
 		return
 	}
 	if p.InArena {
-		p.X = max(ArenaLeft, min(ArenaRight-PlayerSize, p.X))
-		p.Y = max(ArenaTop, min(ArenaBottom-PlayerSize, p.Y))
-	} else if p.X+PlayerSize > ArenaLeft && p.X < ArenaRight && p.Y+PlayerSize > ArenaTop && p.Y < ArenaBottom {
+		body := physics.Square(p.X, p.Y, PlayerSize).ClampedTo(arenaBounds)
+		p.X, p.Y = body.X, body.Y
+	} else if arenaBounds.Overlaps(physics.Square(p.X, p.Y, PlayerSize)) {
 		p.X, p.Y = oldX, oldY
 	}
 }

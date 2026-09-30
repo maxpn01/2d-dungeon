@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/terrain"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -38,7 +39,7 @@ func (e *mapExploration) reveal(p rl.Vector2) {
 	for y := origin[1] - radius; y <= origin[1]+radius; y++ {
 		for x := origin[0] - radius; x <= origin[0]+radius; x++ {
 			dx, dy := x-origin[0], y-origin[1]
-			if dx*dx+dy*dy > radius*radius || x < terrain.MinCellX || x >= terrain.MaxCellX || y < terrain.MinCellY || y >= terrain.SurfaceCells {
+			if (physics.Vector{X: float64(dx), Y: float64(dy)}).LengthSquared() > radius*radius || x < terrain.MinCellX || x >= terrain.MaxCellX || y < terrain.MinCellY || y >= terrain.SurfaceCells {
 				continue
 			}
 			cell := [2]int{x, y}
@@ -57,9 +58,7 @@ func (e *mapExploration) actorVisible(x, y, size float64) bool {
 	return e.visible[cell] && terrain.Sight(e.origin, cell)
 }
 
-// The main scene uses proximity, independently of map exploration and tile LOS.
-// Update focus every frame so crossing tile edges cannot toggle nearby objects.
 func (e *mapExploration) entityVisible(x, y, size float64) bool {
-	dx, dy := x+size/2-float64(e.focus.X), y+size/2-float64(e.focus.Y)
-	return dx*dx+dy*dy <= entityDetectionRadius*entityDetectionRadius
+	center := (physics.Rect{X: x, Y: y, W: size, H: size}).Center()
+	return center.DistanceSquared(physics.Vector{X: float64(e.focus.X), Y: float64(e.focus.Y)}) <= entityDetectionRadius*entityDetectionRadius
 }

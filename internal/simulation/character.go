@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/terrain"
 )
 
@@ -108,9 +109,10 @@ func ClampSurfaceBody(x, y *float64, size, hp float64) {
 		return // the dungeon is governed by its own passages
 	}
 	radius := min(BodySize(size, hp)/2, (MapMax-MapMin)/2)
-	centerX := max(MapMin+radius, min(MapMax-radius, *x+size/2))
-	centerY := max(MapMin+radius, min(MapMax-radius, *y+size/2))
-	*x, *y = centerX-size/2, centerY-size/2
+	body := physics.Rect{X: *x + size/2 - radius, Y: *y + size/2 - radius, W: radius * 2, H: radius * 2}
+	body = body.ClampedTo(physics.Rect{X: MapMin, Y: MapMin, W: MapMax - MapMin, H: MapMax - MapMin})
+	center := body.Center()
+	*x, *y = center.X-size/2, center.Y-size/2
 }
 
 func advanceCircle(p *Player, input Direction, dt float64) {

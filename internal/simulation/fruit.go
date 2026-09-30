@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/terrain"
 )
 
@@ -79,10 +80,10 @@ func (w *World) spawnFruit() {
 	for range 32 {
 		x := MapMin + rand.Float64()*(MapMax-MapMin-size)
 		y := MapMin + rand.Float64()*(MapMax-MapMin-size)
+		body := physics.Square(x, y, size)
 		overlaps := false
 		for _, fruit := range w.fruits {
-			if x < fruit.X+fruit.Size && x+size > fruit.X &&
-				y < fruit.Y+fruit.Size && y+size > fruit.Y {
+			if body.Overlaps(physics.Square(fruit.X, fruit.Y, fruit.Size)) {
 				overlaps = true
 				break
 			}
@@ -92,12 +93,12 @@ func (w *World) spawnFruit() {
 				continue
 			}
 			for _, cell := range player.Split {
-				if cell.Active && x < cell.X+PlayerSize && x+size > cell.X && y < cell.Y+PlayerSize && y+size > cell.Y {
+				if cell.Active && body.Overlaps(physics.Square(cell.X, cell.Y, PlayerSize)) {
 					overlaps = true
 					break
 				}
 			}
-			if x < player.X+PlayerSize && x+size > player.X && y < player.Y+PlayerSize && y+size > player.Y {
+			if body.Overlaps(physics.Square(player.X, player.Y, PlayerSize)) {
 				overlaps = true
 				break
 			}
@@ -107,12 +108,12 @@ func (w *World) spawnFruit() {
 				continue
 			}
 			for _, cell := range ai.Split {
-				if cell.Active && x < cell.X+AISize && x+size > cell.X && y < cell.Y+AISize && y+size > cell.Y {
+				if cell.Active && body.Overlaps(physics.Square(cell.X, cell.Y, AISize)) {
 					overlaps = true
 					break
 				}
 			}
-			if x < ai.X+AISize && x+size > ai.X && y < ai.Y+AISize && y+size > ai.Y {
+			if body.Overlaps(physics.Square(ai.X, ai.Y, AISize)) {
 				overlaps = true
 				break
 			}
@@ -161,9 +162,10 @@ func (w *World) spawnPatchFruit(patch terrain.FeedingPatch) bool {
 		if !terrain.InEntranceRoom(x, y, size) || !terrain.Walkable(x, y, size, size) {
 			continue
 		}
+		body := physics.Square(x, y, size).Expanded(5)
 		occupied := false
 		for _, fruit := range w.fruits {
-			if x < fruit.X+fruit.Size+5 && x+size+5 > fruit.X && y < fruit.Y+fruit.Size+5 && y+size+5 > fruit.Y {
+			if body.Overlaps(physics.Square(fruit.X, fruit.Y, fruit.Size)) {
 				occupied = true
 				break
 			}

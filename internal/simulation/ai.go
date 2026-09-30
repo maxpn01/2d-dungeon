@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/terrain"
 )
 
@@ -225,9 +226,9 @@ func (w *World) nearestFruit(ai *aiState) (Fruit, bool) {
 		if !ai.sees(fruit.X, fruit.Y) || !ai.inTerritory(fruit.X, fruit.Y) || (fruit.MP > 0 && ai.Stats.MP >= MaxMP || fruit.MP == 0 && ai.Stats.HP >= MaxHPForLevel(ai.Stats.Level) && ai.Stats.Level >= MaxLevel) {
 			continue
 		}
-		dx := fruit.X + fruit.Size/2 - (ai.X + AISize/2)
-		dy := fruit.Y + fruit.Size/2 - (ai.Y + AISize/2)
-		distance := dx*dx + dy*dy
+		fruitCenter := (physics.Rect{X: fruit.X, Y: fruit.Y, W: fruit.Size, H: fruit.Size}).Center()
+		aiCenter := (physics.Rect{X: ai.X, Y: ai.Y, W: AISize, H: AISize}).Center()
+		distance := fruitCenter.DistanceSquared(aiCenter)
 		if distance <= best && (!found || distance < best || fruit.ID < nearest.ID) {
 			nearest, best, found = fruit, distance, true
 		}

@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/physics"
 )
 
 const Tile = parameters.Tile
@@ -61,7 +62,7 @@ func PrivateGateCrossed(fromX, fromY, toX, toY, size float64) bool {
 }
 
 func InEntranceRoom(x, y, size float64) bool {
-	return x >= 2*Tile && x+size <= 34*Tile && y >= -56*Tile && y+size <= -24*Tile
+	return (physics.Rect{X: 2 * Tile, Y: -56 * Tile, W: 32 * Tile, H: 32 * Tile}).Contains(physics.Square(x, y, size))
 }
 
 var passages = []Room{
@@ -125,14 +126,14 @@ func Walkable(x, y, w, h float64) bool {
 }
 
 func walkableLayout(x, y, w, h float64) bool {
-	if w <= 0 || h <= 0 || math.IsNaN(w) || math.IsNaN(h) || math.IsInf(w, 0) || math.IsInf(h, 0) || math.IsNaN(x) || math.IsNaN(y) || math.IsInf(x, 0) || math.IsInf(y, 0) || x < MinCellX*Tile || x+w > MaxCellX*Tile || y < North || y+h > SurfaceMax {
+	if !(physics.Rect{X: x, Y: y, W: w, H: h}).Valid() || x < MinCellX*Tile || x+w > MaxCellX*Tile || y < North || y+h > SurfaceMax {
 		return false
 	}
 	if y >= SurfaceMin {
 		return x >= SurfaceMin && x+w <= SurfaceMax && !overlapsSpawnAltar(x, y, w, h)
 	}
-	for cy := int(math.Floor(y / Tile)); cy <= int(math.Floor((y+h-.001)/Tile)); cy++ {
-		for cx := int(math.Floor(x / Tile)); cx <= int(math.Floor((x+w-.001)/Tile)); cx++ {
+	for cy := int(math.Floor(y / Tile)); cy <= int(math.Floor(math.Nextafter((y+h)/Tile, math.Inf(-1)))); cy++ {
+		for cx := int(math.Floor(x / Tile)); cx <= int(math.Floor(math.Nextafter((x+w)/Tile, math.Inf(-1)))); cx++ {
 			if cy >= 0 {
 				if y < 10 && (cx < 15 || cx >= 21) {
 					return false
@@ -147,35 +148,28 @@ func walkableLayout(x, y, w, h float64) bool {
 	return true
 }
 
+var collisionWorld = physics.World{
+	CanOccupy: func(body physics.Rect) bool {
+		return Walkable(body.X, body.Y, body.W, body.H)
+	},
+	MaxStep: Tile / 5,
+}
+
 func Move(x, y, dx, dy, w, h float64) (float64, float64) {
-	values := x + y + dx + dy + w + h
-	if w <= 0 || h <= 0 || math.IsNaN(values) || math.IsInf(values, 0) {
-		return x, y
-	}
-	steps := max(1, int(math.Ceil(max(math.Abs(dx), math.Abs(dy))/8)))
-	for range steps {
-		nx := x + dx/float64(steps)
-		if y >= SurfaceMin {
-			nx = max(SurfaceMin, min(SurfaceMax-w, nx))
-		}
-		if Walkable(nx, y, w, h) {
-			x = nx
-		}
-		ny := y + dy/float64(steps)
-		if y >= SurfaceMin && ny >= SurfaceMin {
-			ny = min(SurfaceMax-h, ny)
-		}
-		if Walkable(x, ny, w, h) {
-			y = ny
-		}
-	}
-	return x, y
+	motion := MoveBody(physics.Rect{X: x, Y: y, W: w, H: h}, physics.Vector{X: dx, Y: dy})
+	return motion.Bounds.X, motion.Bounds.Y
+}
+
+func MoveBody(body physics.Rect, delta physics.Vector) physics.Motion {
+	return collisionWorld.MoveAndSlide(body, delta)
+}
+
+func MovementLimit(x, y, dx, dy, w, h float64) (float64, bool) {
+	return collisionWorld.MovementLimit(physics.Rect{X: x, Y: y, W: w, H: h}, physics.Vector{X: dx, Y: dy})
 }
 
 func overlapsSpawnAltar(x, y, w, h float64) bool {
-	dx := max(0, math.Abs(x+w/2-SpawnAltarCenter)-w/2)
-	dy := max(0, math.Abs(y+h/2-SpawnAltarCenter)-h/2)
-	extent := SpawnAltarRadius * math.Cos(math.Pi/8)
-	diagonal := SpawnAltarRadius * (math.Cos(math.Pi/8) + math.Sin(math.Pi/8))
-	return dx < extent && dy < extent && dx+dy < diagonal
+	return (physics.Rect{X: x, Y: y, W: w, H: h}).OverlapsOctagon(
+		physics.Vector{X: SpawnAltarCenter, Y: SpawnAltarCenter}, SpawnAltarRadius,
+	)
 }

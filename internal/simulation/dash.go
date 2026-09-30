@@ -90,10 +90,9 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 			distance := p.MovementSpeed() * SpeedScale * DashSpeedMultiplier * step
 			for distance > 1e-9 {
 				travel := min(distance, 4)
-				x, y := MoveBy(p.X, p.Y, c.Direction, travel)
-				blocked := math.Abs(x-p.X-c.Direction.X*travel) > 1e-6 || math.Abs(y-p.Y-c.Direction.Y*travel) > 1e-6
-				p.X, p.Y = x, y
-				if blocked {
+				motion := moveByMotion(p.X, p.Y, c.Direction, travel)
+				p.X, p.Y = motion.Bounds.X, motion.Bounds.Y
+				if motion.Blocked() || motion.Rejected {
 					p.Stats.HP = max(BoostMinimumMass, p.Stats.HP-BumpCost)
 					p.X, p.Y = MoveBy(p.X, p.Y, Direction{X: -c.Direction.X, Y: -c.Direction.Y}, BumpKnockback)
 					c.Phase, c.Remaining = DashBumped, BumpStun

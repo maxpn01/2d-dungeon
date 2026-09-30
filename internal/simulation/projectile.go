@@ -52,7 +52,8 @@ func (w *World) advanceProjectiles(actors []eater) {
 		for step := range steps {
 			start := position{shot.X, shot.Y}
 			end := position{shot.X + shot.Direction.X*parameters.ShotSpeed*StepSeconds/float64(steps), shot.Y + shot.Direction.Y*parameters.ShotSpeed*StepSeconds/float64(steps)}
-			if !terrain.Walkable(end.x, end.y, parameters.ShotSize, parameters.ShotSize) || terrain.PrivateGateCrossed(start.x, start.y, end.x, end.y, parameters.ShotSize) {
+			wallFraction, wallBlocked := terrain.MovementLimit(start.x, start.y, end.x-start.x, end.y-start.y, parameters.ShotSize, parameters.ShotSize)
+			if terrain.PrivateGateCrossed(start.x, start.y, end.x, end.y, parameters.ShotSize) {
 				alive = false
 				break
 			}
@@ -64,6 +65,10 @@ func (w *World) advanceProjectiles(actors []eater) {
 				if t, hit := eatingContact(start, end, parameters.ShotSize, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step)/float64(steps)}, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step+1)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step+1)/float64(steps)}, actor.size); hit && (t < first || t == first && (winner < 0 || actor.id < actors[winner].id)) {
 					winner, first = i, t
 				}
+			}
+			if wallBlocked && (winner < 0 || wallFraction <= first) {
+				alive = false
+				break
 			}
 			shot.X, shot.Y = end.x, end.y
 			if winner >= 0 {

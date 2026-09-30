@@ -1,10 +1,10 @@
 package simulation
 
 import (
-	"math"
 	"math/rand/v2"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/physics"
 )
 
 const SafeZoneMaxMass = parameters.SafeZoneMaxMass
@@ -20,7 +20,7 @@ func newSafeZones() []SafeZone {
 		zone := SafeZone{X: MapMin + margin + rand.Float64()*(MapMax-MapMin-2*margin), Y: MapMin + margin + rand.Float64()*(MapMax-MapMin-2*margin), Radius: radius}
 		clear := true
 		for _, other := range zones {
-			if math.Hypot(zone.X-other.X, zone.Y-other.Y) < parameters.SafeZoneMinimumSeparation {
+			if (physics.Vector{X: zone.X, Y: zone.Y}).Distance(physics.Vector{X: other.X, Y: other.Y}) < parameters.SafeZoneMinimumSeparation {
 				clear = false
 				break
 			}
@@ -36,9 +36,9 @@ func InSafeZone(x, y, size, mass float64, zones []SafeZone) bool {
 	if mass <= 0 {
 		return false
 	}
-	bodyRadius := BodySize(size, mass) / 2
+	body := physics.Circle{Center: physics.Square(x, y, size).Center(), Radius: BodySize(size, mass) / 2}
 	for _, zone := range zones {
-		if math.Hypot(x+size/2-zone.X, y+size/2-zone.Y)+bodyRadius <= zone.Radius {
+		if (physics.Circle{Center: physics.Vector{X: zone.X, Y: zone.Y}, Radius: zone.Radius}).Contains(body) {
 			return true
 		}
 	}
