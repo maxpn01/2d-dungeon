@@ -13,13 +13,23 @@ type FeedingPatch struct {
 	X, Y, Radius, Capacity, Seconds int
 }
 type Den struct {
-	ID                  string
-	X, Y, Radius, Level int
-	HP                  float64
+	ID                                    string
+	X, Y, Left, Top, Right, Bottom, Level int
+	HP                                    float64
 }
 
-var Patches []FeedingPatch
-var Dens []Den
+var Patches = []FeedingPatch{
+	{ID: "northwest", X: 9, Y: -48, Radius: 4, Capacity: 7, Seconds: 8},
+	{ID: "northeast", X: 26, Y: -48, Radius: 4, Capacity: 7, Seconds: 8},
+	{ID: "southwest", X: 9, Y: -32, Radius: 4, Capacity: 7, Seconds: 8},
+	{ID: "southeast", X: 26, Y: -32, Radius: 4, Capacity: 7, Seconds: 8},
+}
+var Dens = []Den{
+	{ID: "northwest", X: 9, Y: -48, Left: 5, Top: -52, Right: 13, Bottom: -44, Level: 2, HP: 4},
+	{ID: "northeast", X: 26, Y: -48, Left: 22, Top: -52, Right: 30, Bottom: -44, Level: 2, HP: 4},
+	{ID: "southwest", X: 9, Y: -32, Left: 5, Top: -36, Right: 13, Bottom: -28, Level: 2, HP: 4},
+	{ID: "southeast", X: 26, Y: -32, Left: 22, Top: -36, Right: 30, Bottom: -28, Level: 2, HP: 4},
+}
 var cover = map[[2]int]bool{}
 
 func init() {
@@ -54,7 +64,7 @@ func CellPosition(x, y int, size float64) (float64, float64) {
 }
 
 func Validate() error {
-	start := [2]int{20, -1}
+	start := [2]int{17, -1}
 	seen := map[[2]int]bool{start: true}
 	second := [2]int{ReturnCircleX / Tile, ReturnCircleY / Tile}
 	seen[second] = true

@@ -111,6 +111,10 @@ func (w *World) syncSimulation() {
 			ai.actionState = ActionSleeping
 		case "fleeing":
 			ai.actionState = ActionFleeing
+		case "patrolling":
+			ai.actionState = ActionPatrolling
+		case "watching":
+			ai.actionState = ActionWatching
 		}
 		w.ais = append(w.ais, ai)
 		w.entities = append(w.entities, ai)

@@ -43,6 +43,10 @@ type aiState struct {
 	returning       bool
 	direction       Direction
 	wanderTicks     int
+	patrolX         float64
+	patrolY         float64
+	patrolTicks     int
+	patrolPause     int
 	respawnTick     uint64
 	awakeTicks      int
 	asleepTicks     int
@@ -56,8 +60,14 @@ func (w *World) newDenAI(den terrain.Den) aiState {
 	w.nextAI++
 	x, y := terrain.CellPosition(den.X, den.Y, AISize)
 	stats := NewStats()
-	stats.Speed = AISpeed
-	return aiState{den: den, settleTicks: AISettleTicks, awakeTicks: AIAwakeSeconds * TickRate, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "emerging", Character: randomAICharacter()}}
+	stats.Level, stats.HP, stats.Speed = den.Level, den.HP, AISpeed*.65
+	return aiState{den: den, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "patrolling", Character: Square}}
+}
+
+func (w *World) spawnEntranceGuards() {
+	for _, den := range terrain.Dens {
+		w.ais = append(w.ais, w.newDenAI(den))
+	}
 }
 
 func randomAICharacter() Character {
@@ -91,14 +101,21 @@ func (w *World) updateAIs() {
 			continue
 		}
 		input := w.aiInput(ai)
+		oldX, oldY := ai.X, ai.Y
 		actor := Player{X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character, Split: ai.Split}
 		actor.GatesClosed = w.boss.Phase == "fighting"
 		AdvancePlayer(&actor, input, StepSeconds, w.safeZones)
 		ai.X, ai.Y, ai.Stats, ai.Combat, ai.Split = actor.X, actor.Y, actor.Stats, actor.Combat, actor.Split
+		if terrain.PrivateGateCrossed(oldX, oldY, ai.X, ai.Y, AISize) || ai.den.ID != "" && !terrain.InEntranceRoom(ai.X, ai.Y, AISize) {
+			ai.X, ai.Y = oldX, oldY
+		}
 	}
 }
 
 func (w *World) aiInput(ai *aiState) Direction {
+	if ai.den.ID != "" {
+		return ai.patrolInput()
+	}
 	ai.attackCooldown = max(0, ai.attackCooldown-1)
 	if ai.settleTicks > 0 {
 		ai.settleTicks--
@@ -187,8 +204,64 @@ func (w *World) aiInput(ai *aiState) Direction {
 	return d
 }
 
-// Large AIs cannot enter a refuge. Steer around its rim when it blocks the
-// direct route to prey or food, instead of repeatedly walking into it.
+func (ai *aiState) patrolInput() Direction {
+	if ai.patrolPause > 0 {
+		ai.patrolPause--
+		ai.Behavior = "watching"
+		return Direction{}
+	}
+	if ai.patrolTicks == 0 {
+		ai.choosePatrolTarget()
+	}
+	if math.Hypot(ai.patrolX-ai.X, ai.patrolY-ai.Y) <= 18 {
+		ai.X, ai.Y = ai.patrolX, ai.patrolY
+		ai.patrolTicks = 0
+		ai.patrolPause = TickRate/3 + rand.IntN(TickRate/2)
+		ai.Behavior = "watching"
+		return Direction{}
+	}
+	ai.patrolTicks--
+	ai.Behavior = "patrolling"
+	dx, dy := ai.patrolX-ai.X, ai.patrolY-ai.Y
+	distance := math.Hypot(dx, dy)
+	return Direction{X: dx / distance, Y: dy / distance}
+}
+
+func (ai *aiState) choosePatrolTarget() {
+	left := float64(ai.den.Left*terrain.Tile + 8)
+	right := float64((ai.den.Right+1)*terrain.Tile - AISize - 8)
+	top := float64(ai.den.Top*terrain.Tile + 8)
+	bottom := float64((ai.den.Bottom+1)*terrain.Tile - AISize - 8)
+	for range 24 {
+		x := left + rand.Float64()*(right-left)
+		y := top + rand.Float64()*(bottom-top)
+		if math.Hypot(x-ai.X, y-ai.Y) < 100 || !terrain.InEntranceRoom(x, y, AISize) {
+			continue
+		}
+		ai.patrolX, ai.patrolY = x, y
+		ai.patrolTicks = 5 * TickRate
+		return
+	}
+	// A temporarily crowded region still gives the guard somewhere to go.
+	ai.patrolX, ai.patrolY = left, top
+	ai.patrolTicks = 5 * TickRate
+}
+
+func (w *World) respawnEntranceGuards() {
+	for i := range w.ais {
+		ai := &w.ais[i]
+		if ai.den.ID == "" || ai.respawnTick == 0 || w.tick < ai.respawnTick {
+			continue
+		}
+		x, y := terrain.CellPosition(ai.den.X, ai.den.Y, AISize)
+		if !w.denClear(x, y, i) {
+			ai.respawnTick = w.tick + TickRate
+			continue
+		}
+		*ai = w.newDenAI(ai.den)
+	}
+}
+
 func (w *World) aiApproach(ai *aiState, x, y float64) Direction {
 	direct := ai.approach(x, y)
 	if ai.Stats.HP <= SafeZoneMaxMass || (direct.X == 0 && direct.Y == 0) {
@@ -309,7 +382,6 @@ func (ai *aiState) updateSleep(threat bool) bool {
 	return false
 }
 
-// Delay arrivals anywhere a player could immediately see or collide with them.
 func (w *World) denClear(x, y float64, skip int) bool {
 	for _, p := range w.players {
 		if !p.Dead && math.Hypot(p.X-x, p.Y-y) < AIDetectionRadius+PlayerSize {

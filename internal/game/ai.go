@@ -20,6 +20,8 @@ const (
 	ActionEvading
 	ActionAlerted
 	ActionEmerging
+	ActionPatrolling
+	ActionWatching
 )
 
 type AI struct {
@@ -78,6 +80,10 @@ func (state AIActionState) String() string {
 		return "emerging"
 	case ActionSleeping:
 		return "sleeping"
+	case ActionPatrolling:
+		return "patrolling"
+	case ActionWatching:
+		return "watching"
 	default:
 		return "unknown"
 	}

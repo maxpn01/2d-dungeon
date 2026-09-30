@@ -142,6 +142,9 @@ func (w *World) consumeFruits(eaters []eater) {
 		earliest := math.Inf(1)
 		tryActor := func(i int) {
 			actor := eaters[i]
+			if actor.ai != nil && actor.ai.den.ID != "" {
+				return
+			}
 			if fruit.Ejected && actor.player != nil && actor.player.ID == fruit.Source && w.tick < fruit.OwnerPickupTick {
 				return
 			}
@@ -211,6 +214,10 @@ func eatingContact(start, end position, size float64, targetStart, targetEnd pos
 }
 
 func (e eater) gain(hp, xp float64) {
+	if e.ai != nil && e.ai.den.ID != "" {
+		e.stats.HP = min(e.ai.den.HP, e.stats.HP+hp)
+		return
+	}
 	if (e.player == nil || e.player.Split.Count() == 0) && (e.ai == nil || e.ai.Split.Count() == 0) {
 		e.stats.Eat(hp, xp)
 		return

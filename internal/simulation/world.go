@@ -86,6 +86,8 @@ type World struct {
 
 func NewWorld() *World {
 	w := &World{bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState)}
+	w.spawnEntranceGuards()
+	w.replenishEntranceFood()
 	return w
 }
 
@@ -220,6 +222,8 @@ func (w *World) Step(now time.Time) {
 		}
 	}
 	w.updateAIs()
+	w.respawnEntranceGuards()
+	w.replenishEntranceFood()
 	w.advanceFood()
 	eaters := w.eaters(previous)
 	w.resolvePredation(eaters)

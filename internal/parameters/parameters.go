@@ -6,18 +6,18 @@ import "time"
 // derived world bounds used by both the client and server.
 const (
 	Tile           = 40
-	MinCellX       = -20
+	MinCellX       = -27
 	MaxCellX       = 100
-	MinCellY       = -192
-	SurfaceCells   = 40
+	MinCellY       = -234
+	SurfaceCells   = 36
 	SurfaceMin     = 10
 	SurfaceMax     = SurfaceCells*Tile - 10
 	North          = MinCellY * Tile
 	ActorSize      = 30
-	DescentCircleX = 1000
-	DescentCircleY = -5580
-	ReturnCircleX  = 1000
-	ReturnCircleY  = -6760
+	DescentCircleX = 720
+	DescentCircleY = -7260
+	ReturnCircleX  = 720
+	ReturnCircleY  = -8440
 )
 
 // Simulation timing and movement.
@@ -130,10 +130,10 @@ const (
 	BossFirstSpawnSeconds      = 300
 	BossRespawnIncreaseSeconds = 300
 	PortalSeconds              = 0.8
-	ArenaLeft                  = 12 * Tile
-	ArenaRight                 = 38 * Tile
-	ArenaTop                   = -134 * Tile
-	ArenaBottom                = -118 * Tile
+	ArenaLeft                  = 5 * Tile
+	ArenaRight                 = 31 * Tile
+	ArenaTop                   = -176 * Tile
+	ArenaBottom                = -160 * Tile
 	BossHuntTicks              = 24
 	BossWindupTicks            = 12
 	BossRushTicks              = 27

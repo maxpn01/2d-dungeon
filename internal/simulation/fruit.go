@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/terrain"
 )
 
 const (
@@ -27,8 +28,6 @@ type Fruit struct {
 	X, Y, Size           float64
 }
 
-// Natural food comes in three sizes. HP is stored on each fruit so the
-// reward stays tied to the pellet that was spawned, including in snapshots.
 var naturalFood = [...]struct {
 	size, hp float64
 }{
@@ -115,4 +114,55 @@ func (w *World) spawnFruit() {
 		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("f%d", w.nextFruit), X: x, Y: y, Size: size, HP: hp})
 		return
 	}
+}
+
+func (w *World) replenishEntranceFood() {
+	for _, patch := range terrain.Patches {
+		if w.tick < w.patchNext[patch.ID] {
+			continue
+		}
+		count := 0
+		for _, fruit := range w.fruits {
+			if fruit.Patch == patch.ID {
+				count++
+			}
+		}
+		for ; count < patch.Capacity; count++ {
+			if !w.spawnPatchFruit(patch) {
+				break
+			}
+		}
+		w.patchNext[patch.ID] = w.tick + uint64(patch.Seconds*TickRate)
+	}
+}
+
+func (w *World) spawnPatchFruit(patch terrain.FeedingPatch) bool {
+	size, hp := naturalFoodType()
+	if w.tick == 0 {
+		kind := naturalFood[w.nextFruit%uint64(len(naturalFood))]
+		size, hp = kind.size, kind.hp
+	}
+	centerX := float64(patch.X*terrain.Tile + terrain.Tile/2)
+	centerY := float64(patch.Y*terrain.Tile + terrain.Tile/2)
+	for range 40 {
+		x := centerX + (rand.Float64()*2-1)*float64(patch.Radius*terrain.Tile) - size/2
+		y := centerY + (rand.Float64()*2-1)*float64(patch.Radius*terrain.Tile) - size/2
+		if !terrain.InEntranceRoom(x, y, size) || !terrain.Walkable(x, y, size, size) {
+			continue
+		}
+		occupied := false
+		for _, fruit := range w.fruits {
+			if x < fruit.X+fruit.Size+5 && x+size+5 > fruit.X && y < fruit.Y+fruit.Size+5 && y+size+5 > fruit.Y {
+				occupied = true
+				break
+			}
+		}
+		if occupied {
+			continue
+		}
+		w.nextFruit++
+		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("f%d", w.nextFruit), Patch: patch.ID, X: x, Y: y, Size: size, HP: hp})
+		return true
+	}
+	return false
 }

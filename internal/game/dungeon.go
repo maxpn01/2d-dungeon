@@ -33,12 +33,11 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 				dungeonRect(px, py, 40, 40, c)
 				dungeonRect(px, py, 40, 1, color.RGBA{43, 49, 57, 255})
 				dungeonRect(px, py, 1, 40, color.RGBA{43, 49, 57, 255})
-				if (x == 19 || x == 20) && (id == 2 || id == 8 || id == 1) {
+				if (x == 17 || x == 18) && id == 1 && y >= -24 {
 					dungeonRect(px+4, py+3, 32, 34, color.RGBA{47, 52, 58, 255})
 					dungeonRect(px+7, py+6, 26, 1, color.RGBA{69, 70, 66, 255})
 				}
 				if terrain.Cover(x, y) {
-					// Arcane residue seeps from engraved stone; it confuses creature sight.
 					center := rl.NewVector2(float32(px+20), float32(py+20))
 					pulse := float32(.7 + .15*math.Sin(rl.GetTime()*1.4+float64(hash%31)))
 					dungeonRect(px+2, py+2, 36, 36, color.RGBA{33, 35, 57, 255})
@@ -77,14 +76,17 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 			}
 		}
 	}
-	for _, y := range []int{-55, -47} {
-		for _, x := range []int{18, 27} {
+	if top <= 0 && bottom >= -74 && left <= 34 && right >= 2 {
+		drawEntranceHall()
+	}
+	for _, y := range []int{-97, -89} {
+		for _, x := range []int{11, 20} {
 			if x+5 >= left && x <= right && y+4 >= top && y <= bottom {
 				drawDungeonPool(x*40, y*40)
 			}
 		}
 	}
-	for _, x := range []int{600, 920} {
+	for _, x := range []int{520, 840} {
 		dungeonRect(x, -80, 80, 80, stone)
 		dungeonRect(x+6, -74, 68, 5, paleStone)
 		dungeonRect(x+12, -60, 56, 48, color.RGBA{31, 39, 49, 255})
@@ -101,25 +103,6 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 			rl.DrawCircleLines(int32(cx), int32(cy), 110, stone)
 		}
 	}
-	for _, patch := range terrain.Patches {
-		px, py := patch.X*terrain.Tile, patch.Y*terrain.Tile
-		if px < left*40-160 || px > right*40+160 || py < top*40-160 || py > bottom*40+160 {
-			continue
-		}
-		rl.DrawCircleLines(int32(px+20), int32(py+20), float32(patch.Radius*terrain.Tile), color.RGBA{44, 82, 87, 255})
-		rl.DrawPolyLines(rl.NewVector2(float32(px+20), float32(py+20)), 4, 12, 45, runeColor)
-		rl.DrawCircleLines(int32(px+20), int32(py+20), 6, runeColor)
-	}
-	for _, den := range terrain.Dens {
-		px, py := den.X*terrain.Tile, den.Y*terrain.Tile
-		if px < left*40 || px > right*40 || py < top*40 || py > bottom*40 {
-			continue
-		}
-		for i := range 6 {
-			a := float64(i) * math.Pi / 3
-			dungeonRect(px+15+int(math.Cos(a)*26), py+15+int(math.Sin(a)*26), 10, 10, color.RGBA{124, 91, 67, 255})
-		}
-	}
 
 }
 
@@ -127,9 +110,15 @@ func drawDungeonLocation(x, y float32, width, height int32) {
 	name, hint := "SPAWN ZONE", "Head north through the dungeon entrance."
 	if y < 0 {
 		name, hint = "THE HOLLOW / FLOOR I", "Entrance lies to the south"
+		if x >= 15*terrain.Tile && x < 21*terrain.Tile && y >= -24*terrain.Tile {
+			name, hint = "I / ENTRANCE HALL", "The provision hall opens to the north."
+		}
 		for _, r := range terrain.Rooms {
 			if x >= float32(r.X*40) && x < float32((r.X+r.W)*40) && y >= float32(r.Y*40) && y < float32((r.Y+r.H)*40) {
 				name = "I / " + r.Name
+				if r.ID == "the-provision-hall" || r.ID == "western-garden" || r.ID == "eastern-garden" {
+					hint = "Gather food in the gardens. The north gate leads to the gate hall."
+				}
 				for _, tag := range r.Tags {
 					if tag == "refuge" {
 						hint = "Arcane veils confuse creatures. They do not stop attacks."
@@ -149,6 +138,64 @@ func drawDungeonLocation(x, y float32, width, height int32) {
 	rl.DrawRectangle(0, height-70, width, 70, rl.Fade(rl.Black, .8))
 	drawText(name, 24, height-57, 20, runeColor)
 	drawText(hint, 24, height-29, 16, rl.LightGray)
+}
+
+func drawEntranceHall() {
+	const tile = terrain.Tile
+	border := color.RGBA{71, 86, 94, 255}
+	for row := -74; row < 0; row++ {
+		for _, col := range []int{17, 18} {
+			dungeonRect(col*tile+4, row*tile+3, 32, 34, color.RGBA{47, 52, 58, 255})
+			dungeonRect(col*tile+7, row*tile+6, 26, 1, color.RGBA{69, 70, 66, 255})
+		}
+	}
+	for _, patch := range terrain.Patches {
+		cx, cy := patch.X*tile+tile/2, patch.Y*tile+tile/2
+		tint := color.RGBA{58, 115, 112, 255}
+		if patch.ID == "northeast" || patch.ID == "southwest" {
+			tint = color.RGBA{104, 93, 139, 255}
+		}
+		half := patch.Radius * tile
+		dungeonRect(cx-half, cy-half, half*2, half*2, rl.Fade(tint, .18))
+		rl.DrawRectangleLines(int32(cx-half), int32(cy-half), int32(half*2), int32(half*2), tint)
+		rl.DrawRectangleLines(int32(cx-half+12), int32(cy-half+12), int32(half*2-24), int32(half*2-24), rl.Fade(tint, .5))
+		for _, dx := range []int{-half, half - 8} {
+			for _, dy := range []int{-half, half - 8} {
+				dungeonRect(cx+dx, cy+dy, 8, 8, runeColor)
+			}
+		}
+		rl.DrawPolyLines(rl.NewVector2(float32(cx), float32(cy)), 4, 12, 45, runeColor)
+	}
+	line := func(x1, y1, x2, y2 int) {
+		rl.DrawLineEx(rl.NewVector2(float32(x1), float32(y1)), rl.NewVector2(float32(x2), float32(y2)), 3, border)
+	}
+	line(2*tile+12, -56*tile+12, 14*tile, -56*tile+12)
+	line(22*tile, -56*tile+12, 34*tile-12, -56*tile+12)
+	line(2*tile+12, -56*tile+12, 2*tile+12, -24*tile-12)
+	line(34*tile-12, -56*tile+12, 34*tile-12, -24*tile-12)
+	line(2*tile+12, -24*tile-12, 15*tile, -24*tile-12)
+	line(21*tile, -24*tile-12, 34*tile-12, -24*tile-12)
+	gateX, gateY := terrain.EntranceGateLeft, terrain.EntranceGateY
+	gateW := terrain.EntranceGateRight - gateX
+	for _, x := range []int{gateX - tile, gateX + gateW} {
+		dungeonRect(x-4, gateY-48, tile+8, 96, color.RGBA{22, 29, 38, 255})
+		dungeonRect(x, gateY-44, tile, 88, stone)
+		dungeonRect(x+4, gateY-40, tile-8, 5, paleStone)
+		dungeonRect(x+14, gateY-22, 12, 44, runeColor)
+	}
+	dungeonRect(gateX, gateY-34, gateW, 68, color.RGBA{24, 31, 44, 255})
+	dungeonRect(gateX, gateY-34, gateW, 5, paleStone)
+	dungeonRect(gateX, gateY+29, gateW, 5, paleStone)
+	phase := rl.GetTime()
+	pulse := float32(.48 + .10*math.Sin(phase*1.6))
+	for row := -28; row < 28; row++ {
+		distance := float64(row) / 28
+		glow := float32(1 - distance*distance)
+		shimmer := float32(.025 * math.Sin(phase*2+float64(row)*.06))
+		tint := color.RGBA{143, 123, 220, 255}
+		dungeonRect(gateX, gateY+row, gateW, 1, rl.Fade(tint, pulse*(.65+.35*glow)+shimmer))
+	}
+
 }
 
 func drawDungeonPool(x, y int) {

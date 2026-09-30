@@ -63,7 +63,7 @@ func (v *radarView) begin(m *Map) {
 	field := color.RGBA{30, 39, 43, 255}
 	v.rect(m.edgePosX.start, m.edgePosY.start, m.edgePosX.end-m.edgePosX.start, m.edgePosY.end-m.edgePosY.start, field)
 	v.rect(float32(int(m.sizeInCells.X)/2-2)*m.cellSize.X, float32(int(m.sizeInCells.Y)/2-2)*m.cellSize.Y, 5*m.cellSize.X, 5*m.cellSize.Y, rl.Gray)
-	v.rect(680, 0, 240, m.cellSize.Y, field)
+	v.rect(m.size.X/2-120, 0, 240, m.cellSize.Y, field)
 	for _, zone := range m.safeZones {
 		center := v.point(rl.NewVector2(float32(zone.X), float32(zone.Y)))
 		radius := float32(zone.Radius) * v.scale
