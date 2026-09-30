@@ -33,7 +33,7 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 				dungeonRect(px, py, 40, 40, c)
 				dungeonRect(px, py, 40, 1, color.RGBA{43, 49, 57, 255})
 				dungeonRect(px, py, 1, 40, color.RGBA{43, 49, 57, 255})
-				if (x == 24 || x == 25) && (id == 2 || id == 8 || id == 1) {
+				if (x == 19 || x == 20) && (id == 2 || id == 8 || id == 1) {
 					dungeonRect(px+4, py+3, 32, 34, color.RGBA{47, 52, 58, 255})
 					dungeonRect(px+7, py+6, 26, 1, color.RGBA{69, 70, 66, 255})
 				}
@@ -84,12 +84,7 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 			}
 		}
 	}
-	dungeonRect(880, 0, 240, 10, stone)
-	for x := 886; x < 1120; x += 20 {
-		dungeonRect(x, -8, 6, 18, paleStone)
-	}
-	drawTextAt("DUNGEON CLOSED", rl.NewVector2(908, 24), 18, runeColor)
-	for _, x := range []int{800, 1120} {
+	for _, x := range []int{600, 920} {
 		dungeonRect(x, -80, 80, 80, stone)
 		dungeonRect(x+6, -74, 68, 5, paleStone)
 		dungeonRect(x+12, -60, 56, 48, color.RGBA{31, 39, 49, 255})
@@ -129,7 +124,7 @@ func (m *Map) drawDungeon(ctx RenderContext) {
 }
 
 func drawDungeonLocation(x, y float32, width, height int32) {
-	name, hint := "OUTER FIELD", "Eat and grow. The dungeon is closed."
+	name, hint := "SPAWN ZONE", "Head north through the dungeon entrance."
 	if y < 0 {
 		name, hint = "THE HOLLOW / FLOOR I", "Entrance lies to the south"
 		for _, r := range terrain.Rooms {

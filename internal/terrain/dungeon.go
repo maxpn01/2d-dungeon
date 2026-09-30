@@ -67,7 +67,7 @@ var passages = []Room{
 	{X: 5, Y: -122, W: 10, H: 4}, {X: 5, Y: -122, W: 4, H: 7},
 	{X: 36, Y: -122, W: 10, H: 4}, {X: 42, Y: -122, W: 4, H: 7},
 	{X: 23, Y: -120, W: 4, H: 8}, {X: 23, Y: -138, W: 4, H: 6},
-	{X: 22, Y: -10, W: 6, H: 11, Name: ""},
+	{X: 17, Y: -10, W: 6, H: 11, Name: ""},
 	{X: 12, Y: -25, W: 8, H: 4, Name: ""}, {X: 30, Y: -25, W: 8, H: 4, Name: ""},
 	{X: 7, Y: -51, W: 4, H: 13, Name: ""}, {X: 39, Y: -51, W: 4, H: 13, Name: ""},
 	{X: 10, Y: -55, W: 8, H: 4, Name: ""}, {X: 32, Y: -55, W: 9, H: 4, Name: ""},
@@ -120,9 +120,6 @@ func Cell(x, y int) int  { return floors[[2]int{x, y}] }
 func Pool(x, y int) bool { return x >= 18 && x < 32 && y >= -55 && y < -43 && Cell(x, y) == 0 }
 
 func Walkable(x, y, w, h float64) bool {
-	if y < SurfaceMin && y+h > 0 {
-		return false
-	}
 	return walkableLayout(x, y, w, h)
 }
 
@@ -136,7 +133,7 @@ func walkableLayout(x, y, w, h float64) bool {
 	for cy := int(math.Floor(y / Tile)); cy <= int(math.Floor((y+h-.001)/Tile)); cy++ {
 		for cx := int(math.Floor(x / Tile)); cx <= int(math.Floor((x+w-.001)/Tile)); cx++ {
 			if cy >= 0 {
-				if y < 10 && (cx < 22 || cx >= 28) {
+				if y < 10 && (cx < 17 || cx >= 23) {
 					return false
 				}
 				continue

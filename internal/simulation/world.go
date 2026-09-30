@@ -85,10 +85,7 @@ type World struct {
 }
 
 func NewWorld() *World {
-	w := &World{safeZones: newSafeZones(), boss: newBoss(), bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState), aiSpawnTicks: InitialAISpawnDelay * TickRate}
-	for range InitialFruits {
-		w.spawnFruit()
-	}
+	w := &World{bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState)}
 	return w
 }
 
@@ -158,16 +155,6 @@ func (w *World) Step(now time.Time) {
 			delete(w.protectedUntil, id)
 		}
 	}
-	if w.aiSpawnTicks > 0 {
-		w.aiSpawnTicks--
-		if w.aiSpawnTicks == 0 {
-			w.spawnAIs()
-		}
-	}
-	w.respawnAIs()
-	if w.tick%fruitSpawnTicks == 0 {
-		w.spawnFruit()
-	}
 	previousCapacity := len(w.players) + len(w.ais)
 	for _, player := range w.players {
 		previousCapacity += len(player.Split)
@@ -211,6 +198,9 @@ func (w *World) Step(now time.Time) {
 		if drops >= MaxMassDrops {
 			ejectInput.Eject = false
 		}
+		if player.Y >= MapMin {
+			ejectInput.Eject = false
+		}
 		if food := EjectFood(&player.Player, ejectInput, StepSeconds); food != nil {
 			w.nextFruit++
 			food.ID = fmt.Sprintf("m%d", w.nextFruit)
@@ -249,7 +239,6 @@ func (w *World) Step(now time.Time) {
 	}
 	w.consumeFruits(eaters)
 	w.finishSplitCells()
-	w.updateBoss(previous)
 	for _, p := range w.players {
 		RepelPlayer(&p.Player, p.Player, w.safeZones)
 		clampPlayerBodies(&p.Player)
@@ -271,6 +260,14 @@ func (w *World) Step(now time.Time) {
 		}
 	}
 	w.updatePortals()
+	// The surface is only a respawn area while floor one is being redesigned.
+	remaining := w.fruits[:0]
+	for _, fruit := range w.fruits {
+		if fruit.Y < 0 {
+			remaining = append(remaining, fruit)
+		}
+	}
+	w.fruits = remaining
 }
 
 type Snapshot struct {

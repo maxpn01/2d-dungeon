@@ -54,7 +54,7 @@ func CellPosition(x, y int, size float64) (float64, float64) {
 }
 
 func Validate() error {
-	start := [2]int{24, -1}
+	start := [2]int{20, -1}
 	seen := map[[2]int]bool{start: true}
 	second := [2]int{ReturnCircleX / Tile, ReturnCircleY / Tile}
 	seen[second] = true
