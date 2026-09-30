@@ -52,6 +52,11 @@ func MaxHPForLevel(level int) float64 {
 	return StartingMaxHP + float64(parameters.HPPerLevelIncrease*levelsGained)
 }
 
+func MaxMPForLevel(level int) float64 {
+	level = max(1, min(MaxLevel, level))
+	return MaxMP + float64(parameters.MPPerLevelIncrease*(level-1))
+}
+
 func (s *Stats) Eat(hp, xp float64) {
 	s.GainXP(xp)
 	if hp > 0 && !math.IsNaN(hp) && !math.IsInf(hp, 0) {
@@ -61,7 +66,7 @@ func (s *Stats) Eat(hp, xp float64) {
 
 func (s *Stats) GainMP(amount float64) {
 	if amount > 0 && !math.IsNaN(amount) && !math.IsInf(amount, 0) {
-		s.MP = min(MaxMP, s.MP+amount)
+		s.MP = min(MaxMPForLevel(s.Level), s.MP+amount)
 	}
 }
 

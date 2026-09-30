@@ -235,7 +235,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	drawPlayerHUD(playerHUD{
 		name: m.view.Local.Name, avatar: characterColor(m.view.Local.Character), character: m.view.Local.Character,
 		level: stats.Level, maxLevel: simulation.MaxLevel,
-		mp: float32(stats.MP), maxMP: float32(simulation.MaxMP), hp: hp, maxHP: float32(simulation.MaxHPForLevel(stats.Level)),
+		mp: float32(stats.MP), maxMP: float32(simulation.MaxMPForLevel(stats.Level)), hp: hp, maxHP: float32(simulation.MaxHPForLevel(stats.Level)),
 		xp: float32(stats.XP), nextXP: float32(simulation.XPForNextLevel(stats.Level)),
 		speed: float32(effectivePlayerSpeed(m.view.Local.Character, stats.Speed, stats.HP, m.view.Local.Split)), fruit: len(m.view.Fruits), ais: len(m.view.AIs), players: alive,
 	}, window.width)

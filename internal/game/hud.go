@@ -35,7 +35,7 @@ func (h *HUD) draw() {
 	drawPlayerHUD(playerHUD{
 		name: w.player.name, avatar: w.player.color, character: w.player.character,
 		level: s.lvl, maxLevel: s.maxLvl,
-		mp: s.mp, maxMP: float32(simulation.MaxMP), hp: s.hp + float32(w.player.split.Mass()), maxHP: s.maxHP, xp: float32(s.exp), nextXP: calcExpForNextLvl(s.lvl),
+		mp: s.mp, maxMP: float32(simulation.MaxMPForLevel(s.lvl)), hp: s.hp + float32(w.player.split.Mass()), maxHP: s.maxHP, xp: float32(s.exp), nextXP: calcExpForNextLvl(s.lvl),
 		speed: float32(effectivePlayerSpeed(w.player.character, float64(s.speed), float64(s.hp), w.player.split)), fruit: len(w.fruitSpawner.fruits), ais: len(w.ais),
 	}, h.window.width)
 }

@@ -466,7 +466,7 @@ func validateFruits(fruits []protocol.Fruit) error {
 }
 
 func validStats(stats protocol.PlayerStats, baseSpeed float64) bool {
-	if math.IsNaN(stats.MP) || math.IsInf(stats.MP, 0) || stats.MP < 0 || stats.MP > simulation.MaxMP {
+	if math.IsNaN(stats.MP) || math.IsInf(stats.MP, 0) || stats.MP < 0 || stats.MP > simulation.MaxMPForLevel(stats.Level) {
 		return false
 	}
 	if stats.Level < 1 || stats.Level > simulation.MaxLevel || math.IsNaN(stats.XP) || math.IsInf(stats.XP, 0) ||
