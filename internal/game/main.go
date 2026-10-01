@@ -1,11 +1,11 @@
 package game
 
 import (
-	"image/color"
-	"time"
-
-	"raylib-2d-sandbox/internal/client"
+	"raylib-2d-sandbox/internal/gameplay"
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/rendering/primitives"
+	"raylib-2d-sandbox/internal/screens"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -13,15 +13,14 @@ import (
 type Game struct {
 	window              *Window
 	camera              rl.Camera2D
-	settings            *Settings
-	menu                *Menu
-	gameOver            *GameOver
-	multiplayerGameOver *GameOver
-	world               *World
-	hud                 *HUD
+	settings            *screens.Settings
+	menu                *screens.Menu
+	gameOver            *screens.GameOver
+	multiplayerGameOver *screens.GameOver
+	world               *gameplay.World
 	serverURL           string
-	multiplayer         *multiplayer
-	connectionMenu      *Menu
+	multiplayer         *gameplay.Multiplayer
+	connectionMenu      *screens.Menu
 }
 
 func NewGame() *Game {
@@ -34,34 +33,29 @@ func NewGame() *Game {
 
 	camera := rl.NewCamera2D(window.getWindowCenter(), rl.Vector2{}, 0, 1)
 
-	menu := NewMenu([]*MenuButton{
-		NewMenuButton("play", ActionPlay),
-		NewMenuButton("multiplayer", ActionMultiplayer),
-		NewMenuButton("settings", ActionSettings),
-		NewMenuButton("exit", ActionExit),
+	menu := screens.NewMenu([]*screens.MenuButton{
+		screens.NewMenuButton("play", screens.ActionPlay),
+		screens.NewMenuButton("multiplayer", screens.ActionMultiplayer),
+		screens.NewMenuButton("settings", screens.ActionSettings),
+		screens.NewMenuButton("exit", screens.ActionExit),
 	}, 30, rl.Black)
 
 	menu.Title = "2D SANDBOX"
 
-	settings := newSettings()
-	world := NewWorld()
-	world.player.name = settings.PlayerName
-	world.simulation.SetCharacter("player", settings.Character)
-	world.syncSimulation()
-
-	hud := NewHUD(world, window)
+	settings := screens.NewSettings()
+	world := gameplay.NewWorld()
+	world.Configure(settings.PlayerName, settings.Character)
 
 	return &Game{
 		settings:            settings,
 		window:              window,
 		camera:              camera,
 		menu:                menu,
-		gameOver:            NewGameOver(),
-		multiplayerGameOver: NewMultiplayerGameOver(),
+		gameOver:            screens.NewGameOver(),
+		multiplayerGameOver: screens.NewMultiplayerGameOver(),
 		world:               world,
-		hud:                 hud,
 		serverURL:           "ws://localhost:8080/ws",
-		connectionMenu:      NewMenu([]*MenuButton{NewMenuButton("retry", ActionMultiplayer), NewMenuButton("back to menu", ActionMenu)}, 20, rl.Black),
+		connectionMenu:      screens.NewMenu([]*screens.MenuButton{screens.NewMenuButton("retry", screens.ActionMultiplayer), screens.NewMenuButton("back to menu", screens.ActionMenu)}, 20, rl.Black),
 	}
 }
 
@@ -85,7 +79,7 @@ const (
 
 func (g *Game) leaveMultiplayer() {
 	if g.multiplayer != nil {
-		g.multiplayer.session.Close()
+		g.multiplayer.Close()
 		g.multiplayer = nil
 	}
 }
@@ -93,7 +87,7 @@ func (g *Game) leaveMultiplayer() {
 func (g *Game) run() {
 	g.window.initWindow()
 	defer g.window.close()
-	defer unloadTextFonts()
+	defer primitives.UnloadTextFonts()
 	defer g.leaveMultiplayer()
 	g.cameraFollowPlayer()
 	current := screenMenu
@@ -102,10 +96,10 @@ func (g *Game) run() {
 	for !rl.WindowShouldClose() && !exitRequested {
 		dt := rl.GetFrameTime()
 		if rl.IsKeyPressed(rl.KeyEscape) {
-			if current == screenSinglePlayer && g.world.snapshot.Players[0].ActiveStatue != "" {
-				g.world.closePerks()
-			} else if current == screenMultiplayer && g.multiplayer.view.Local.ActiveStatue != "" && !g.multiplayer.perks.closing {
-				g.multiplayer.closePerks()
+			if current == screenSinglePlayer && g.world.PerksOpen() {
+				g.world.ClosePerks()
+			} else if current == screenMultiplayer && g.multiplayer.PerksOpen() {
+				g.multiplayer.ClosePerks()
 			} else if mapOpen {
 				mapOpen = false
 			} else {
@@ -113,18 +107,18 @@ func (g *Game) run() {
 				case screenSettings:
 					current = screenMenu
 				case screenMultiplayer:
-					if g.multiplayer.chat.open {
-						g.multiplayer.chat.close()
+					if g.multiplayer.ChatOpen() {
+						g.multiplayer.CloseChat()
 					} else {
 						g.leaveMultiplayer()
 						current = screenMenu
 					}
 				case screenSinglePlayer:
-					if !g.world.player.isDeadFlag {
+					if !g.world.Dead() {
 						current = screenMenu
 					}
 				case screenMenu:
-					if !g.world.player.isDeadFlag {
+					if !g.world.Dead() {
 						g.startSinglePlayer()
 						current = screenSinglePlayer
 					}
@@ -134,156 +128,132 @@ func (g *Game) run() {
 		if rl.IsKeyPressed(rl.KeyM) && !rl.IsKeyPressed(rl.KeyEscape) && rl.IsWindowFocused() {
 			switch current {
 			case screenSinglePlayer:
-				if !g.world.player.isDeadFlag && g.world.snapshot.Players[0].ActiveStatue == "" {
+				if !g.world.Dead() && !g.world.PerksOpen() {
 					mapOpen = !mapOpen
 				}
 			case screenMultiplayer:
 				m := g.multiplayer
-				if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && !m.chat.open && m.view.Local.ActiveStatue == "" {
+				if m.CanOpenMap() {
 					mapOpen = !mapOpen
 				}
 			}
 		}
 		switch current {
 		case screenSinglePlayer:
-			if !g.world.player.isDeadFlag && !mapOpen {
-				g.world.readInput(g.camera, g.window)
-				g.world.update(dt)
+			if !g.world.Dead() && !mapOpen {
+				g.world.ReadInput(g.camera, g.window.width, g.window.height)
+				g.world.Update(dt)
 				g.cameraFollowPlayer()
 			}
 		case screenMultiplayer:
-			g.multiplayer.poll()
-			if g.multiplayer.view.Local.Dead || g.multiplayer.errorText != "" {
+			g.multiplayer.Poll()
+			if g.multiplayer.Dead() || g.multiplayer.Error() != "" {
 				mapOpen = false
 			}
-			g.multiplayer.readInput(dt, mapOpen, g.camera)
-			if g.multiplayer.view.Ready {
-				g.multiplayer.follow(&g.camera)
+			g.multiplayer.ReadInput(dt, mapOpen, g.camera)
+			if g.multiplayer.Ready() {
+				g.multiplayer.Follow(&g.camera)
 			}
 		}
 
 		rl.BeginDrawing()
 		rl.ClearBackground(g.window.bgColor)
-		action := ActionNone
+		action := screens.ActionNone
 		switch current {
 		case screenSettings:
-			action = g.settings.draw()
+			action = g.settings.Draw()
 		case screenMenu:
-			action = g.menu.draw()
+			action = g.menu.Draw()
 		case screenSinglePlayer:
-			if g.world.player.isDeadFlag && (g.world.eating == nil || g.world.eating.finished(time.Now())) {
-				action = g.gameOver.draw()
+			if g.world.Dead() {
+				action = g.gameOver.Draw()
 			} else if mapOpen {
 				g.drawFullMap(false)
 			} else {
-				rl.BeginMode2D(g.camera)
-				g.world.draw(RenderContext{Camera: g.camera, WindowWidth: g.window.width, WindowHeight: g.window.height})
-				rl.EndMode2D()
-				g.hud.draw()
-				drawBossSpawnTimer(g.world.snapshot.Boss, g.window.width)
-				g.world.drawMinimap(g.window.width)
-				drawDungeonLocation(g.world.player.pos.X, g.world.player.pos.Y, g.window.width, g.window.height)
-				p := g.world.snapshot.Players[0]
-				g.world.perks.draw(p.ActiveStatue, g.world.snapshot.Statues, p.Stats, g.window.width, g.window.height)
+				g.world.Draw(g.camera, g.window.width, g.window.height)
 			}
 		case screenMultiplayer:
 			m := g.multiplayer
 			switch {
-			case m.view.Local.Dead:
-				action = g.multiplayerGameOver.draw()
-			case m.errorText != "":
-				action = g.connectionMenu.draw()
+			case m.Dead():
+				action = g.multiplayerGameOver.Draw()
+			case m.Error() != "":
+				action = g.connectionMenu.Draw()
 				title := "Unable to connect"
-				if m.view.Ready {
+				if m.Ready() {
 					title = "Disconnected"
 				}
-				drawCenteredText(title, 150, 32, rl.RayWhite)
-				drawCenteredText(m.errorText, 200, 20, rl.LightGray)
-			case !m.view.Ready:
-				drawCenteredText("Connecting...", g.window.height/2-30, 30, rl.RayWhite)
-				drawCenteredText("Esc to cancel", g.window.height/2+20, 20, rl.LightGray)
+				primitives.DrawCenteredText(title, 150, 32, rl.RayWhite)
+				primitives.DrawCenteredText(m.Error(), 200, 20, rl.LightGray)
+			case !m.Ready():
+				primitives.DrawCenteredText("Connecting...", g.window.height/2-30, 30, rl.RayWhite)
+				primitives.DrawCenteredText("Esc to cancel", g.window.height/2+20, 20, rl.LightGray)
 			case mapOpen:
 				g.drawFullMap(true)
 			default:
-				m.draw(g.camera, g.window)
+				m.Draw(g.camera, g.window.width, g.window.height)
 			}
 		}
 		rl.EndDrawing()
 
-		if action != ActionNone {
+		if action != screens.ActionNone {
 			mapOpen = false
 		}
 
 		// Screen transitions happen after drawing, on the same thread as raylib.
 		switch action {
-		case ActionSettings:
-			g.settings.open()
+		case screens.ActionSettings:
+			g.settings.Open()
 			current = screenSettings
-		case ActionSaveSettings:
-			g.world.player.name = g.settings.PlayerName
+		case screens.ActionSaveSettings:
+			g.world.SetName(g.settings.PlayerName)
 			current = screenMenu
-		case ActionPlay:
+		case screens.ActionPlay:
 			g.leaveMultiplayer()
 			g.startSinglePlayer()
 			current = screenSinglePlayer
-		case ActionMultiplayer:
-			if g.multiplayer != nil && g.multiplayer.view.Ready && g.multiplayer.view.Local.Dead && g.multiplayer.errorText == "" {
-				g.multiplayer.session.Respawn()
-				g.multiplayer.eating = nil
-				g.multiplayer.motion = client.Motion{}
-				g.multiplayer.suppressShootUntilRelease = true
+		case screens.ActionMultiplayer:
+			if g.multiplayer != nil && g.multiplayer.Ready() && g.multiplayer.Dead() && g.multiplayer.Error() == "" {
+				g.multiplayer.Respawn()
 				current = screenMultiplayer
 				break
 			}
-			var history []client.ChatEntry
+			var history []protocol.ChatEntry
 			if g.multiplayer != nil {
-				history = g.multiplayer.session.Chat()
+				history = g.multiplayer.ChatHistory()
 			}
 			g.leaveMultiplayer()
-			g.multiplayer = newMultiplayer(g.serverURL, g.settings.PlayerName, g.settings.Character)
-			g.multiplayer.session.RestoreChat(history)
+			g.multiplayer = gameplay.NewMultiplayer(g.serverURL, g.settings.PlayerName, g.settings.Character)
+			g.multiplayer.RestoreChat(history)
 			current = screenMultiplayer
-		case ActionMenu:
+		case screens.ActionMenu:
 			g.leaveMultiplayer()
 			current = screenMenu
-		case ActionExit:
+		case screens.ActionExit:
 			exitRequested = true
 		}
 	}
 }
 
 func (g *Game) startSinglePlayer() {
-	if g.world.player.character != g.settings.Character {
-		g.restart()
-	} else if g.world.player.isDeadFlag {
-		g.world.respawn()
+	if g.world.Character() != g.settings.Character {
+		g.world = gameplay.NewWorld()
+		g.world.Configure(g.settings.PlayerName, g.settings.Character)
 	}
-	if !g.world.started {
-		g.world.feedback.spawns["player"] = time.Now()
-		g.world.started = true
-	}
-	g.world.player.name = g.settings.PlayerName
-	g.world.player.input = PlayerInput{}
-	g.world.player.suppressShootUntilRelease = true
-	g.cameraFollowPlayer()
-}
-
-func drawCenteredText(text string, y, size int32, tint color.RGBA) {
-	drawText(text, (int32(rl.GetScreenWidth())-measureText(text, size))/2, y, size, tint)
-}
-
-func (g *Game) restart() {
-	g.world = NewWorld()
-	g.world.player.name = g.settings.PlayerName
-	g.world.simulation.SetCharacter("player", g.settings.Character)
-	g.world.syncSimulation()
-	g.hud = NewHUD(g.world, g.window)
+	g.world.Start(g.settings.PlayerName)
 	g.cameraFollowPlayer()
 }
 
 func (g *Game) cameraFollowPlayer() {
-	g.camera.Target = rl.NewVector2(
-		g.world.player.pos.X+g.world.player.size.X/2,
-		g.world.player.pos.Y+g.world.player.size.Y/2,
-	)
+	g.camera.Target = g.world.Center()
+}
+
+func (g *Game) drawFullMap(multiplayer bool) {
+	width, height := int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight())
+	screens.DrawFullMapBackground(g.menu.BackgroundColor, height)
+	if multiplayer {
+		g.multiplayer.DrawMap(width, height)
+	} else {
+		g.world.DrawMap(width, height)
+	}
 }

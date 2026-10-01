@@ -62,27 +62,7 @@ func (h *Hub) Run(ctx context.Context) {
 
 	broadcast := func() {
 		for {
-			snapshot := world.Snapshot()
-			players := make([]protocol.Player, 0, len(snapshot.Players))
-			for _, state := range snapshot.Players {
-				players = append(players, protocol.Player{
-					ActiveStatue: state.ActiveStatue,
-					EntranceGate: state.EntranceGate, ShotCooldown: state.ShotCooldown, EjectCooldown: state.EjectCooldown, Character: state.Character, Split: state.Split, GatesClosed: state.GatesClosed, InArena: state.InArena, TeleportCharge: state.TeleportCharge, Combat: state.Combat, Name: names[state.ID], Dead: state.Dead, KilledBy: state.KilledBy, ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
-					Stats: state.Stats,
-				})
-			}
-			fruits := make([]protocol.Fruit, 0, len(snapshot.Fruits))
-			for _, fruit := range snapshot.Fruits {
-				fruits = append(fruits, protocol.Fruit{Source: fruit.Source, HP: fruit.HP, MP: fruit.MP, ID: fruit.ID, X: fruit.X, Y: fruit.Y, Size: fruit.Size})
-			}
-			ais := make([]protocol.AI, 0, len(snapshot.AIs))
-			for _, ai := range snapshot.AIs {
-				ais = append(ais, protocol.AI{
-					Combat: ai.Combat, Behavior: ai.Behavior, Character: ai.Character, Split: ai.Split, ID: ai.ID, X: ai.X, Y: ai.Y, Size: simulation.AISize,
-					Stats: ai.Stats,
-				})
-			}
-			message := protocol.Message{Statues: snapshot.Statues, Projectiles: snapshot.Projectiles, SafeZones: snapshot.SafeZones, Boss: snapshot.Boss, Type: protocol.TypeSnapshot, Tick: snapshot.Tick, Players: &players, Fruits: &fruits, AIs: &ais}
+			message := protocol.SnapshotFromSimulation(world.Snapshot(), names).Message()
 			dropped := false
 			for c := range clients {
 				select {
@@ -140,7 +120,7 @@ func (h *Hub) Run(ctx context.Context) {
 			}
 			if event.message.Type == protocol.TypeInput {
 				d := event.message.Direction
-				if !world.Command(event.client.id, simulation.Direction{Shoot: d.Shoot, X: d.X, Y: d.Y, Interact: d.Interact, Boost: d.Boost, Dash: d.Dash, AimX: d.AimX, AimY: d.AimY}, event.message.Sequence, time.Now()) {
+				if !world.Command(event.client.id, d.Simulation(), event.message.Sequence, time.Now()) {
 					remove(event.client)
 					broadcast()
 				}

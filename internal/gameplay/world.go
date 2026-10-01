@@ -1,0 +1,145 @@
+package gameplay
+
+import (
+	"time"
+
+	"raylib-2d-sandbox/internal/hud"
+	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/rendering"
+	"raylib-2d-sandbox/internal/rendering/primitives"
+	"raylib-2d-sandbox/internal/simulation"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
+)
+
+const localPlayerID = "player"
+
+type World struct {
+	presentation
+	simulation       *simulation.World
+	accumulator      float64
+	previousSnapshot protocol.Snapshot
+	snapshot         protocol.Snapshot
+	player           protocol.Player
+	ais              []protocol.AI
+	controls         controls
+	direction        protocol.Direction
+	name             string
+	started          bool
+}
+
+func NewWorld() *World {
+	w := &World{simulation: simulation.NewWorld(), presentation: newPresentation()}
+	w.simulation.Join(localPlayerID)
+	w.syncSimulation()
+	w.gameMap.Exploration.Reveal(w.Center())
+	return w
+}
+
+func (w *World) Update(dt float32) {
+	w.accumulator += float64(min(dt, 0.25))
+	for w.accumulator >= simulation.StepSeconds && !w.Dead() {
+		now := time.Now()
+		w.simulation.Input(localPlayerID, w.direction.Simulation(), now)
+		w.direction.Shoot, w.direction.Dash, w.direction.Interact = false, false, false
+		w.simulation.Step(now)
+		w.accumulator -= simulation.StepSeconds
+		w.syncSimulation()
+	}
+	w.interpolateActors()
+	w.gameMap.Exploration.Reveal(w.Center())
+}
+
+func (w *World) ReadInput(camera rl.Camera2D, width, height int32) {
+	p := w.snapshot.Players[0]
+	statue := w.perks.Sync(p.ActiveStatue, w.snapshot.Statues)
+	if statue != nil {
+		w.direction = protocol.Direction{}
+		w.controls.suppressShootUntilRelease = true
+		if card := w.perks.Read(*statue, p.Stats, width, height); card >= 0 {
+			w.simulation.ChoosePerk(localPlayerID, statue.ID, statue.Cycle, card)
+			w.syncSimulation()
+		}
+		return
+	}
+	if !rl.IsWindowFocused() {
+		w.direction = protocol.Direction{}
+		return
+	}
+	next := w.controls.read(camera, w.Center(), p.Combat.Facing)
+	next.Shoot = !w.controls.suppressShootUntilRelease && (next.Shoot || w.direction.Shoot)
+	next.Dash = next.Dash || w.direction.Dash
+	next.Interact = next.Interact || w.direction.Interact
+	w.direction = next
+}
+
+func (w *World) ClosePerks() {
+	w.simulation.CloseOffer(localPlayerID)
+	w.controls.suppressShootUntilRelease = true
+	w.syncSimulation()
+}
+
+func (w *World) Respawn() {
+	if !w.simulation.Respawn(localPlayerID) {
+		return
+	}
+	w.direction = protocol.Direction{}
+	w.controls.suppressShootUntilRelease = true
+	w.accumulator = 0
+	w.syncSimulation()
+	w.previousSnapshot = w.snapshot
+	w.perks = hud.PerkPanel{}
+}
+
+func (w *World) syncSimulation() {
+	snapshot := protocol.SnapshotFromSimulation(w.simulation.Snapshot(), map[string]string{localPlayerID: w.name})
+	w.feedback.Observe(time.Now(), snapshot)
+	w.previousSnapshot, w.snapshot = w.snapshot, snapshot
+	w.player = snapshot.Players[0]
+	w.player.Split = w.player.Split.Clone()
+	w.ais = append(w.ais[:0], snapshot.AIs...)
+	for i := range w.ais {
+		w.ais[i].Split = w.ais[i].Split.Clone()
+	}
+}
+
+func (w *World) Configure(name string, character simulation.Character) {
+	w.name = name
+	w.simulation.SetCharacter(localPlayerID, character)
+	w.syncSimulation()
+}
+func (w *World) SetName(name string) {
+	w.name, w.player.Name = name, name
+	w.snapshot.Players[0].Name = name
+}
+func (w *World) Character() simulation.Character { return w.player.Character }
+func (w *World) Dead() bool                      { return w.player.Dead }
+func (w *World) PerksOpen() bool                 { return w.snapshot.Players[0].ActiveStatue != "" }
+func (w *World) Center() rl.Vector2              { return playerCenter(w.player) }
+
+func (w *World) Start(name string) {
+	if w.Dead() {
+		w.Respawn()
+	}
+	if !w.started {
+		w.feedback.Spawn(localPlayerID, time.Now())
+		w.started = true
+	}
+	w.SetName(name)
+	w.direction = protocol.Direction{}
+	w.controls.suppressShootUntilRelease = true
+}
+
+func (w *World) scene() rendering.Scene {
+	return rendering.Scene{
+		Snapshot: w.snapshot, Local: w.snapshot.Players[0], RenderedPlayers: []protocol.Player{w.player}, RenderedAIs: w.ais,
+		PreviousProjectiles: w.previousSnapshot.Projectiles, ProjectileAlpha: w.accumulator / simulation.StepSeconds,
+	}
+}
+
+func (w *World) Draw(camera rl.Camera2D, width, height int32) {
+	w.presentation.draw(primitives.Context{Camera: camera, WindowWidth: width, WindowHeight: height}, w.scene(), false)
+	p := w.snapshot.Players[0]
+	w.perks.Draw(p.ActiveStatue, w.snapshot.Statues, p.Stats, width, height)
+}
+func (w *World) DrawMap(width, height int32) { w.presentation.drawRadar(width, height, w.scene()) }
