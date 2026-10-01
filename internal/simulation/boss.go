@@ -8,7 +8,7 @@ import (
 
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 )
 
 const (
@@ -21,10 +21,6 @@ const (
 	BossCountdown   = parameters.BossCountdown
 	BossAggroRadius = parameters.BossAggroRadius
 	PortalSeconds   = parameters.PortalSeconds
-	ArenaLeft       = parameters.ArenaLeft
-	ArenaRight      = parameters.ArenaRight
-	ArenaTop        = parameters.ArenaTop
-	ArenaBottom     = parameters.ArenaBottom
 )
 
 type Point struct{ X, Y float64 }
@@ -90,10 +86,16 @@ func (w *World) placeBoss() {
 	}
 }
 
-var arenaBounds = physics.Rect{X: ArenaLeft, Y: ArenaTop, W: ArenaRight - ArenaLeft, H: ArenaBottom - ArenaTop}
+func bossArenaBounds() physics.Rect {
+	room, ok := worldmap.Default().RoomWithRole(worldmap.BossArena)
+	if !ok {
+		return physics.Rect{}
+	}
+	return room.Bounds()
+}
 
 func InsideArena(x, y, size float64) bool {
-	return arenaBounds.Contains(physics.Square(x, y, size))
+	return bossArenaBounds().Contains(physics.Square(x, y, size))
 }
 
 func ConstrainArena(p *Player, oldX, oldY float64) {
@@ -101,9 +103,9 @@ func ConstrainArena(p *Player, oldX, oldY float64) {
 		return
 	}
 	if p.InArena {
-		body := physics.Square(p.X, p.Y, PlayerSize).ClampedTo(arenaBounds)
+		body := physics.Square(p.X, p.Y, PlayerSize).ClampedTo(bossArenaBounds())
 		p.X, p.Y = body.X, body.Y
-	} else if arenaBounds.Overlaps(physics.Square(p.X, p.Y, PlayerSize)) {
+	} else if bossArenaBounds().Overlaps(physics.Square(p.X, p.Y, PlayerSize)) {
 		p.X, p.Y = oldX, oldY
 	}
 }
@@ -283,7 +285,7 @@ func (w *World) detachBossPart(index int, oldTail *[]Point, drop bool) float64 {
 	}
 	if drops < MaxMassDrops {
 		w.nextFruit++
-		x, y := terrain.Move(segment.X, segment.Y, (BossSize-FruitSize)/2, (BossSize-FruitSize)/2, FruitSize, FruitSize)
+		x, y := worldmap.Default().Move(segment.X, segment.Y, (BossSize-FruitSize)/2, (BossSize-FruitSize)/2, FruitSize, FruitSize)
 		w.fruits = append(w.fruits, Fruit{ID: fmt.Sprintf("m%d", w.nextFruit), Source: "boss", HP: amount, X: x, Y: y, Size: FruitSize, AvailableTick: w.tick + HitProtectionTicks, ExpiresTick: w.tick + parameters.BossDropLifetimeTicks})
 	}
 	return amount
@@ -362,12 +364,15 @@ func (w *World) updatePortals() {
 			p.TeleportCharge = 0
 			continue
 		}
-		x, y := float64(terrain.DescentCircleX), float64(terrain.DescentCircleY)
-		toX, toY := float64(terrain.ReturnCircleX), float64(terrain.ReturnCircleY)
-		if terrain.FloorTwo(p.X, p.Y) {
-			x, y, toX, toY = toX, toY, x, y
+		portal, distance, found := nearestPortal(p.X+PlayerSize/2, p.Y+PlayerSize/2)
+		if !found {
+			p.TeleportCharge = 0
+			p.portalCooldown = 0
+			continue
 		}
-		distance := math.Hypot(p.X+PlayerSize/2-x, p.Y+PlayerSize/2-y)
+		destination, _ := worldmap.Default().Portal(portal.Destination)
+		landing := destination.Position()
+		toX, toY := landing.X, landing.Y
 		if p.portalCooldown != 0 {
 			if distance > 90 {
 				p.portalCooldown = 0
@@ -394,4 +399,22 @@ func (w *World) updatePortals() {
 			p.direction = Direction{}
 		}
 	}
+}
+
+func nearestPortal(x, y float64) (worldmap.PortalPoint, float64, bool) {
+	world := worldmap.Default()
+	floor := world.FloorAt(x, y)
+	nearest := worldmap.PortalPoint{}
+	distance := math.Inf(1)
+	for _, portal := range world.Portals() {
+		if portal.Floor != floor {
+			continue
+		}
+		position := portal.Position()
+		candidate := math.Hypot(x-position.X, y-position.Y)
+		if candidate < distance {
+			nearest, distance = portal, candidate
+		}
+	}
+	return nearest, distance, nearest.ID != ""
 }

@@ -2,11 +2,11 @@ package simulation
 
 import (
 	"math"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 )
 
 func (w *World) spawnPosition(slot uint64) (float64, float64) {
-	center := float64(terrain.SpawnAltarCenter)
+	center := float64(worldmap.SpawnAltarCenter)
 	bestX, bestY, bestDistance := center-PlayerSize/2, center-80-PlayerSize/2, -1.0
 	for offset := uint64(0); offset < 400; offset++ {
 		cell := (slot + offset) % 400
@@ -87,18 +87,18 @@ func (ai *aiState) fleeFrom(threatX, threatY float64) Direction {
 }
 
 func (ai *aiState) sees(x, y float64) bool {
-	return terrain.Visible(ai.X+AISize/2, ai.Y+AISize/2, x+AISize/2, y+AISize/2)
+	return worldmap.Default().Visible(ai.X+AISize/2, ai.Y+AISize/2, x+AISize/2, y+AISize/2)
 }
 func (ai *aiState) inTerritory(x, y float64) bool {
 	return x >= MapMin && y >= MapMin && x <= MaxPosition && y <= MaxPosition
 }
 func (ai *aiState) navigate(x, y float64) Direction {
 	dx, dy := x-ai.X, y-ai.Y
-	mx, my := terrain.Move(ai.X, ai.Y, dx, dy, AISize, AISize)
+	mx, my := worldmap.Default().Move(ai.X, ai.Y, dx, dy, AISize, AISize)
 	if math.Hypot(mx-x, my-y) < .1 {
 		return ai.approach(x, y)
 	}
-	nx, ny, ok := terrain.NextStep(ai.X, ai.Y, x, y, AISize)
+	nx, ny, ok := worldmap.Default().NextStep(ai.X, ai.Y, x, y, AISize)
 	if !ok {
 		return Direction{}
 	}

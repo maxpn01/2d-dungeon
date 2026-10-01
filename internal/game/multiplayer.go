@@ -9,7 +9,6 @@ import (
 	"raylib-2d-sandbox/internal/client"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
-	"raylib-2d-sandbox/internal/terrain"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -24,7 +23,7 @@ type multiplayer struct {
 	rendered                  []protocol.Player
 	session                   *client.Session
 	view                      client.Update
-	gameMap                   *Map
+	gameMap                   *mapView
 	errorText                 string
 	chat                      chatBox
 	eating                    *eatingScene
@@ -35,7 +34,7 @@ func newMultiplayer(url, name string, character simulation.Character) *multiplay
 	return &multiplayer{
 		suppressShootUntilRelease: true,
 		session:                   client.ConnectWithCharacter(url, name, character),
-		gameMap:                   NewMap(rl.NewVector2(terrain.SurfaceCells*terrain.Tile/10, terrain.SurfaceCells*terrain.Tile/10), rl.NewVector2(10, 10), rl.Black, rl.Gray),
+		gameMap:                   newMapView(),
 	}
 }
 

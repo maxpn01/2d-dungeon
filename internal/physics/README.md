@@ -83,5 +83,5 @@ first touching at exactly the end of the interval does not count as overlap.
 Invalid inputs return `(0, false)`.
 
 Map layout, pathfinding, gate state, damage, ability timing, and movement-speed
-rules belong to terrain or simulation. Rendering and interface hit checks belong
+rules belong to worldmap or simulation. Rendering and interface hit checks belong
 to the game package. Physics has no dependency on those packages or raylib.

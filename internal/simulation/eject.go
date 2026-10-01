@@ -4,7 +4,7 @@ import (
 	"math"
 
 	"raylib-2d-sandbox/internal/parameters"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 )
 
 const EjectInterval = parameters.EjectInterval
@@ -16,7 +16,7 @@ func (w *World) advanceFood() {
 		if !f.Ejected {
 			continue
 		}
-		f.X, f.Y = terrain.Move(f.X, f.Y, f.VelocityX*StepSeconds, f.VelocityY*StepSeconds, f.Size, f.Size)
+		f.X, f.Y = worldmap.Default().Move(f.X, f.Y, f.VelocityX*StepSeconds, f.VelocityY*StepSeconds, f.Size, f.Size)
 		decay := math.Exp(-7 * StepSeconds)
 		f.VelocityX *= decay
 		f.VelocityY *= decay

@@ -6,7 +6,7 @@ import (
 	"math/rand/v2"
 
 	"raylib-2d-sandbox/internal/parameters"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 )
 
 type Projectile struct {
@@ -52,8 +52,8 @@ func (w *World) advanceProjectiles(actors []eater) {
 		for step := range steps {
 			start := position{shot.X, shot.Y}
 			end := position{shot.X + shot.Direction.X*parameters.ShotSpeed*StepSeconds/float64(steps), shot.Y + shot.Direction.Y*parameters.ShotSpeed*StepSeconds/float64(steps)}
-			wallFraction, wallBlocked := terrain.MovementLimit(start.x, start.y, end.x-start.x, end.y-start.y, parameters.ShotSize, parameters.ShotSize)
-			if terrain.PrivateGateCrossed(start.x, start.y, end.x, end.y, parameters.ShotSize) {
+			wallFraction, wallBlocked := worldmap.Default().MovementLimit(start.x, start.y, end.x-start.x, end.y-start.y, parameters.ShotSize, parameters.ShotSize)
+			if worldmap.Default().PrivateGateCrossed(start.x, start.y, end.x, end.y, parameters.ShotSize) {
 				alive = false
 				break
 			}
@@ -118,8 +118,8 @@ func (w *World) dropKillLoot(target eater, hp, mp float64) {
 	for i := 0; i < hpCount+mpCount; i++ {
 		size, _ := naturalFoodType()
 		angle := rand.Float64() * 2 * math.Pi
-		x, y := terrain.Move(target.end.x+(target.size-size)/2, target.end.y+(target.size-size)/2, math.Cos(angle)*40, math.Sin(angle)*40, size, size)
-		if !terrain.Walkable(x, y, size, size) {
+		x, y := worldmap.Default().Move(target.end.x+(target.size-size)/2, target.end.y+(target.size-size)/2, math.Cos(angle)*40, math.Sin(angle)*40, size, size)
+		if !worldmap.Default().Walkable(x, y, size, size) {
 			x, y, size = target.end.x, target.end.y, FruitSize
 		}
 		food := Fruit{X: x, Y: y, Size: size, Source: target.id, Ejected: true, VelocityX: math.Cos(angle) * 180, VelocityY: math.Sin(angle) * 180, AvailableTick: w.tick + TickRate/3, ExpiresTick: w.tick + parameters.MassDropLifetimeTicks}
@@ -139,7 +139,7 @@ func (w *World) rangedTarget(ai *aiState) *playerState {
 	best := AIDetectionRadius
 	for _, p := range w.players {
 		distance := math.Hypot(p.X-ai.X, p.Y-ai.Y)
-		if p.Dead || distance > best || !ai.sees(p.X, p.Y) || InSafeZone(p.X, p.Y, PlayerSize, p.Stats.HP, w.safeZones) || terrain.PrivateGateCrossed(ai.X, ai.Y, p.X, p.Y, PlayerSize) {
+		if p.Dead || distance > best || !ai.sees(p.X, p.Y) || InSafeZone(p.X, p.Y, PlayerSize, p.Stats.HP, w.safeZones) || worldmap.Default().PrivateGateCrossed(ai.X, ai.Y, p.X, p.Y, PlayerSize) {
 			continue
 		}
 		if target == nil || distance < best || p.ID < target.ID {

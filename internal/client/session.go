@@ -12,7 +12,7 @@ import (
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
@@ -406,7 +406,7 @@ func validatePlayers(players []protocol.Player, localID string) error {
 					return errors.New("server sent invalid split cell")
 				}
 			}
-			if cell.Remaining < 0 || cell.Remaining > simulation.SplitDuration || cell.Launch < 0 || cell.Launch > simulation.SplitLaunchDuration || !cell.Direction.Valid() || !terrain.Walkable(cell.X, cell.Y, simulation.PlayerSize, simulation.PlayerSize) {
+			if cell.Remaining < 0 || cell.Remaining > simulation.SplitDuration || cell.Launch < 0 || cell.Launch > simulation.SplitLaunchDuration || !cell.Direction.Valid() || !worldmap.Default().Walkable(cell.X, cell.Y, simulation.PlayerSize, simulation.PlayerSize) {
 				return errors.New("server sent invalid split position or timer")
 			}
 		}
@@ -458,7 +458,7 @@ func validateFruits(fruits []protocol.Fruit) error {
 		if fruit.Source != "" && (math.IsNaN(fruit.HP) || fruit.HP < 0 || fruit.HP == 0 && fruit.MP == 0 || fruit.HP > maxDropHP) {
 			return errors.New("server sent invalid loot pickup")
 		}
-		if fruit.Size <= 0 || !terrain.Walkable(fruit.X, fruit.Y, fruit.Size, fruit.Size) {
+		if fruit.Size <= 0 || !worldmap.Default().Walkable(fruit.X, fruit.Y, fruit.Size, fruit.Size) {
 			return errors.New("server sent fruit outside the map")
 		}
 	}
@@ -514,7 +514,7 @@ func validateAIs(ais []protocol.AI) error {
 					return errors.New("server sent invalid AI split cell")
 				}
 			}
-			if cell.Remaining < 0 || cell.Remaining > simulation.SplitDuration || cell.Launch < 0 || cell.Launch > simulation.SplitLaunchDuration || !cell.Direction.Valid() || !terrain.Walkable(cell.X, cell.Y, simulation.AISize, simulation.AISize) {
+			if cell.Remaining < 0 || cell.Remaining > simulation.SplitDuration || cell.Launch < 0 || cell.Launch > simulation.SplitLaunchDuration || !cell.Direction.Valid() || !worldmap.Default().Walkable(cell.X, cell.Y, simulation.AISize, simulation.AISize) {
 				return errors.New("server sent invalid AI split position or timer")
 			}
 		}
@@ -523,7 +523,7 @@ func validateAIs(ais []protocol.AI) error {
 				return errors.New("server sent invalid AI coordinates")
 			}
 		}
-		if ai.Size <= 0 || !terrain.Walkable(ai.X, ai.Y, ai.Size, ai.Size) {
+		if ai.Size <= 0 || !worldmap.Default().Walkable(ai.X, ai.Y, ai.Size, ai.Size) {
 			return errors.New("server sent an AI outside the map")
 		}
 	}
@@ -630,7 +630,7 @@ func validateProjectiles(shots []simulation.Projectile) error {
 				return errors.New("server sent invalid projectile coordinates")
 			}
 		}
-		if shot.Remaining <= 0 || shot.Remaining > parameters.ShotLifetime || !terrain.Walkable(shot.X, shot.Y, parameters.ShotSize, parameters.ShotSize) {
+		if shot.Remaining <= 0 || shot.Remaining > parameters.ShotLifetime || !worldmap.Default().Walkable(shot.X, shot.Y, parameters.ShotSize, parameters.ShotSize) {
 			return errors.New("server sent invalid projectile position or lifetime")
 		}
 	}

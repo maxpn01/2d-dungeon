@@ -5,19 +5,15 @@ import "time"
 // World geometry. Changing tile or surface dimensions also changes the
 // derived world bounds used by both the client and server.
 const (
-	Tile           = 40
-	MinCellX       = -27
-	MaxCellX       = 100
-	MinCellY       = -158
-	SurfaceCells   = 36
-	SurfaceMin     = 10
-	SurfaceMax     = SurfaceCells*Tile - 10
-	North          = MinCellY * Tile
-	ActorSize      = 30
-	DescentCircleX = 720
-	DescentCircleY = -4880
-	ReturnCircleX  = 720
-	ReturnCircleY  = -5800
+	Tile         = 40
+	MinCellX     = -27
+	MaxCellX     = 100
+	MinCellY     = -158
+	SurfaceCells = 36
+	SurfaceMin   = 10
+	SurfaceMax   = SurfaceCells*Tile - 10
+	North        = MinCellY * Tile
+	ActorSize    = 30
 )
 
 // Simulation timing and movement.
@@ -43,7 +39,7 @@ const (
 	ManaFoodChance             = 30
 	ActorMPFraction            = 0.5
 	SplitMPCost                = 2.0
-	StartingHP                 = 5.0
+	StartingHP                 = 10.0
 	StartingMaxHP              = 100.0
 	FruitXP                    = 0.25
 	FruitHP                    = 1.0
@@ -145,10 +141,6 @@ const (
 	BossFirstSpawnSeconds      = 300
 	BossRespawnIncreaseSeconds = 300
 	PortalSeconds              = 0.8
-	ArenaLeft                  = 9 * Tile
-	ArenaRight                 = 27 * Tile
-	ArenaTop                   = -112 * Tile
-	ArenaBottom                = -92 * Tile
 	BossHuntTicks              = 24
 	BossWindupTicks            = 12
 	BossRushTicks              = 27

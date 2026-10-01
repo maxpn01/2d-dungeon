@@ -6,7 +6,7 @@ import (
 
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 )
 
 type Character string
@@ -167,7 +167,7 @@ func advanceCircle(p *Player, input Direction, dt float64) {
 	ringRadius := (mainBodySize + ringDiameter) / 2
 	for _, i := range order {
 		cell := &p.Split[i]
-		cell.X, cell.Y = terrain.Move(cell.X, cell.Y, dx, dy, PlayerSize, PlayerSize)
+		cell.X, cell.Y = worldmap.Default().Move(cell.X, cell.Y, dx, dy, PlayerSize, PlayerSize)
 		cell.Remaining = max(0, cell.Remaining-dt)
 		cell.Launch = max(0, cell.Launch-dt)
 		if rank >= ringStart+6*ring {
@@ -190,9 +190,9 @@ func advanceCircle(p *Player, input Direction, dt float64) {
 		spacing := ringRadius
 		smooth := func(t float64) float64 { t = max(0, min(1, t)); return t * t * (3 - 2*t) }
 		spacing *= smooth(1-cell.Launch/SplitLaunchDuration) * smooth(cell.Remaining/SplitMergeDuration)
-		targetX, targetY := terrain.Move(p.X, p.Y, desiredX*spacing, desiredY*spacing, PlayerSize, PlayerSize)
-		if !terrain.Visible(cell.X+PlayerSize/2, cell.Y+PlayerSize/2, targetX+PlayerSize/2, targetY+PlayerSize/2) {
-			if x, y, ok := terrain.NextStep(cell.X, cell.Y, targetX, targetY, PlayerSize); ok {
+		targetX, targetY := worldmap.Default().Move(p.X, p.Y, desiredX*spacing, desiredY*spacing, PlayerSize, PlayerSize)
+		if !worldmap.Default().Visible(cell.X+PlayerSize/2, cell.Y+PlayerSize/2, targetX+PlayerSize/2, targetY+PlayerSize/2) {
+			if x, y, ok := worldmap.Default().NextStep(cell.X, cell.Y, targetX, targetY, PlayerSize); ok {
 				targetX, targetY = x, y
 			}
 		}
@@ -203,7 +203,7 @@ func advanceCircle(p *Player, input Direction, dt float64) {
 			moveX *= limit / distance
 			moveY *= limit / distance
 		}
-		cell.X, cell.Y = terrain.Move(cell.X, cell.Y, moveX, moveY, PlayerSize, PlayerSize)
+		cell.X, cell.Y = worldmap.Default().Move(cell.X, cell.Y, moveX, moveY, PlayerSize, PlayerSize)
 		if cell.Remaining == 0 && math.Hypot(cell.X-p.X, cell.Y-p.Y) < 1 {
 			p.Stats.HP += cell.Stats.HP
 			*cell = SplitCell{}

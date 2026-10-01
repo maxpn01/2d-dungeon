@@ -5,7 +5,7 @@ import (
 	"raylib-2d-sandbox/internal/client"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -18,7 +18,7 @@ type GameObject interface {
 type World struct {
 	started          bool
 	feedback         combatFeedback
-	gameMap          *Map
+	gameMap          *mapView
 	player           *Player
 	fruitSpawner     *FruitSpawner
 	ais              []*AI
@@ -34,11 +34,7 @@ type World struct {
 func NewWorld() *World {
 	w := &World{simulation: simulation.NewWorld()}
 	w.simulation.Join("player")
-	w.gameMap = NewMap(
-		rl.NewVector2(terrain.SurfaceCells*terrain.Tile/10, terrain.SurfaceCells*terrain.Tile/10),
-		rl.NewVector2(10, 10),
-		rl.Black, rl.Gray,
-	)
+	w.gameMap = newMapView()
 	w.player = NewPlayer(
 		rl.NewVector2(300, 300),
 		rl.NewVector2(30, 30),
@@ -185,10 +181,10 @@ func (w *World) interpolateActors() {
 	}
 	alpha := w.accumulator / simulation.StepSeconds
 	interpolate := func(ax, ay, bx, by float64) rl.Vector2 {
-		if terrain.FloorTwo(ax, ay) != terrain.FloorTwo(bx, by) {
+		if worldmap.Default().FloorAt(ax, ay) != worldmap.Default().FloorAt(bx, by) {
 			return rl.NewVector2(float32(bx), float32(by))
 		}
-		x, y := terrain.Move(ax, ay, (bx-ax)*alpha, (by-ay)*alpha, simulation.PlayerSize, simulation.PlayerSize)
+		x, y := worldmap.Default().Move(ax, ay, (bx-ax)*alpha, (by-ay)*alpha, simulation.PlayerSize, simulation.PlayerSize)
 		return rl.NewVector2(float32(x), float32(y))
 	}
 	before, after := w.previousSnapshot.Players[0], w.snapshot.Players[0]

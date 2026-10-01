@@ -8,7 +8,7 @@ import (
 
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 )
 
 const (
@@ -162,7 +162,7 @@ func moveByMotion(x, y float64, d Direction, distance float64) physics.Motion {
 		return physics.Motion{Bounds: body}
 	}
 	delta := (physics.Vector{X: d.X, Y: d.Y}).Normalized().Scale(distance)
-	return terrain.MoveBody(body, delta)
+	return worldmap.Default().MoveBody(body, delta)
 }
 
 func (w *World) Step(now time.Time) {

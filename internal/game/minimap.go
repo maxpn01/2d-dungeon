@@ -6,7 +6,7 @@ import (
 
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/simulation"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -54,7 +54,7 @@ func (v radarView) marker(center rl.Vector2, radius float32, tint color.RGBA) {
 	rl.DrawCircleV(p, radius, tint)
 }
 
-func (v *radarView) begin(m *Map) {
+func (v *radarView) begin(m *mapView) {
 	v.exploration = &m.exploration
 	rl.BeginScissorMode(int32(v.bounds.X), int32(v.bounds.Y), int32(v.bounds.Width), int32(v.bounds.Height))
 	rl.DrawRectangleRec(v.bounds, color.RGBA{12, 16, 23, 255})
@@ -71,34 +71,34 @@ func (v *radarView) begin(m *Map) {
 		rl.DrawCircleLinesV(center, radius, rl.NewColor(100, 220, 145, 255))
 	}
 
-	left := max(terrain.MinCellX, int(math.Floor(float64((v.focus.X-v.bounds.Width/(2*v.scale))/terrain.Tile))))
-	right := min(terrain.MaxCellX, int(math.Ceil(float64((v.focus.X+v.bounds.Width/(2*v.scale))/terrain.Tile))))
-	top := max(terrain.North/terrain.Tile, int(math.Floor(float64((v.focus.Y-v.bounds.Height/(2*v.scale))/terrain.Tile))))
-	bottom := min(0, int(math.Ceil(float64((v.focus.Y+v.bounds.Height/(2*v.scale))/terrain.Tile))))
+	left := max(worldmap.MinCellX, int(math.Floor(float64((v.focus.X-v.bounds.Width/(2*v.scale))/worldmap.Tile))))
+	right := min(worldmap.MaxCellX, int(math.Ceil(float64((v.focus.X+v.bounds.Width/(2*v.scale))/worldmap.Tile))))
+	top := max(worldmap.North/worldmap.Tile, int(math.Floor(float64((v.focus.Y-v.bounds.Height/(2*v.scale))/worldmap.Tile))))
+	bottom := min(0, int(math.Ceil(float64((v.focus.Y+v.bounds.Height/(2*v.scale))/worldmap.Tile))))
 	for y := top; y < bottom; y++ {
 		for x := left; x < right; x++ {
-			if terrain.Cover(x, y) {
-				v.rect(float32(x*terrain.Tile), float32(y*terrain.Tile), terrain.Tile, terrain.Tile, color.RGBA{102, 91, 150, 255})
-			} else if terrain.Cell(x, y) != 0 {
-				v.rect(float32(x*terrain.Tile), float32(y*terrain.Tile), terrain.Tile, terrain.Tile, paleStone)
-			} else if terrain.Pool(x, y) {
-				v.rect(float32(x*terrain.Tile), float32(y*terrain.Tile), terrain.Tile, terrain.Tile, color.RGBA{23, 58, 71, 255})
+			if worldmap.Default().Cover(x, y) {
+				v.rect(float32(x*worldmap.Tile), float32(y*worldmap.Tile), worldmap.Tile, worldmap.Tile, color.RGBA{102, 91, 150, 255})
+			} else if worldmap.Default().Cell(x, y) != 0 {
+				v.rect(float32(x*worldmap.Tile), float32(y*worldmap.Tile), worldmap.Tile, worldmap.Tile, paleStone)
+			} else if worldmap.Default().Pool(x, y) {
+				v.rect(float32(x*worldmap.Tile), float32(y*worldmap.Tile), worldmap.Tile, worldmap.Tile, color.RGBA{23, 58, 71, 255})
 			}
 		}
 	}
 }
 
 func (v radarView) fog() {
-	left := max(terrain.MinCellX, int(math.Floor(float64(v.focus.X-v.bounds.Width/(2*v.scale))/terrain.Tile)))
-	right := min(terrain.MaxCellX, int(math.Ceil(float64(v.focus.X+v.bounds.Width/(2*v.scale))/terrain.Tile)))
-	top := max(terrain.North/terrain.Tile, int(math.Floor(float64(v.focus.Y-v.bounds.Height/(2*v.scale))/terrain.Tile)))
-	bottom := min(terrain.SurfaceCells, int(math.Ceil(float64(v.focus.Y+v.bounds.Height/(2*v.scale))/terrain.Tile)))
+	left := max(worldmap.MinCellX, int(math.Floor(float64(v.focus.X-v.bounds.Width/(2*v.scale))/worldmap.Tile)))
+	right := min(worldmap.MaxCellX, int(math.Ceil(float64(v.focus.X+v.bounds.Width/(2*v.scale))/worldmap.Tile)))
+	top := max(worldmap.North/worldmap.Tile, int(math.Floor(float64(v.focus.Y-v.bounds.Height/(2*v.scale))/worldmap.Tile)))
+	bottom := min(worldmap.SurfaceCells, int(math.Ceil(float64(v.focus.Y+v.bounds.Height/(2*v.scale))/worldmap.Tile)))
 	state := func(x, y int) int {
 		cell := [2]int{x, y}
-		if v.exploration.visible[cell] {
+		if v.exploration.visible(cell) {
 			return 0
 		}
-		if v.exploration.explored[cell] {
+		if v.exploration.explored(cell) {
 			return 1
 		}
 		return 2
@@ -132,8 +132,8 @@ func (v radarView) fog() {
 		if r.state == 1 {
 			tint = color.RGBA{0, 0, 0, 100}
 		}
-		p := v.point(rl.NewVector2(float32(r.left*terrain.Tile), float32(r.top*terrain.Tile)))
-		q := v.point(rl.NewVector2(float32(r.right*terrain.Tile), float32(r.bottom*terrain.Tile)))
+		p := v.point(rl.NewVector2(float32(r.left*worldmap.Tile), float32(r.top*worldmap.Tile)))
+		q := v.point(rl.NewVector2(float32(r.right*worldmap.Tile), float32(r.bottom*worldmap.Tile)))
 		x0, y0 := float32(math.Round(float64(p.X))), float32(math.Round(float64(p.Y)))
 		x1, y1 := float32(math.Round(float64(q.X))), float32(math.Round(float64(q.Y)))
 		rl.DrawRectangleRec(rl.NewRectangle(x0, y0, x1-x0, y1-y0), tint)
@@ -141,11 +141,10 @@ func (v radarView) fog() {
 }
 
 func (v radarView) end(player rl.Vector2) {
-	for _, circle := range []rl.Vector2{
-		{X: terrain.DescentCircleX, Y: terrain.DescentCircleY},
-		{X: terrain.ReturnCircleX, Y: terrain.ReturnCircleY},
-	} {
-		if v.exploration.explored[explorationCell(circle)] {
+	for _, portal := range worldmap.Default().Portals() {
+		position := portal.Position()
+		circle := rl.NewVector2(float32(position.X), float32(position.Y))
+		if v.exploration.explored(explorationCell(circle)) {
 			p := v.point(circle)
 			rl.DrawCircleV(p, 9, rl.Black)
 			rl.DrawCircleLinesV(p, 8, runeColor)

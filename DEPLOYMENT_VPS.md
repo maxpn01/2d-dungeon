@@ -71,7 +71,7 @@ No local repo remote yet? `rsync -avz --exclude .git --exclude dist ./ deploy@VP
 from your machine works just as well — the server only needs `compose.yaml`,
 `Dockerfile.server`, `deploy/Caddyfile`, `go.mod`, `go.sum`, `cmd/server`,
 and the `internal` packages the server imports (`server`, `protocol`,
-`simulation`, `terrain`) to build.
+`simulation`, `worldmap`, `physics`, `parameters`) to build.
 
 ## 6. Configure and start
 

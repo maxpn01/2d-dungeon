@@ -115,6 +115,9 @@ func (e eater) die(killer string, tick uint64) {
 			}
 		}
 		e.ai.respawnTick = tick + AIRespawnSeconds*TickRate
+		if e.ai.den.ID != "" {
+			e.ai.respawnTick = tick + uint64(math.Ceil(e.ai.den.Respawn.Seconds()*TickRate))
+		}
 		return
 	}
 	e.player.Dead = true

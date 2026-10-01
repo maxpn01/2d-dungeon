@@ -2,7 +2,7 @@ package game
 
 import (
 	"math"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -11,7 +11,7 @@ var sanctuaryFloor = rl.NewColor(14, 27, 31, 255)
 var sanctuarySeam = rl.NewColor(22, 38, 42, 255)
 var sanctuaryGold = rl.NewColor(133, 117, 70, 255)
 
-func (m *Map) drawSanctuary(ctx RenderContext) {
+func (m *mapView) drawSanctuary(ctx RenderContext) {
 	rl.DrawRectangle(0, 0, int32(m.size.X), int32(m.size.Y), sanctuaryFloor)
 	cs, rs, ce, re := m.visibleCellRange(ctx.Camera, ctx.WindowWidth, ctx.WindowHeight)
 	left, top := int(float32(cs)*m.cellSize.X)/40, int(float32(rs)*m.cellSize.Y)/40
@@ -28,8 +28,8 @@ func (m *Map) drawSanctuary(ctx RenderContext) {
 	}
 	w, h := int(m.size.X), int(m.size.Y)
 	for x := left * 40; x < min(right*40, w); x += 40 {
-		col := x / terrain.Tile
-		if terrain.Cell(col-2, -1) == 0 && terrain.Cell(col-1, -1) == 0 && terrain.Cell(col, -1) == 0 && terrain.Cell(col+1, -1) == 0 && terrain.Cell(col+2, -1) == 0 {
+		col := x / worldmap.Tile
+		if worldmap.Default().Cell(col-2, -1) == 0 && worldmap.Default().Cell(col-1, -1) == 0 && worldmap.Default().Cell(col, -1) == 0 && worldmap.Default().Cell(col+1, -1) == 0 && worldmap.Default().Cell(col+2, -1) == 0 {
 			drawSanctuaryBorder(x, 0, 40, 10, x/40)
 		}
 		drawSanctuaryBorder(x, h-10, 40, 10, x/40)
@@ -38,7 +38,7 @@ func (m *Map) drawSanctuary(ctx RenderContext) {
 		drawSanctuaryBorder(0, y, 10, 40, y/40)
 		drawSanctuaryBorder(w-10, y, 10, 40, y/40)
 	}
-	for _, p := range []rl.Vector2{{22, 22}, {float32(w - 22), 22}, {22, float32(h - 22)}, {float32(w - 22), float32(h - 22)}} {
+	for _, p := range []rl.Vector2{{X: 22, Y: 22}, {X: float32(w - 22), Y: 22}, {X: 22, Y: float32(h - 22)}, {X: float32(w - 22), Y: float32(h - 22)}} {
 		rl.DrawRectangle(int32(p.X-10), int32(p.Y-8), 20, 24, rl.NewColor(8, 17, 22, 255))
 		rl.DrawRectangle(int32(p.X-8), int32(p.Y-10), 16, 20, stone)
 		rl.DrawRectangle(int32(p.X-6), int32(p.Y-8), 12, 2, paleStone)
@@ -46,9 +46,9 @@ func (m *Map) drawSanctuary(ctx RenderContext) {
 	}
 }
 
-func (m *Map) drawSanctuaryAltar(ctx RenderContext) {
+func (m *mapView) drawSanctuaryAltar(ctx RenderContext) {
 	cs, rs, ce, re := m.visibleCellRange(ctx.Camera, ctx.WindowWidth, ctx.WindowHeight)
-	center := rl.NewVector2(terrain.SpawnAltarCenter, terrain.SpawnAltarCenter)
+	center := rl.NewVector2(worldmap.SpawnAltarCenter, worldmap.SpawnAltarCenter)
 	if center.X+150 >= float32(cs)*m.cellSize.X && center.X-150 <= float32(ce)*m.cellSize.X && center.Y+150 >= float32(rs)*m.cellSize.Y && center.Y-150 <= float32(re)*m.cellSize.Y {
 		drawSpawnAltar(center)
 	}
@@ -97,7 +97,7 @@ func drawSpawnAltar(center rl.Vector2) {
 	}
 	shadow := rl.NewVector2(center.X, center.Y+8)
 	rl.DrawPoly(shadow, 8, 52, 22.5, rl.NewColor(7, 16, 21, 255))
-	rl.DrawPoly(center, 8, terrain.SpawnAltarRadius, 22.5, stone)
+	rl.DrawPoly(center, 8, worldmap.SpawnAltarRadius, 22.5, stone)
 	rl.DrawPolyLines(center, 8, 48, 22.5, rl.Fade(paleStone, .6))
 	rl.DrawPoly(center, 8, 36, 22.5, rl.NewColor(30, 43, 49, 255))
 	rl.DrawPolyLines(center, 8, 35, 22.5, sanctuaryGold)

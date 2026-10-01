@@ -7,7 +7,7 @@ import (
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 )
 
 const (
@@ -95,7 +95,7 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 				offsetX, offsetY = oldX+(offsetX-oldX)*blend, oldY+(offsetY-oldY)*blend
 			}
 			if i < len(m.local.Split) {
-				m.local.Split[i].X, m.local.Split[i].Y = terrain.Move(m.local.X, m.local.Y, offsetX, offsetY, simulation.PlayerSize, simulation.PlayerSize)
+				m.local.Split[i].X, m.local.Split[i].Y = worldmap.Default().Move(m.local.X, m.local.Y, offsetX, offsetY, simulation.PlayerSize, simulation.PlayerSize)
 			}
 		}
 	}()
@@ -124,7 +124,7 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 		m.local.Split = target.Split.Clone()
 		return
 	}
-	x, y := terrain.Move(m.local.X, m.local.Y, dx/distance*speed*dt, dy/distance*speed*dt, simulation.PlayerSize, simulation.PlayerSize)
+	x, y := worldmap.Default().Move(m.local.X, m.local.Y, dx/distance*speed*dt, dy/distance*speed*dt, simulation.PlayerSize, simulation.PlayerSize)
 	m.local = target
 	m.local.Split = target.Split.Clone()
 	m.local.X, m.local.Y = x, y

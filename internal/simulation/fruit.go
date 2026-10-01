@@ -2,11 +2,12 @@ package simulation
 
 import (
 	"fmt"
+	"math"
 	"math/rand/v2"
 
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 )
 
 const (
@@ -129,7 +130,7 @@ func (w *World) spawnFruit() {
 }
 
 func (w *World) replenishEntranceFood() {
-	for _, patch := range terrain.Patches {
+	for _, patch := range worldmap.Default().Patches() {
 		if w.tick < w.patchNext[patch.ID] {
 			continue
 		}
@@ -144,22 +145,22 @@ func (w *World) replenishEntranceFood() {
 				break
 			}
 		}
-		w.patchNext[patch.ID] = w.tick + uint64(patch.Seconds*TickRate)
+		w.patchNext[patch.ID] = w.tick + uint64(math.Ceil(patch.Respawn.Seconds()*TickRate))
 	}
 }
 
-func (w *World) spawnPatchFruit(patch terrain.FeedingPatch) bool {
+func (w *World) spawnPatchFruit(patch worldmap.FeedingPatch) bool {
 	size, hp := naturalFoodType()
 	if w.tick == 0 {
 		kind := naturalFood[w.nextFruit%uint64(len(naturalFood))]
 		size, hp = kind.size, kind.hp
 	}
-	centerX := float64(patch.X*terrain.Tile + terrain.Tile/2)
-	centerY := float64(patch.Y*terrain.Tile + terrain.Tile/2)
+	centerX := float64(patch.At.X*worldmap.Tile + worldmap.Tile/2)
+	centerY := float64(patch.At.Y*worldmap.Tile + worldmap.Tile/2)
 	for range 40 {
-		x := centerX + (rand.Float64()*2-1)*float64(patch.Radius*terrain.Tile) - size/2
-		y := centerY + (rand.Float64()*2-1)*float64(patch.Radius*terrain.Tile) - size/2
-		if !terrain.InEntranceRoom(x, y, size) || !terrain.Walkable(x, y, size, size) {
+		x := centerX + (rand.Float64()*2-1)*float64(patch.Radius*worldmap.Tile) - size/2
+		y := centerY + (rand.Float64()*2-1)*float64(patch.Radius*worldmap.Tile) - size/2
+		if !worldmap.Default().RoomContains(patch.RoomID, physics.Square(x, y, size)) || !worldmap.Default().Walkable(x, y, size, size) {
 			continue
 		}
 		body := physics.Square(x, y, size).Expanded(5)

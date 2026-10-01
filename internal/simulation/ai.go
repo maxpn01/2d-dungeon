@@ -7,7 +7,7 @@ import (
 
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 )
 
 const (
@@ -37,7 +37,7 @@ type AI struct {
 type aiState struct {
 	shotCooldown float64
 	AI
-	den             terrain.Den
+	den             worldmap.Den
 	settleTicks     int
 	targetID        string
 	targetTicks     int
@@ -58,16 +58,16 @@ type aiState struct {
 	evadeDirection  Direction
 }
 
-func (w *World) newDenAI(den terrain.Den) aiState {
+func (w *World) newDenAI(den worldmap.Den) aiState {
 	w.nextAI++
-	x, y := terrain.CellPosition(den.X, den.Y, AISize)
+	x, y := worldmap.CellPosition(den.At.X, den.At.Y, AISize)
 	stats := NewStats()
 	stats.Level, stats.HP, stats.Speed = den.Level, den.HP, AISpeed*.65
 	return aiState{den: den, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "patrolling", Character: Square}}
 }
 
 func (w *World) spawnEntranceGuards() {
-	for _, den := range terrain.Dens {
+	for _, den := range worldmap.Default().Dens() {
 		w.ais = append(w.ais, w.newDenAI(den))
 	}
 }
@@ -106,7 +106,7 @@ func (w *World) updateAIs() {
 		w.fire(&actor, input)
 		ai.shotCooldown = actor.ShotCooldown
 		ai.X, ai.Y, ai.Stats, ai.Combat, ai.Split = actor.X, actor.Y, actor.Stats, actor.Combat, actor.Split
-		if terrain.PrivateGateCrossed(oldX, oldY, ai.X, ai.Y, AISize) || ai.den.ID != "" && !terrain.InEntranceRoom(ai.X, ai.Y, AISize) {
+		if worldmap.Default().PrivateGateCrossed(oldX, oldY, ai.X, ai.Y, AISize) || ai.den.ID != "" && !worldmap.Default().RoomContains(ai.den.RoomID, physics.Square(ai.X, ai.Y, AISize)) {
 			ai.X, ai.Y = oldX, oldY
 		}
 	}
@@ -184,14 +184,14 @@ func (ai *aiState) patrolInput() Direction {
 }
 
 func (ai *aiState) choosePatrolTarget() {
-	left := float64(ai.den.Left*terrain.Tile + 8)
-	right := float64((ai.den.Right+1)*terrain.Tile - AISize - 8)
-	top := float64(ai.den.Top*terrain.Tile + 8)
-	bottom := float64((ai.den.Bottom+1)*terrain.Tile - AISize - 8)
+	left := float64(ai.den.Patrol.X*worldmap.Tile + 8)
+	right := float64(ai.den.Patrol.Right()*worldmap.Tile - AISize - 8)
+	top := float64(ai.den.Patrol.Y*worldmap.Tile + 8)
+	bottom := float64(ai.den.Patrol.Bottom()*worldmap.Tile - AISize - 8)
 	for range 24 {
 		x := left + rand.Float64()*(right-left)
 		y := top + rand.Float64()*(bottom-top)
-		if math.Hypot(x-ai.X, y-ai.Y) < 100 || !terrain.InEntranceRoom(x, y, AISize) {
+		if math.Hypot(x-ai.X, y-ai.Y) < 100 || !worldmap.Default().RoomContains(ai.den.RoomID, physics.Square(x, y, AISize)) {
 			continue
 		}
 		ai.patrolX, ai.patrolY = x, y
@@ -209,7 +209,7 @@ func (w *World) respawnEntranceGuards() {
 		if ai.den.ID == "" || ai.respawnTick == 0 || w.tick < ai.respawnTick {
 			continue
 		}
-		x, y := terrain.CellPosition(ai.den.X, ai.den.Y, AISize)
+		x, y := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, AISize)
 		if !w.denClear(x, y, i) {
 			ai.respawnTick = w.tick + TickRate
 			continue

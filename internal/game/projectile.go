@@ -4,7 +4,7 @@ import (
 	"math"
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/simulation"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -19,7 +19,7 @@ func drawProjectiles(previous, shots []simulation.Projectile, alpha float64, exp
 		start, exists := starts[shot.ID]
 		if !exists {
 			start = shot
-			start.X, start.Y = terrain.Move(shot.X, shot.Y, -shot.Direction.X*parameters.ShotSpeed*simulation.StepSeconds, -shot.Direction.Y*parameters.ShotSpeed*simulation.StepSeconds, parameters.ShotSize, parameters.ShotSize)
+			start.X, start.Y = worldmap.Default().Move(shot.X, shot.Y, -shot.Direction.X*parameters.ShotSpeed*simulation.StepSeconds, -shot.Direction.Y*parameters.ShotSpeed*simulation.StepSeconds, parameters.ShotSize, parameters.ShotSize)
 		}
 		shot.X = start.X + (shot.X-start.X)*alpha
 		shot.Y = start.Y + (shot.Y-start.Y)*alpha

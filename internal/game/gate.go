@@ -4,14 +4,18 @@ import (
 	"image/color"
 	"math"
 	"raylib-2d-sandbox/internal/simulation"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 func drawStatueGate(gate simulation.EntranceGateState, prompt bool) {
-	x, y := terrain.EntranceGateLeft, terrain.EntranceGateY
-	w := terrain.EntranceGateRight - x
+	bounds := worldmap.Default().EntranceGate()
+	x, y := bounds.Left, bounds.Y
+	w := bounds.Right - x
+	if w <= 0 {
+		return
+	}
 	shadow := color.RGBA{17, 22, 30, 255}
 	inset := color.RGBA{32, 39, 49, 255}
 	iron := color.RGBA{67, 78, 87, 255}

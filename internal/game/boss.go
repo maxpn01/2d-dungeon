@@ -5,11 +5,13 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"math"
 	"raylib-2d-sandbox/internal/simulation"
-	"raylib-2d-sandbox/internal/terrain"
+	"raylib-2d-sandbox/internal/worldmap"
 )
 
 func drawEncounter(b simulation.Boss, e *mapExploration) {
-	for _, pad := range []rl.Vector2{{X: terrain.DescentCircleX, Y: terrain.DescentCircleY}, {X: terrain.ReturnCircleX, Y: terrain.ReturnCircleY}} {
+	for _, portal := range worldmap.Default().Portals() {
+		position := portal.Position()
+		pad := rl.NewVector2(float32(position.X), float32(position.Y))
 		if !e.entityVisible(float64(pad.X), float64(pad.Y), 0) {
 			continue
 		}
@@ -19,7 +21,8 @@ func drawEncounter(b simulation.Boss, e *mapExploration) {
 		if active {
 			tint = runeColor
 			label = "STAND IN THE CIRCLE TO DESCEND"
-			if pad.Y == terrain.ReturnCircleY {
+			destination, _ := worldmap.Default().Portal(portal.Destination)
+			if destination.Floor < portal.Floor {
 				label = "STAND IN THE CIRCLE TO RETURN"
 			}
 		}
