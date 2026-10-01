@@ -1,0 +1,2 @@
+- do not waste time on adding tests yet
+- do not add comments unless asked
