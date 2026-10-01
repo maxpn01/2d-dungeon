@@ -12,7 +12,7 @@ type GameOver struct {
 
 func NewGameOver() *GameOver {
 	return &GameOver{menu: NewMenu([]*MenuButton{
-		NewMenuButton("play again", ActionPlay),
+		NewMenuButton("respawn", ActionPlay),
 		NewMenuButton("multiplayer", ActionMultiplayer),
 		NewMenuButton("exit", ActionExit),
 	}, 30, rl.Black)}

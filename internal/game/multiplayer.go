@@ -14,6 +14,7 @@ import (
 )
 
 type multiplayer struct {
+	perks                     perkPanel
 	suppressShootUntilRelease bool
 	previousProjectiles       []simulation.Projectile
 	projectileInterval        float64
@@ -74,11 +75,19 @@ func (m *multiplayer) readInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 	if !rl.IsMouseButtonDown(rl.MouseLeftButton) {
 		m.suppressShootUntilRelease = false
 	}
-	if !mapOpen {
+	s := m.perks.sync(m.view.Local.ActiveStatue, m.view.Statues)
+	if !mapOpen && s == nil {
 		m.chat.update(m)
 	}
+	if s != nil {
+		m.chat.close()
+		m.suppressShootUntilRelease = true
+		if card := m.perks.read(*s, m.view.Local.Stats, int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight())); card >= 0 {
+			m.session.ChoosePerk(s.ID, s.Cycle, card)
+		}
+	}
 	direction := protocol.Direction{}
-	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.open && !mapOpen {
+	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.open && !mapOpen && s == nil {
 		direction.Interact = rl.IsKeyPressed(rl.KeyE)
 		direction.Shoot = !m.suppressShootUntilRelease && rl.IsMouseButtonDown(rl.MouseLeftButton)
 		direction.Boost = rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
@@ -150,6 +159,7 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 	m.gameMap.gate = m.view.Local.EntranceGate
 	m.gameMap.gatePrompt = !m.view.Local.Dead && simulation.NearEntranceGate(m.view.Local.X, m.view.Local.Y)
 	m.gameMap.draw(RenderContext{Camera: camera, WindowWidth: window.width, WindowHeight: window.height})
+	drawStatues(m.view.Statues, m.view.Local.ActiveStatue, m.view.Local.X, m.view.Local.Y, m.view.Local.Dead, &m.gameMap.exploration)
 	playerColors := make(map[string]color.RGBA, len(m.view.Players))
 	for _, player := range m.view.Players {
 		playerColors[player.ID] = characterColor(player.Character)
@@ -232,15 +242,24 @@ func (m *multiplayer) draw(camera rl.Camera2D, window *Window) {
 		hp = 0
 	}
 	drawPlayerHUD(playerHUD{
-		name: m.view.Local.Name, avatar: characterColor(m.view.Local.Character), character: m.view.Local.Character,
+		perks: stats.Perks,
+		name:  m.view.Local.Name, avatar: characterColor(m.view.Local.Character), character: m.view.Local.Character,
 		level: stats.Level, maxLevel: simulation.MaxLevel,
-		mp: float32(stats.MP), maxMP: float32(simulation.MaxMPForLevel(stats.Level)), hp: hp, maxHP: float32(simulation.MaxHPForLevel(stats.Level)),
+		mp: float32(stats.MP), maxMP: float32(stats.MaxMP()), hp: hp, maxHP: float32(stats.MaxHP()),
+		damage: float32(stats.Damage), attackRate: float32(stats.AttackRate), boost: float32(stats.BoostMultiplier),
 		xp: float32(stats.XP), nextXP: float32(simulation.XPForNextLevel(stats.Level)),
 		speed: float32(effectivePlayerSpeed(m.view.Local.Character, stats.Speed, stats.HP, m.view.Local.Split)), fruit: len(m.view.Fruits), ais: len(m.view.AIs), players: alive,
 	}, window.width)
 	drawBossSpawnTimer(m.view.Boss, window.width)
 	m.drawMinimap(window.width)
 	m.chat.draw(window, m.session.Chat())
+	m.perks.draw(m.view.Local.ActiveStatue, m.view.Statues, stats, window.width, window.height)
+}
+
+func (m *multiplayer) closePerks() {
+	m.perks.closing = true
+	m.suppressShootUntilRelease = true
+	m.session.CloseOffer()
 }
 
 func (m *multiplayer) startEatingScenes(now time.Time, update client.Update) {

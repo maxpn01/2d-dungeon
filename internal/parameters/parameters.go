@@ -33,14 +33,14 @@ const (
 // Progression, food, and refuges.
 const (
 	MaxLevel                   = 1000
-	StartingMP                 = 20.0
-	MaxMP                      = 20.0
+	StartingMP                 = 10.0
+	MaxMP                      = 10.0
 	FruitMP                    = 3.0
 	ManaFoodChance             = 30
 	ActorMPFraction            = 0.5
 	SplitMPCost                = 2.0
 	StartingHP                 = 10.0
-	StartingMaxHP              = 100.0
+	StartingMaxHP              = 10.0
 	FruitXP                    = 0.25
 	FruitHP                    = 1.0
 	ActorHPFraction            = 0.5
@@ -57,10 +57,11 @@ const (
 	SafeZoneMinimumSeparation  = 450
 	MassDropLifetimeTicks      = 30 * TickRate
 	BossDropLifetimeTicks      = 15 * TickRate
-	XPFirstLevelCost           = 5.0
-	XPLevelCostIncrease        = 2.0
+	XPFirstLevelCost           = 15.0
+	XPLevelCostGrowth          = 5.0
+	KillXPPerLevel             = 5.0
 	MPPerLevelIncrease         = 5
-	HPPerLevelIncrease         = 10
+	HPPerLevelIncrease         = 5
 	MassSpeedMinimumMultiplier = 1.0 / 3
 	MassSpeedMaximumMultiplier = 4.0 / 3
 	MassSpeedExponent          = .18
@@ -93,9 +94,12 @@ const (
 	BoostMultiplier     = 1.5 * 1.25
 	BoostMPPerSecond    = 1.0
 	MPRecoveryPerSecond = 0.1
-	ShotMPCost          = 1.0
-	ShotCooldown        = 0.125
+	ShotMPCost          = 0.5
+	ShotCooldown        = 1.0 / PlayerAttackRate
 	ShotDamage          = 2.0
+	PlayerAttackRate    = 8.0
+	MobDamage           = 1.0
+	MobAttackRate       = 2.0
 	ShotSpeed           = 1400.0
 	ShotSize            = 10.0
 	ShotLifetime        = 1.5
@@ -121,6 +125,24 @@ const (
 	BossImpactHold      = .07
 	BossRecoilDistance  = 85.0
 )
+
+var PerkRankWeights = [6]int{40, 28, 16, 9, 5, 2}
+
+var PerkBonuses = [8][6]float64{
+	{.10, .20, .30, .45, .60, .80},
+	{.10, .20, .30, .40, .50, .65},
+	{2, 4, 6, 8, 10, 15},
+	{2, 4, 6, 8, 10, 15},
+	{.03, .06, .09, .12, .15, .20},
+	{.05, .10, .15, .20, .25, .35},
+	{.20, .35, .50, .70, .90, 1.20},
+	{.10, .20, .30, .40, .50, .65},
+}
+
+var PerkPenalties = [8][6]float64{
+	6: {.05, .08, .11, .14, .17, .20},
+	7: {.20, .35, .50, .65, .80, 1.00},
+}
 
 // Boss arena and attack cycle.
 const (

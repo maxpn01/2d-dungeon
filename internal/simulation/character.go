@@ -83,7 +83,7 @@ func AdvancePlayer(p *Player, input Direction, dt float64, zones ...[]SafeZone) 
 	advanceEntranceGate(p, input, dt)
 	defer constrainEntranceGate(p, oldX, oldY)
 	p.Stats.GainMP(parameters.MPRecoveryPerSecond * dt)
-	p.ShotCooldown = max(0, p.ShotCooldown-dt)
+	p.ShotCooldown = max(-dt, p.ShotCooldown-dt)
 	switch NormalizeCharacter(p.Character) {
 	case Triangle:
 		AdvanceDashPlayer(p, input, dt)

@@ -102,7 +102,11 @@ func (g *Game) run() {
 	for !rl.WindowShouldClose() && !exitRequested {
 		dt := rl.GetFrameTime()
 		if rl.IsKeyPressed(rl.KeyEscape) {
-			if mapOpen {
+			if current == screenSinglePlayer && g.world.snapshot.Players[0].ActiveStatue != "" {
+				g.world.closePerks()
+			} else if current == screenMultiplayer && g.multiplayer.view.Local.ActiveStatue != "" && !g.multiplayer.perks.closing {
+				g.multiplayer.closePerks()
+			} else if mapOpen {
 				mapOpen = false
 			} else {
 				switch current {
@@ -130,12 +134,12 @@ func (g *Game) run() {
 		if rl.IsKeyPressed(rl.KeyM) && !rl.IsKeyPressed(rl.KeyEscape) && rl.IsWindowFocused() {
 			switch current {
 			case screenSinglePlayer:
-				if !g.world.player.isDeadFlag {
+				if !g.world.player.isDeadFlag && g.world.snapshot.Players[0].ActiveStatue == "" {
 					mapOpen = !mapOpen
 				}
 			case screenMultiplayer:
 				m := g.multiplayer
-				if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && !m.chat.open {
+				if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && !m.chat.open && m.view.Local.ActiveStatue == "" {
 					mapOpen = !mapOpen
 				}
 			}
@@ -143,7 +147,7 @@ func (g *Game) run() {
 		switch current {
 		case screenSinglePlayer:
 			if !g.world.player.isDeadFlag && !mapOpen {
-				g.world.player.readInput(g.camera)
+				g.world.readInput(g.camera, g.window)
 				g.world.update(dt)
 				g.cameraFollowPlayer()
 			}
@@ -179,6 +183,8 @@ func (g *Game) run() {
 				drawBossSpawnTimer(g.world.snapshot.Boss, g.window.width)
 				g.world.drawMinimap(g.window.width)
 				drawDungeonLocation(g.world.player.pos.X, g.world.player.pos.Y, g.window.width, g.window.height)
+				p := g.world.snapshot.Players[0]
+				g.world.perks.draw(p.ActiveStatue, g.world.snapshot.Statues, p.Stats, g.window.width, g.window.height)
 			}
 		case screenMultiplayer:
 			m := g.multiplayer
@@ -221,6 +227,14 @@ func (g *Game) run() {
 			g.startSinglePlayer()
 			current = screenSinglePlayer
 		case ActionMultiplayer:
+			if g.multiplayer != nil && g.multiplayer.view.Ready && g.multiplayer.view.Local.Dead && g.multiplayer.errorText == "" {
+				g.multiplayer.session.Respawn()
+				g.multiplayer.eating = nil
+				g.multiplayer.motion = client.Motion{}
+				g.multiplayer.suppressShootUntilRelease = true
+				current = screenMultiplayer
+				break
+			}
 			var history []client.ChatEntry
 			if g.multiplayer != nil {
 				history = g.multiplayer.session.Chat()
@@ -239,8 +253,10 @@ func (g *Game) run() {
 }
 
 func (g *Game) startSinglePlayer() {
-	if g.world.player.isDeadFlag || g.world.player.character != g.settings.Character {
+	if g.world.player.character != g.settings.Character {
 		g.restart()
+	} else if g.world.player.isDeadFlag {
+		g.world.respawn()
 	}
 	if !g.world.started {
 		g.world.feedback.spawns["player"] = time.Now()

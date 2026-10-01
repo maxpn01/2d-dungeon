@@ -16,18 +16,21 @@ type Projectile struct {
 	Y         float64   `json:"y"`
 	Direction Direction `json:"direction"`
 	Remaining float64   `json:"remaining"`
+	Damage    float64   `json:"damage"`
 }
 
 func PrepareShot(p *Player, input Direction) bool {
+	defer func() { p.ShotCooldown = max(0, p.ShotCooldown) }()
 	if p.Dead || !input.Valid() || !input.Shoot || p.ShotCooldown > 1e-9 || p.Stats.MP < parameters.ShotMPCost || math.Hypot(input.AimX, input.AimY) == 0 {
 		return false
 	}
 	p.Stats.MP -= parameters.ShotMPCost
-	p.ShotCooldown = parameters.ShotCooldown
+	p.ShotCooldown += 1 / p.Stats.AttackRate
 	return true
 }
 
 func (w *World) fire(p *Player, input Direction) {
+	defer func() { p.ShotCooldown = max(0, p.ShotCooldown) }()
 	if len(w.projectiles) >= parameters.MaxProjectiles || InSafeZone(p.X, p.Y, PlayerSize, p.Stats.HP, w.safeZones) || !PrepareShot(p, input) {
 		return
 	}
@@ -36,7 +39,7 @@ func (w *World) fire(p *Player, input Direction) {
 	w.projectiles = append(w.projectiles, Projectile{
 		ID: fmt.Sprintf("shot-%d", w.nextProjectile), Owner: p.ID,
 		X: p.X + (PlayerSize-parameters.ShotSize)/2, Y: p.Y + (PlayerSize-parameters.ShotSize)/2,
-		Direction: Direction{X: input.AimX / length, Y: input.AimY / length}, Remaining: parameters.ShotLifetime,
+		Direction: Direction{X: input.AimX / length, Y: input.AimY / length}, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage,
 	})
 }
 
@@ -74,12 +77,12 @@ func (w *World) advanceProjectiles(actors []eater) {
 			if winner >= 0 {
 				target := actors[winner]
 				hp := target.stats.HP
-				target.stats.HP = max(0, hp-parameters.ShotDamage)
+				target.stats.HP = max(0, hp-shot.Damage)
 				if target.stats.HP == 0 {
 					w.dropKillLoot(target, hp, target.ownerStats().MP)
 					for _, actor := range actors {
 						if actor.id == shot.Owner {
-							actor.ownerStats().GainXP(float64(target.stats.Level) * parameters.XPFirstLevelCost)
+							actor.ownerStats().GainXP(float64(target.stats.Level) * parameters.KillXPPerLevel)
 							break
 						}
 					}

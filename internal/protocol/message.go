@@ -10,11 +10,14 @@ import (
 )
 
 const (
-	TypeWelcome  = "welcome"
-	TypeSnapshot = "snapshot"
-	TypeEcho     = "echo"
-	TypeInput    = "input"
-	TypeChat     = "chat"
+	TypeWelcome    = "welcome"
+	TypeSnapshot   = "snapshot"
+	TypeEcho       = "echo"
+	TypeInput      = "input"
+	TypeChat       = "chat"
+	TypePerkChoice = "perk_choice"
+	TypeCloseOffer = "close_offer"
+	TypeRespawn    = "respawn"
 )
 
 type Direction struct {
@@ -29,10 +32,17 @@ type Direction struct {
 }
 
 type ClientMessage struct {
-	Sequence  uint64     `json:"sequence,omitempty"`
-	Type      string     `json:"type"`
-	Direction *Direction `json:"direction,omitempty"`
-	Message   string     `json:"message,omitempty"`
+	Perk      *PerkSelection `json:"perk,omitempty"`
+	Sequence  uint64         `json:"sequence,omitempty"`
+	Type      string         `json:"type"`
+	Direction *Direction     `json:"direction,omitempty"`
+	Message   string         `json:"message,omitempty"`
+}
+
+type PerkSelection struct {
+	StatueID string `json:"statue_id"`
+	Cycle    uint64 `json:"cycle"`
+	Card     int    `json:"card"`
 }
 
 func DecodeClientMessage(data []byte) (ClientMessage, error) {
@@ -49,8 +59,16 @@ func DecodeClientMessage(data []byte) (ClientMessage, error) {
 		return ClientMessage{}, errors.New("expected one JSON object")
 	}
 	switch message.Type {
+	case TypePerkChoice:
+		if message.Perk == nil || message.Direction != nil || message.Message != "" || message.Sequence != 0 || message.Perk.StatueID == "" || len(message.Perk.StatueID) > 96 || message.Perk.Cycle == 0 || message.Perk.Card < 0 || message.Perk.Card > 2 {
+			return ClientMessage{}, errors.New("invalid perk selection")
+		}
+	case TypeCloseOffer, TypeRespawn:
+		if message.Perk != nil || message.Direction != nil || message.Message != "" || message.Sequence != 0 {
+			return ClientMessage{}, errors.New("invalid control message")
+		}
 	case TypeInput:
-		if message.Direction == nil || message.Message != "" {
+		if message.Direction == nil || message.Message != "" || message.Perk != nil {
 			return ClientMessage{}, errors.New("input requires a direction")
 		}
 		d := simulation.Direction{X: message.Direction.X, Y: message.Direction.Y, AimX: message.Direction.AimX, AimY: message.Direction.AimY}
@@ -58,14 +76,14 @@ func DecodeClientMessage(data []byte) (ClientMessage, error) {
 			return ClientMessage{}, errors.New("direction components must be between -1 and 1")
 		}
 	case TypeChat:
-		if message.Direction != nil || message.Sequence != 0 {
+		if message.Direction != nil || message.Sequence != 0 || message.Perk != nil {
 			return ClientMessage{}, errors.New("chat cannot contain direction")
 		}
 		if NormalizeChatMessage(message.Message) == "" {
 			return ClientMessage{}, errors.New("chat requires a message")
 		}
 	case TypeEcho, "":
-		if message.Direction != nil || message.Sequence != 0 {
+		if message.Direction != nil || message.Sequence != 0 || message.Perk != nil {
 			return ClientMessage{}, errors.New("echo cannot contain direction")
 		}
 	default:
@@ -74,15 +92,10 @@ func DecodeClientMessage(data []byte) (ClientMessage, error) {
 	return *message, nil
 }
 
-type PlayerStats struct {
-	Level int     `json:"level"`
-	XP    float64 `json:"xp"`
-	HP    float64 `json:"hp"`
-	MP    float64 `json:"mp"`
-	Speed float64 `json:"speed"`
-}
+type PlayerStats = simulation.Stats
 
 type Player struct {
+	ActiveStatue   string                       `json:"active_statue,omitempty"`
 	EntranceGate   simulation.EntranceGateState `json:"entrance_gate"`
 	ShotCooldown   float64                      `json:"shot_cooldown,omitempty"`
 	EjectCooldown  float64                      `json:"eject_cooldown,omitempty"`
@@ -126,15 +139,16 @@ type AI struct {
 }
 
 type Message struct {
-	Projectiles []simulation.Projectile `json:"projectiles"`
-	SafeZones   []simulation.SafeZone   `json:"safe_zones"`
-	Boss        simulation.Boss         `json:"boss"`
-	AIs         *[]AI                   `json:"ais,omitempty"`
-	Fruits      *[]Fruit                `json:"fruits,omitempty"`
-	Type        string                  `json:"type"`
-	PlayerID    string                  `json:"player_id,omitempty"`
-	Tick        uint64                  `json:"tick"`
-	Players     *[]Player               `json:"players,omitempty"`
-	Message     string                  `json:"message,omitempty"`
-	Name        string                  `json:"name,omitempty"`
+	Statues     []simulation.StatueState `json:"statues"`
+	Projectiles []simulation.Projectile  `json:"projectiles"`
+	SafeZones   []simulation.SafeZone    `json:"safe_zones"`
+	Boss        simulation.Boss          `json:"boss"`
+	AIs         *[]AI                    `json:"ais,omitempty"`
+	Fruits      *[]Fruit                 `json:"fruits,omitempty"`
+	Type        string                   `json:"type"`
+	PlayerID    string                   `json:"player_id,omitempty"`
+	Tick        uint64                   `json:"tick"`
+	Players     *[]Player                `json:"players,omitempty"`
+	Message     string                   `json:"message,omitempty"`
+	Name        string                   `json:"name,omitempty"`
 }

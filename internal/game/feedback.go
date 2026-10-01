@@ -61,6 +61,9 @@ func (f *combatFeedback) observe(now time.Time, actors map[string]feedbackActor,
 	if f.actors != nil {
 		for id, actor := range actors {
 			old, existed := f.actors[id]
+			if existed && !old.dead && !actor.dead && actor.level > old.level && !actor.ai {
+				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, runeColor, "level")
+			}
 			if existed && !old.dead && !actor.dead && actor.hp < old.hp {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, rl.RayWhite, "mass")
 			}
@@ -118,7 +121,11 @@ func (f *combatFeedback) multiplayer(now time.Time, players []protocol.Player, a
 func (f *combatFeedback) draw(now time.Time, exploration *mapExploration) {
 	active := f.effects[:0]
 	for _, e := range f.effects {
-		p := float32(max(0, now.Sub(e.started).Seconds()) / 0.35)
+		duration := .35
+		if e.kind == "level" {
+			duration = 1.6
+		}
+		p := float32(max(0, now.Sub(e.started).Seconds()) / duration)
 		if p >= 1 {
 			continue
 		}
@@ -129,6 +136,9 @@ func (f *combatFeedback) draw(now time.Time, exploration *mapExploration) {
 		tint := rl.Fade(e.tint, 1-p)
 		center := rl.NewVector2(e.x, e.y)
 		switch e.kind {
+		case "level":
+			label := "LEVEL UP / +5 MAX HP & MP"
+			drawText(label, int32(e.x)-measureText(label, 16)/2, int32(e.y-50-30*p), 16, tint)
 		case "eat":
 			radius := e.size*0.7 + 12*p
 			rl.DrawRing(center, radius, radius+2*(1-p), 0, 360, 36, tint)

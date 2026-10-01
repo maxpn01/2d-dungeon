@@ -12,9 +12,10 @@ type PlayerStats struct {
 	lvl int
 	exp float64
 
-	hp    float32
-	mp    float32
-	speed float32
+	hp                               float32
+	mp                               float32
+	speed                            float32
+	damage, attackRate, boost, maxMP float32
 
 	maxLvl int
 	maxHP  float32

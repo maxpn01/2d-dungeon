@@ -178,6 +178,7 @@ func (w *World) drawRadar(v radarView) {
 		}
 	}
 	v.bossMarker(w.snapshot.Boss)
+	v.statueMarkers(w.snapshot.Statues)
 	v.end(entityCenter(w.player.pos, w.player.size))
 }
 
@@ -214,6 +215,7 @@ func (m *multiplayer) drawRadar(windowWidth, windowHeight int32) {
 			}
 		}
 		v.bossMarker(m.view.Boss)
+		v.statueMarkers(m.view.Statues)
 		v.end(center(local.X, local.Y, local.Size))
 		return
 	}
@@ -222,5 +224,21 @@ func (m *multiplayer) drawRadar(windowWidth, windowHeight int32) {
 func (v radarView) bossMarker(b simulation.Boss) {
 	if b.Phase == "gathering" || b.Phase == "fighting" {
 		v.marker(rl.NewVector2(float32(b.X+simulation.BossSize/2), float32(b.Y+simulation.BossSize/2)), 5, rl.Gold)
+	}
+}
+
+func (v radarView) statueMarkers(statues []simulation.StatueState) {
+	for _, s := range statues {
+		center := rl.NewVector2(float32(s.X), float32(s.Y))
+		if !v.exploration.explored(explorationCell(center)) {
+			continue
+		}
+		point := v.point(center)
+		tint := runeColor
+		if s.ClaimedBy != "" {
+			tint = rl.Gray
+		}
+		rl.DrawPoly(point, 4, 6, 45, rl.Black)
+		rl.DrawPoly(point, 4, 4, 45, tint)
 	}
 }

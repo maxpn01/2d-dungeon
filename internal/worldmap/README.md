@@ -48,7 +48,7 @@ FeedingArea{
     Radius: 4,
     Style: TealGarden,
     Food: FoodSource{Capacity: 7, Respawn: 30 * time.Second},
-    Guard: &Guard{PatrolRadius: 4, Level: 2, HP: 4, Respawn: 2 * time.Minute},
+    Guard: &Guard{PatrolRadius: 4, Level: 1, Respawn: 2 * time.Minute},
 }
 ```
 
@@ -59,6 +59,41 @@ nil to remove the guard; set food capacity to zero to disable its food.
 `guardedGarden` holds the shared settings for the four existing gardens.
 Simulation compiles these definitions into world-coordinate patches and dens,
 with spawning and patrol constraints supplied by their owning room.
+
+Guards also accept `Damage` and `AttackRate` (shots per second). Zero uses the
+default mob value: 1 damage and 2 shots per second. The first-floor dungeon has
+four additional level-2 Square guards and nearby replenishing food patches.
+HP and MP are derived from level with the same +5 capacity growth as players.
+Guards spawn and respawn with full HP/MP: level 1 has 10/10, level 2 has 15/15.
+Entrance guards are level 1; dungeon guards past the gate are level 2.
+
+## Inscription statues
+
+Add room-relative statue positions to a room:
+
+```go
+Statues: []Statue{
+    {ID: "column-inscription", At: At(9, 5)},
+},
+```
+
+Statue IDs are unique across the map. Positions must fit in their room and be
+reachable. Statues are decorative, walkable objects; interact within 100 world
+units with a clear line of sight. `Map.Statues()` returns compiled positions.
+Rooms support `SetStatue` and `RemoveStatue` alongside the other content helpers.
+
+The simulation owns shared offers, claims, and reward cycles. A statue becomes
+unavailable to everyone when one player selects a card. That player's death or
+departure releases their claimed statues, allowing a fresh offer for either
+player. Respawn preserves the rest of the world.
+
+Perk tuning lives in `internal/parameters/parameters.go`: `PerkRankWeights`,
+`PerkBonuses`, and `PerkPenalties`. Rank columns are E, D, C, B, A, S. Family rows
+are damage, attack rate, MP capacity, HP capacity, movement speed, Shift boost,
+Heavy Hand, and Overdrive. Percentage values are fractions of the base stat;
+HP/MP capacity values are flat bonuses. Each rank replaces the previous rank's
+effect rather than adding another copy. Heavy Hand adds damage and subtracts
+movement speed; Overdrive adds boost strength and increases boost MP cost.
 
 ## Connections, gates, and portals
 

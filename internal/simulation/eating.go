@@ -228,10 +228,6 @@ func (e eater) gain(hp, xp float64, mana ...float64) {
 	for _, mp := range mana {
 		owner.GainMP(mp)
 	}
-	if e.ai != nil && e.ai.den.ID != "" {
-		e.stats.HP = min(e.ai.den.HP, e.stats.HP+hp)
-		return
-	}
 	if (e.player == nil || e.player.Split.Count() == 0) && (e.ai == nil || e.ai.Split.Count() == 0) {
 		e.stats.Eat(hp, xp)
 		return
@@ -249,6 +245,6 @@ func (e eater) gain(hp, xp float64, mana ...float64) {
 			(*split)[i].Stats.Level, (*split)[i].Stats.XP = stats.Level, stats.XP
 		}
 	}
-	room := max(0, MaxHPForLevel(stats.Level)-stats.HP-split.Mass())
+	room := max(0, stats.MaxHP()-stats.HP-split.Mass())
 	e.stats.HP += min(hp, room)
 }

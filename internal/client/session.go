@@ -19,6 +19,7 @@ import (
 )
 
 type Update struct {
+	Statues     []simulation.StatueState
 	SafeZones   []simulation.SafeZone
 	Boss        simulation.Boss
 	AIs         []protocol.AI
@@ -48,21 +49,22 @@ type sentInput struct {
 }
 
 type Session struct {
-	safeZones       []simulation.SafeZone
-	dead            bool
-	predicted       protocol.Player
-	predictionReady bool
-	sequence        uint64
-	pending         []sentInput
-	updates         chan Update
-	done            chan struct{}
-	cancel          context.CancelFunc
-	inputMu         sync.Mutex
-	direction       protocol.Direction
-	inputAt         time.Time
-	chatMu          sync.Mutex
-	chat            []ChatEntry
-	outgoingChat    []string
+	outgoingControls []protocol.ClientMessage
+	safeZones        []simulation.SafeZone
+	dead             bool
+	predicted        protocol.Player
+	predictionReady  bool
+	sequence         uint64
+	pending          []sentInput
+	updates          chan Update
+	done             chan struct{}
+	cancel           context.CancelFunc
+	inputMu          sync.Mutex
+	direction        protocol.Direction
+	inputAt          time.Time
+	chatMu           sync.Mutex
+	chat             []ChatEntry
+	outgoingChat     []string
 }
 
 func Connect(endpoint string) *Session {
@@ -111,6 +113,21 @@ func (s *Session) SetInput(direction protocol.Direction) {
 	s.direction, s.inputAt = direction, time.Now()
 	s.inputMu.Unlock()
 }
+
+func (s *Session) sendControl(message protocol.ClientMessage) {
+	s.inputMu.Lock()
+	defer s.inputMu.Unlock()
+	if len(s.outgoingControls) < 8 {
+		s.outgoingControls = append(s.outgoingControls, message)
+	}
+}
+
+func (s *Session) ChoosePerk(statueID string, cycle uint64, card int) {
+	s.sendControl(protocol.ClientMessage{Type: protocol.TypePerkChoice, Perk: &protocol.PerkSelection{StatueID: statueID, Cycle: cycle, Card: card}})
+}
+
+func (s *Session) CloseOffer() { s.sendControl(protocol.ClientMessage{Type: protocol.TypeCloseOffer}) }
+func (s *Session) Respawn()    { s.sendControl(protocol.ClientMessage{Type: protocol.TypeRespawn}) }
 
 func (s *Session) SendChat(text string) {
 	text = protocol.NormalizeChatMessage(text)
@@ -242,6 +259,19 @@ func (s *Session) run(ctx context.Context, url string) error {
 			case <-ioCtx.Done():
 				return
 			case <-ticker.C:
+				s.inputMu.Lock()
+				controls := s.outgoingControls
+				s.outgoingControls = nil
+				s.inputMu.Unlock()
+				for _, message := range controls {
+					writeCtx, finish := context.WithTimeout(ioCtx, 3*time.Second)
+					err := wsjson.Write(writeCtx, conn, message)
+					finish()
+					if err != nil {
+						writerError <- err
+						return
+					}
+				}
 				failed := false
 				for _, text := range s.takeOutgoingChat() {
 					writeCtx, finish := context.WithTimeout(ioCtx, 3*time.Second)
@@ -326,6 +356,9 @@ func (s *Session) run(ctx context.Context, url string) error {
 		if err := validateAIs(*message.AIs); err != nil {
 			return err
 		}
+		if err := validateStatues(message.Statues); err != nil {
+			return err
+		}
 		if len(message.SafeZones) > simulation.SafeZoneCount {
 			return errors.New("server sent too many refuges")
 		}
@@ -369,7 +402,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 		s.predicted, s.predictionReady = local, !s.dead
 		s.predicted.Split = local.Split.Clone()
 		s.inputMu.Unlock()
-		s.publish(Update{Projectiles: message.Projectiles, SafeZones: message.SafeZones, Boss: message.Boss, PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits, AIs: *message.AIs})
+		s.publish(Update{Statues: message.Statues, Projectiles: message.Projectiles, SafeZones: message.SafeZones, Boss: message.Boss, PlayerID: welcome.PlayerID, Players: *message.Players, Tick: message.Tick, Ready: true, Local: local, ReceivedAt: time.Now(), Fruits: *message.Fruits, AIs: *message.AIs})
 	}
 }
 
@@ -391,14 +424,14 @@ func validatePlayers(players []protocol.Player, localID string) error {
 		if player.Character != "" && simulation.NormalizeCharacter(player.Character) != player.Character {
 			return errors.New("server sent invalid character")
 		}
-		if player.Stats.HP+player.Split.Mass() > simulation.MaxHPForLevel(player.Stats.Level)+1e-9 {
+		if player.Stats.HP+player.Split.Mass() > player.Stats.MaxHP()+1e-9 {
 			return errors.New("server sent invalid total HP")
 		}
 		for _, cell := range player.Split {
 			if !cell.Active {
 				continue
 			}
-			if player.Character != simulation.Circle || !validStats(protocol.PlayerStats{Level: cell.Stats.Level, XP: cell.Stats.XP, HP: cell.Stats.HP, Speed: cell.Stats.Speed}, simulation.PlayerSpeed) || cell.Stats.HP <= 0 || cell.Stats.Level != player.Stats.Level || cell.Stats.XP != player.Stats.XP {
+			if player.Character != simulation.Circle || !validStats(cell.Stats, simulation.PlayerSpeed) || cell.Stats.HP <= 0 || cell.Stats.Level != player.Stats.Level || cell.Stats.XP != player.Stats.XP {
 				return errors.New("server sent invalid split stats")
 			}
 			for _, v := range []float64{cell.X, cell.Y, cell.Remaining, cell.Launch} {
@@ -417,7 +450,7 @@ func validatePlayers(players []protocol.Player, localID string) error {
 		if math.IsNaN(player.EjectCooldown) || math.IsInf(player.EjectCooldown, 0) || player.EjectCooldown < 0 || player.EjectCooldown > simulation.EjectInterval {
 			return errors.New("server sent invalid eject cooldown")
 		}
-		if math.IsNaN(player.ShotCooldown) || math.IsInf(player.ShotCooldown, 0) || player.ShotCooldown < 0 || player.ShotCooldown > parameters.ShotCooldown {
+		if math.IsNaN(player.ShotCooldown) || math.IsInf(player.ShotCooldown, 0) || player.ShotCooldown < 0 || player.ShotCooldown > max(parameters.ShotCooldown, 1/player.Stats.AttackRate)+1e-9 {
 			return errors.New("server sent invalid shot cooldown")
 		}
 		if !validCombat(player.Combat) {
@@ -466,12 +499,20 @@ func validateFruits(fruits []protocol.Fruit) error {
 }
 
 func validStats(stats protocol.PlayerStats, baseSpeed float64) bool {
-	if math.IsNaN(stats.MP) || math.IsInf(stats.MP, 0) || stats.MP < 0 || stats.MP > simulation.MaxMPForLevel(stats.Level) {
+	for _, rank := range stats.Perks {
+		if rank < 0 || rank > simulation.MaxPerkRank {
+			return false
+		}
+	}
+	for _, value := range []float64{stats.XP, stats.HP, stats.MP, stats.Speed, stats.Damage, stats.AttackRate, stats.BoostMultiplier, stats.BoostCost} {
+		if math.IsNaN(value) || math.IsInf(value, 0) {
+			return false
+		}
+	}
+	if stats.MP < 0 || stats.MP > stats.MaxMP() {
 		return false
 	}
-	if stats.Level < 1 || stats.Level > simulation.MaxLevel || math.IsNaN(stats.XP) || math.IsInf(stats.XP, 0) ||
-		stats.XP < 0 || stats.HP < 0 || stats.HP > simulation.MaxHPForLevel(stats.Level) || math.IsNaN(stats.HP) ||
-		stats.Speed != baseSpeed {
+	if stats.Level < 1 || stats.Level > simulation.MaxLevel || stats.XP < 0 || stats.HP < 0 || stats.HP > stats.MaxHP() || stats.Speed <= 0 || stats.Speed > baseSpeed*2 || stats.Damage <= 0 || stats.Damage > 100 || stats.AttackRate <= 0 || stats.AttackRate > simulation.TickRate || stats.BoostMultiplier < 1 || stats.BoostMultiplier > 10 || stats.BoostCost <= 0 || stats.BoostCost > 10 {
 		return false
 	}
 	if stats.Level == simulation.MaxLevel {
@@ -481,7 +522,7 @@ func validStats(stats protocol.PlayerStats, baseSpeed float64) bool {
 }
 
 func validateAIs(ais []protocol.AI) error {
-	if len(ais) > simulation.InitialAIs {
+	if len(ais) > simulation.InitialAIs+len(worldmap.Default().Dens()) {
 		return errors.New("server sent too many AIs")
 	}
 	ids := make(map[string]bool, len(ais))
@@ -499,14 +540,14 @@ func validateAIs(ais []protocol.AI) error {
 		if !validStats(ai.Stats, simulation.AISpeed) {
 			return errors.New("server sent invalid AI stats")
 		}
-		if ai.Stats.HP+ai.Split.Mass() > simulation.MaxHPForLevel(ai.Stats.Level)+1e-9 {
+		if ai.Stats.HP+ai.Split.Mass() > ai.Stats.MaxHP()+1e-9 {
 			return errors.New("server sent invalid AI total HP")
 		}
 		for _, cell := range ai.Split {
 			if !cell.Active {
 				continue
 			}
-			if ai.Character != simulation.Circle || !validStats(protocol.PlayerStats{Level: cell.Stats.Level, XP: cell.Stats.XP, HP: cell.Stats.HP, Speed: cell.Stats.Speed}, simulation.AISpeed) || cell.Stats.HP <= 0 || cell.Stats.Level != ai.Stats.Level || cell.Stats.XP != ai.Stats.XP {
+			if ai.Character != simulation.Circle || !validStats(cell.Stats, simulation.AISpeed) || cell.Stats.HP <= 0 || cell.Stats.Level != ai.Stats.Level || cell.Stats.XP != ai.Stats.XP {
 				return errors.New("server sent invalid AI split stats")
 			}
 			for _, v := range []float64{cell.X, cell.Y, cell.Remaining, cell.Launch} {
@@ -531,7 +572,7 @@ func validateAIs(ais []protocol.AI) error {
 }
 
 func predictPlayer(player *protocol.Player, input protocol.Direction, zones []simulation.SafeZone) {
-	p := simulation.Player{EntranceGate: player.EntranceGate, ShotCooldown: player.ShotCooldown, EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split.Clone(), GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: simulation.Stats{Level: player.Stats.Level, XP: player.Stats.XP, HP: player.Stats.HP, MP: player.Stats.MP, Speed: player.Stats.Speed}}
+	p := simulation.Player{EntranceGate: player.EntranceGate, ShotCooldown: player.ShotCooldown, EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split.Clone(), GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: player.Stats}
 	d := simulation.Direction{Shoot: input.Shoot, X: input.X, Y: input.Y, Boost: input.Boost, Dash: input.Dash, Interact: input.Interact, AimX: input.AimX, AimY: input.AimY}
 	simulation.AdvancePlayer(&p, d, simulation.StepSeconds, zones)
 	player.X, player.Y, player.Combat, player.Stats.HP = p.X, p.Y, p.Combat, p.Stats.HP
@@ -540,6 +581,7 @@ func predictPlayer(player *protocol.Player, input protocol.Direction, zones []si
 	if !simulation.InSafeZone(p.X, p.Y, simulation.PlayerSize, p.Stats.HP, zones) {
 		simulation.PrepareShot(&p, d)
 	}
+	p.ShotCooldown = max(0, p.ShotCooldown)
 	player.Stats.MP = p.Stats.MP
 	player.ShotCooldown = p.ShotCooldown
 	player.EjectCooldown = p.EjectCooldown
@@ -625,13 +667,46 @@ func validateProjectiles(shots []simulation.Projectile) error {
 			return errors.New("server sent invalid projectile")
 		}
 		ids[shot.ID] = true
-		for _, value := range []float64{shot.X, shot.Y, shot.Remaining} {
+		for _, value := range []float64{shot.X, shot.Y, shot.Remaining, shot.Damage} {
 			if math.IsNaN(value) || math.IsInf(value, 0) {
 				return errors.New("server sent invalid projectile coordinates")
 			}
 		}
-		if shot.Remaining <= 0 || shot.Remaining > parameters.ShotLifetime || !worldmap.Default().Walkable(shot.X, shot.Y, parameters.ShotSize, parameters.ShotSize) {
+		if shot.Damage <= 0 || shot.Damage > 100 || shot.Remaining <= 0 || shot.Remaining > parameters.ShotLifetime || !worldmap.Default().Walkable(shot.X, shot.Y, parameters.ShotSize, parameters.ShotSize) {
 			return errors.New("server sent invalid projectile position or lifetime")
+		}
+	}
+	return nil
+}
+
+func validateStatues(statues []simulation.StatueState) error {
+	points := worldmap.Default().Statues()
+	if len(statues) != len(points) {
+		return errors.New("server sent invalid statue count")
+	}
+	seen := map[string]bool{}
+	for _, s := range statues {
+		if seen[s.ID] || s.Cycle == 0 || len(s.Cards) > 3 {
+			return errors.New("server sent invalid statue")
+		}
+		seen[s.ID] = true
+		found := false
+		for _, point := range points {
+			at := point.Position()
+			if point.ID == s.ID && at.X == s.X && at.Y == s.Y {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return errors.New("server sent invalid statue position")
+		}
+		families := map[simulation.PerkFamily]bool{}
+		for _, card := range s.Cards {
+			if !card.Valid() || families[card.Family] {
+				return errors.New("server sent invalid perk offer")
+			}
+			families[card.Family] = true
 		}
 	}
 	return nil

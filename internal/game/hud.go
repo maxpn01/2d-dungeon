@@ -20,12 +20,14 @@ func NewHUD(world *World, window *Window) *HUD {
 }
 
 type playerHUD struct {
+	perks                            [simulation.PerkFamilyCount]int
 	character                        simulation.Character
 	name                             string
 	avatar                           color.RGBA
 	level, maxLevel                  int
 	hp, maxHP, mp, maxMP, xp, nextXP float32
 	speed                            float32
+	damage, attackRate, boost        float32
 	fruit, ais, players              int
 }
 
@@ -33,9 +35,11 @@ func (h *HUD) draw() {
 	w := h.world
 	s := w.player.stats
 	drawPlayerHUD(playerHUD{
-		name: w.player.name, avatar: w.player.color, character: w.player.character,
+		perks: w.snapshot.Players[0].Stats.Perks,
+		name:  w.player.name, avatar: w.player.color, character: w.player.character,
 		level: s.lvl, maxLevel: s.maxLvl,
-		mp: s.mp, maxMP: float32(simulation.MaxMPForLevel(s.lvl)), hp: s.hp + float32(w.player.split.Mass()), maxHP: s.maxHP, xp: float32(s.exp), nextXP: calcExpForNextLvl(s.lvl),
+		mp: s.mp, maxMP: s.maxMP, hp: s.hp + float32(w.player.split.Mass()), maxHP: s.maxHP, xp: float32(s.exp), nextXP: calcExpForNextLvl(s.lvl),
+		damage: s.damage, attackRate: s.attackRate, boost: s.boost,
 		speed: float32(effectivePlayerSpeed(w.player.character, float64(s.speed), float64(s.hp), w.player.split)), fruit: len(w.fruitSpawner.fruits), ais: len(w.ais),
 	}, h.window.width)
 }
@@ -47,7 +51,17 @@ func drawPlayerHUD(p playerHUD, windowWidth int32) {
 		return
 	}
 	background := rl.Fade(rl.Black, .8)
-	rl.DrawRectangle(x, y, width, 220, background)
+	owned := []string{}
+	for family, rank := range p.perks {
+		if rank > 0 {
+			owned = append(owned, fmt.Sprintf("%s %s", simulation.PerkName(simulation.PerkFamily(family)), simulation.RankName(rank)))
+		}
+	}
+	height := int32(272)
+	if len(owned) > 0 {
+		height = 294 + int32((len(owned)+1)/2)*22
+	}
+	rl.DrawRectangle(x, y, width, height, background)
 
 	rl.DrawRectangle(x+12, y+10, 36, 36, color.RGBA{48, 48, 48, 255})
 	drawCharacterShape(p.character, rl.NewRectangle(float32(x+18), float32(y+16), 24, 24), p.avatar)
@@ -74,6 +88,14 @@ func drawPlayerHUD(p playerHUD, windowWidth int32) {
 	rl.DrawCircleLines(cx, cy, 7, muted)
 	rl.DrawLine(cx, cy, cx+4, cy-4, rl.RayWhite)
 	drawText(fmt.Sprintf("SPEED %.2f", p.speed), x+34, y+190, 18, muted)
+	drawText(fmt.Sprintf("DMG %.2f   RATE %.2f/s", p.damage, p.attackRate), x+12, y+218, 18, muted)
+	drawText(fmt.Sprintf("SHIFT x%.2f", p.boost), x+12, y+245, 16, muted)
+	if len(owned) > 0 {
+		drawText("BLESSINGS", x+12, y+274, 14, runeColor)
+		for i, label := range owned {
+			drawText(label, x+12+int32(i%2)*(width-24)/2, y+298+int32(i/2)*22, 16, rl.LightGray)
+		}
+	}
 
 	counts := fmt.Sprintf("Food: %d    AIs: %d", p.fruit, p.ais)
 	if p.players > 0 {

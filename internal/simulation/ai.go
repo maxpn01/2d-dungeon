@@ -61,8 +61,15 @@ type aiState struct {
 func (w *World) newDenAI(den worldmap.Den) aiState {
 	w.nextAI++
 	x, y := worldmap.CellPosition(den.At.X, den.At.Y, AISize)
-	stats := NewStats()
-	stats.Level, stats.HP, stats.Speed = den.Level, den.HP, AISpeed*.65
+	stats := NewStatsAtLevel(den.Level)
+	stats.Speed = AISpeed * .65
+	stats.Damage, stats.AttackRate = parameters.MobDamage, parameters.MobAttackRate
+	if den.Damage > 0 {
+		stats.Damage = den.Damage
+	}
+	if den.AttackRate > 0 {
+		stats.AttackRate = den.AttackRate
+	}
 	return aiState{den: den, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "patrolling", Character: Square}}
 }
 
@@ -86,6 +93,7 @@ func (w *World) newSurfaceAI(slot int) aiState {
 	w.nextAI++
 	stats := NewStats()
 	stats.Speed = AISpeed
+	stats.Damage, stats.AttackRate = parameters.MobDamage, parameters.MobAttackRate
 	return aiState{settleTicks: AISettleTicks, AI: AI{
 		ID: fmt.Sprintf("ai-%d", w.nextAI), X: 600 + float64(slot%3)*450,
 		Y: 400 + float64(slot/3)*650, Stats: stats, Behavior: "emerging", Character: Square,
@@ -223,7 +231,7 @@ func (w *World) nearestFruit(ai *aiState) (Fruit, bool) {
 	best := AIDetectionRadius * AIDetectionRadius
 	found := false
 	for _, fruit := range w.fruits {
-		if !ai.sees(fruit.X, fruit.Y) || !ai.inTerritory(fruit.X, fruit.Y) || (fruit.MP > 0 && ai.Stats.MP >= MaxMPForLevel(ai.Stats.Level) || fruit.MP == 0 && ai.Stats.HP >= MaxHPForLevel(ai.Stats.Level) && ai.Stats.Level >= MaxLevel) {
+		if !ai.sees(fruit.X, fruit.Y) || !ai.inTerritory(fruit.X, fruit.Y) || (fruit.MP > 0 && ai.Stats.MP >= ai.Stats.MaxMP() || fruit.MP == 0 && ai.Stats.HP >= ai.Stats.MaxHP() && ai.Stats.Level >= MaxLevel) {
 			continue
 		}
 		fruitCenter := (physics.Rect{X: fruit.X, Y: fruit.Y, W: fruit.Size, H: fruit.Size}).Center()

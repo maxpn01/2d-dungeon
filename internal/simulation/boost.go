@@ -31,12 +31,12 @@ func advanceBoostPlayer(p *Player, input Direction, dt float64) {
 	}
 	boosted := 0.0
 	if input.Boost && p.Stats.MP > 0 {
-		boosted = min(dt, p.Stats.MP/BoostMPPerSecond)
+		boosted = min(dt, p.Stats.MP/p.Stats.BoostCost)
 	}
 	oldX, oldY := p.X, p.Y
-	p.X, p.Y = Move(p.X, p.Y, input, boosted, p.MovementSpeed()*BoostMultiplier)
+	p.X, p.Y = Move(p.X, p.Y, input, boosted, p.MovementSpeed()*p.Stats.BoostMultiplier)
 	if p.X != oldX || p.Y != oldY {
-		p.Stats.MP = max(0, p.Stats.MP-boosted*BoostMPPerSecond)
+		p.Stats.MP = max(0, p.Stats.MP-boosted*p.Stats.BoostCost)
 		p.Combat.Boosting = boosted > 0
 	}
 	p.X, p.Y = Move(p.X, p.Y, input, dt-boosted, p.MovementSpeed())

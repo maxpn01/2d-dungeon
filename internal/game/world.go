@@ -16,6 +16,7 @@ type GameObject interface {
 }
 
 type World struct {
+	perks            perkPanel
 	started          bool
 	feedback         combatFeedback
 	gameMap          *mapView
@@ -73,7 +74,45 @@ func (w *World) update(dt float32) {
 }
 
 func gameStats(s simulation.Stats) PlayerStats {
-	return PlayerStats{lvl: s.Level, exp: s.XP, hp: float32(s.HP), mp: float32(s.MP), speed: float32(s.Speed), maxLvl: simulation.MaxLevel, maxHP: float32(simulation.MaxHPForLevel(s.Level))}
+	return PlayerStats{lvl: s.Level, exp: s.XP, hp: float32(s.HP), mp: float32(s.MP), speed: float32(s.Speed), damage: float32(s.Damage), attackRate: float32(s.AttackRate), boost: float32(s.BoostMultiplier), maxMP: float32(s.MaxMP()), maxLvl: simulation.MaxLevel, maxHP: float32(s.MaxHP())}
+}
+
+func (w *World) readInput(camera rl.Camera2D, window *Window) {
+	p := w.snapshot.Players[0]
+	s := w.perks.sync(p.ActiveStatue, w.snapshot.Statues)
+	if s != nil {
+		w.player.input = PlayerInput{}
+		w.player.suppressShootUntilRelease = true
+		if card := w.perks.read(*s, p.Stats, window.width, window.height); card >= 0 {
+			w.simulation.ChoosePerk("player", s.ID, s.Cycle, card)
+			w.syncSimulation()
+		}
+		return
+	}
+	if !rl.IsWindowFocused() {
+		w.player.input = PlayerInput{}
+		return
+	}
+	w.player.readInput(camera)
+}
+
+func (w *World) closePerks() {
+	w.simulation.CloseOffer("player")
+	w.player.suppressShootUntilRelease = true
+	w.syncSimulation()
+}
+
+func (w *World) respawn() {
+	if !w.simulation.Respawn("player") {
+		return
+	}
+	w.player.input = PlayerInput{}
+	w.player.suppressShootUntilRelease = true
+	w.eating, w.eatingAI = nil, nil
+	w.accumulator = 0
+	w.syncSimulation()
+	w.previousSnapshot = w.snapshot
+	w.perks = perkPanel{}
 }
 
 func (w *World) syncSimulation() {
@@ -129,6 +168,8 @@ func (w *World) syncSimulation() {
 
 func (w *World) draw(ctx RenderContext) {
 	w.gameMap.draw(ctx)
+	p := w.snapshot.Players[0]
+	drawStatues(w.snapshot.Statues, p.ActiveStatue, p.X, p.Y, p.Dead, &w.gameMap.exploration)
 
 	for _, entity := range w.entities {
 		if w.eating != nil && (entity == w.player || entity == w.eatingAI) {

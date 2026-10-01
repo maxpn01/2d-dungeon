@@ -66,10 +66,9 @@ func (h *Hub) Run(ctx context.Context) {
 			players := make([]protocol.Player, 0, len(snapshot.Players))
 			for _, state := range snapshot.Players {
 				players = append(players, protocol.Player{
+					ActiveStatue: state.ActiveStatue,
 					EntranceGate: state.EntranceGate, ShotCooldown: state.ShotCooldown, EjectCooldown: state.EjectCooldown, Character: state.Character, Split: state.Split, GatesClosed: state.GatesClosed, InArena: state.InArena, TeleportCharge: state.TeleportCharge, Combat: state.Combat, Name: names[state.ID], Dead: state.Dead, KilledBy: state.KilledBy, ID: state.ID, X: state.X, Y: state.Y, Size: simulation.PlayerSize, InputSeq: state.InputSeq,
-					Stats: protocol.PlayerStats{
-						Level: state.Stats.Level, XP: state.Stats.XP, HP: state.Stats.HP, MP: state.Stats.MP, Speed: state.Stats.Speed,
-					},
+					Stats: state.Stats,
 				})
 			}
 			fruits := make([]protocol.Fruit, 0, len(snapshot.Fruits))
@@ -80,10 +79,10 @@ func (h *Hub) Run(ctx context.Context) {
 			for _, ai := range snapshot.AIs {
 				ais = append(ais, protocol.AI{
 					Combat: ai.Combat, Behavior: ai.Behavior, Character: ai.Character, Split: ai.Split, ID: ai.ID, X: ai.X, Y: ai.Y, Size: simulation.AISize,
-					Stats: protocol.PlayerStats{Level: ai.Stats.Level, XP: ai.Stats.XP, HP: ai.Stats.HP, MP: ai.Stats.MP, Speed: ai.Stats.Speed},
+					Stats: ai.Stats,
 				})
 			}
-			message := protocol.Message{Projectiles: snapshot.Projectiles, SafeZones: snapshot.SafeZones, Boss: snapshot.Boss, Type: protocol.TypeSnapshot, Tick: snapshot.Tick, Players: &players, Fruits: &fruits, AIs: &ais}
+			message := protocol.Message{Statues: snapshot.Statues, Projectiles: snapshot.Projectiles, SafeZones: snapshot.SafeZones, Boss: snapshot.Boss, Type: protocol.TypeSnapshot, Tick: snapshot.Tick, Players: &players, Fruits: &fruits, AIs: &ais}
 			dropped := false
 			for c := range clients {
 				select {
@@ -122,6 +121,21 @@ func (h *Hub) Run(ctx context.Context) {
 			}
 		case event := <-h.messages:
 			if _, exists := clients[event.client]; !exists {
+				continue
+			}
+			switch event.message.Type {
+			case protocol.TypePerkChoice:
+				choice := event.message.Perk
+				world.ChoosePerk(event.client.id, choice.StatueID, choice.Cycle, choice.Card)
+				broadcast()
+				continue
+			case protocol.TypeCloseOffer:
+				world.CloseOffer(event.client.id)
+				broadcast()
+				continue
+			case protocol.TypeRespawn:
+				world.Respawn(event.client.id)
+				broadcast()
 				continue
 			}
 			if event.message.Type == protocol.TypeInput {

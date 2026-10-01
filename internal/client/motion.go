@@ -108,7 +108,7 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 	}
 	speed := playerMovementSpeed(target) * simulation.SpeedScale
 	if target.Combat.Boosting || m.local.Combat.Boosting {
-		speed *= simulation.BoostMultiplier
+		speed *= target.Stats.BoostMultiplier
 	}
 	if target.Combat.Phase == simulation.DashRushing || m.local.Combat.Phase == simulation.DashRushing {
 		speed *= simulation.DashSpeedMultiplier

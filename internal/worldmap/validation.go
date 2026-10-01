@@ -3,6 +3,7 @@ package worldmap
 import (
 	"fmt"
 	"math"
+	"raylib-2d-sandbox/internal/parameters"
 	"slices"
 )
 
@@ -12,6 +13,7 @@ func validateLayout(layout Layout) error {
 	}
 	world := Cells(MinCellX, MinCellY, MaxCellX-MinCellX, SurfaceCells-MinCellY)
 	roomIDs, passageIDs, feedingIDs, gateIDs, portalIDs := map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}
+	statueIDs := map[string]bool{}
 	arenaCount := 0
 	for _, room := range layout.Rooms {
 		if err := uniqueID(roomIDs, room.ID, "room"); err != nil {
@@ -67,7 +69,12 @@ func validateLayout(layout Layout) error {
 			}
 			if area.Guard != nil {
 				guard := area.Guard
-				if guard.PatrolRadius < 0 || guard.PatrolRadius > max(local.Width, local.Height) || !local.ContainsArea(Around(area.At, guard.PatrolRadius)) || guard.Level <= 0 || guard.HP <= 0 || math.IsNaN(guard.HP) || math.IsInf(guard.HP, 0) || guard.Respawn <= 0 {
+				for _, value := range []float64{guard.Damage, guard.AttackRate} {
+					if value < 0 || math.IsNaN(value) || math.IsInf(value, 0) {
+						return fmt.Errorf("feeding area %s has invalid combat settings", area.ID)
+					}
+				}
+				if guard.PatrolRadius < 0 || guard.PatrolRadius > max(local.Width, local.Height) || !local.ContainsArea(Around(area.At, guard.PatrolRadius)) || guard.Level <= 0 || guard.Level > parameters.MaxLevel || guard.Respawn <= 0 {
 					return fmt.Errorf("feeding area %s has invalid guard settings", area.ID)
 				}
 			}
@@ -86,6 +93,14 @@ func validateLayout(layout Layout) error {
 			}
 			if !local.Contains(portal.At) {
 				return fmt.Errorf("portal %s must fit inside room %s", portal.ID, room.ID)
+			}
+		}
+		for _, statue := range room.Statues {
+			if err := uniqueID(statueIDs, statue.ID, "statue"); err != nil {
+				return err
+			}
+			if !local.Contains(statue.At) {
+				return fmt.Errorf("statue %s must fit inside room %s", statue.ID, room.ID)
 			}
 		}
 	}

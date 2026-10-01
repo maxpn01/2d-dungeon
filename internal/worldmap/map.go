@@ -19,11 +19,22 @@ type Den struct {
 	At         Cell
 	Patrol     CellRect
 	Level      int
-	HP         float64
+	Damage     float64
+	AttackRate float64
 	Respawn    time.Duration
 }
 
 type GateBounds struct{ Left, Right, Y int }
+type StatuePoint struct {
+	ID, RoomID string
+	At         Cell
+}
+
+func (s StatuePoint) Position() physics.Vector {
+	p := s.At.World()
+	return physics.Vector{X: p.X + Tile/2, Y: p.Y + Tile/2}
+}
+
 type PortalPoint struct {
 	ID, RoomID, Destination string
 	At                      Cell
@@ -42,6 +53,7 @@ type Map struct {
 	dens           []Den
 	gates          map[string]GateBounds
 	portals        []PortalPoint
+	statues        []StatuePoint
 	collisionWorld physics.World
 }
 
@@ -81,7 +93,7 @@ func New(layout Layout) (*Map, error) {
 			}
 			if area.Guard != nil {
 				guard := area.Guard
-				m.dens = append(m.dens, Den{ID: area.ID, RoomID: room.ID, At: at, Patrol: Around(at, guard.PatrolRadius), Level: guard.Level, HP: guard.HP, Respawn: guard.Respawn})
+				m.dens = append(m.dens, Den{ID: area.ID, RoomID: room.ID, At: at, Patrol: Around(at, guard.PatrolRadius), Level: guard.Level, Damage: guard.Damage, AttackRate: guard.AttackRate, Respawn: guard.Respawn})
 			}
 		}
 		for _, gate := range room.Gates {
@@ -90,6 +102,9 @@ func New(layout Layout) (*Map, error) {
 		}
 		for _, portal := range room.Portals {
 			m.portals = append(m.portals, PortalPoint{ID: portal.ID, RoomID: room.ID, Destination: portal.Destination, At: room.WorldCell(portal.At), Floor: room.Floor})
+		}
+		for _, statue := range room.Statues {
+			m.statues = append(m.statues, StatuePoint{ID: statue.ID, RoomID: room.ID, At: room.WorldCell(statue.At)})
 		}
 	}
 	m.floors = m.build()
@@ -119,6 +134,7 @@ func (m *Map) Pools() []Pool                     { return append([]Pool(nil), m.
 func (m *Map) Patches() []FeedingPatch           { return append([]FeedingPatch(nil), m.patches...) }
 func (m *Map) Dens() []Den                       { return append([]Den(nil), m.dens...) }
 func (m *Map) Portals() []PortalPoint            { return append([]PortalPoint(nil), m.portals...) }
+func (m *Map) Statues() []StatuePoint            { return append([]StatuePoint(nil), m.statues...) }
 func (m *Map) Gate(id string) (GateBounds, bool) { gate, ok := m.gates[id]; return gate, ok }
 func (m *Map) EntranceGate() GateBounds          { return m.gates[EntranceGate] }
 func (m *Map) Portal(id string) (PortalPoint, bool) {
@@ -178,6 +194,7 @@ func cloneRoom(room Room) Room {
 	}
 	room.Gates = append([]Gate(nil), room.Gates...)
 	room.Portals = append([]Portal(nil), room.Portals...)
+	room.Statues = append([]Statue(nil), room.Statues...)
 	return room
 }
 func cloneRooms(rooms []Room) []Room {

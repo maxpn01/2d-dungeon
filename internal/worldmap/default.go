@@ -72,7 +72,7 @@ func guardedGarden(id string, at Cell, style FeedingStyle) FeedingArea {
 		Radius: 4,
 		Style:  style,
 		Food:   FoodSource{Capacity: 7, Respawn: 30 * time.Second},
-		Guard:  &Guard{PatrolRadius: 4, Level: 2, HP: 4, Respawn: 2 * time.Minute},
+		Guard:  &Guard{PatrolRadius: 4, Level: 1, Respawn: 2 * time.Minute},
 	}
 }
 
@@ -97,6 +97,8 @@ func columnHall() Room {
 			Cover("west-veil", Cells(1, 2, 3, 4)),
 			Cover("east-veil", Cells(14, 2, 3, 4)),
 		},
+		Statues:      []Statue{{ID: "column-inscription", At: At(9, 5)}},
+		FeedingAreas: []FeedingArea{dungeonEncounter("column-guard", At(9, 2), 1, 3)},
 	}
 }
 
@@ -113,6 +115,11 @@ func stillwaterCourt() Room {
 			{ID: "pool-3", Area: Cells(11, 13, 5, 4)},
 			{ID: "pool-4", Area: Cells(20, 13, 5, 4)},
 		},
+		Statues: []Statue{{ID: "stillwater-inscription", At: At(5, 10)}},
+		FeedingAreas: []FeedingArea{
+			dungeonEncounter("stillwater-west", At(5, 5), 3, 5),
+			dungeonEncounter("stillwater-east", At(30, 10), 3, 5),
+		},
 	}
 }
 
@@ -127,6 +134,15 @@ func crownArena() Room {
 			Cover("west-veil", Cells(1, 10, 3, 4)),
 			Cover("east-veil", Cells(14, 10, 3, 4)),
 		},
+		Statues:      []Statue{{ID: "crown-inscription", At: At(9, 16)}},
+		FeedingAreas: []FeedingArea{dungeonEncounter("crown-guard", At(9, 6), 3, 6)},
+	}
+}
+
+func dungeonEncounter(id string, at Cell, radius, food int) FeedingArea {
+	return FeedingArea{ID: id, At: at, Radius: max(1, radius), Style: TealGarden,
+		Food:  FoodSource{Capacity: food, Respawn: 30 * time.Second},
+		Guard: &Guard{PatrolRadius: radius, Level: 2, Damage: 1, AttackRate: 2, Respawn: 45 * time.Second},
 	}
 }
 

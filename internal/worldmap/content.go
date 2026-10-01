@@ -68,6 +68,11 @@ func (m *Map) Validate() error {
 			return fmt.Errorf("unreachable guard %s", den.ID)
 		}
 	}
+	for _, statue := range m.statues {
+		if !seen[statue.At.key()] {
+			return fmt.Errorf("unreachable statue %s", statue.ID)
+		}
+	}
 	for _, portal := range m.portals {
 		if !seen[portal.At.key()] {
 			return fmt.Errorf("unreachable portal %s", portal.ID)

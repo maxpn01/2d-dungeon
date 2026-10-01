@@ -45,6 +45,7 @@ type Room struct {
 	FeedingAreas []FeedingArea
 	Gates        []Gate
 	Portals      []Portal
+	Statues      []Statue
 }
 
 type Prop struct {
@@ -75,7 +76,8 @@ type FoodSource struct {
 type Guard struct {
 	PatrolRadius int
 	Level        int
-	HP           float64
+	Damage       float64
+	AttackRate   float64
 	Respawn      time.Duration
 }
 
@@ -98,6 +100,11 @@ type Portal struct {
 	ID          string
 	At          Cell
 	Destination string
+}
+
+type Statue struct {
+	ID string
+	At Cell
 }
 
 type Location struct {
@@ -163,6 +170,13 @@ func (r *Room) SetPortal(portal Portal) {
 }
 func (r *Room) RemovePortal(id string) bool {
 	return removeByID(&r.Portals, id, func(p Portal) string { return p.ID })
+}
+
+func (r *Room) SetStatue(statue Statue) {
+	r.Statues = setByID(r.Statues, statue, func(s Statue) string { return s.ID })
+}
+func (r *Room) RemoveStatue(id string) bool {
+	return removeByID(&r.Statues, id, func(s Statue) string { return s.ID })
 }
 
 func setByID[T any](items []T, value T, id func(T) string) []T {

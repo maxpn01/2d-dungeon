@@ -19,17 +19,42 @@ const (
 )
 
 type Stats struct {
-	Level             int
-	XP, HP, MP, Speed float64
+	Level           int                  `json:"level"`
+	XP              float64              `json:"xp"`
+	HP              float64              `json:"hp"`
+	MP              float64              `json:"mp"`
+	Speed           float64              `json:"speed"`
+	Damage          float64              `json:"damage"`
+	AttackRate      float64              `json:"attack_rate"`
+	BoostMultiplier float64              `json:"boost_multiplier"`
+	BoostCost       float64              `json:"boost_cost"`
+	Perks           [PerkFamilyCount]int `json:"perks"`
 }
 
-func NewStats() Stats { return Stats{Level: 1, HP: StartingHP, MP: StartingMP, Speed: PlayerSpeed} }
+func NewStats() Stats {
+	return Stats{Level: 1, HP: StartingHP, MP: StartingMP, Speed: PlayerSpeed, Damage: parameters.ShotDamage, AttackRate: parameters.PlayerAttackRate, BoostMultiplier: BoostMultiplier, BoostCost: BoostMPPerSecond}
+}
+
+func NewStatsAtLevel(level int) Stats {
+	stats := NewStats()
+	stats.Level = max(1, min(MaxLevel, level))
+	stats.HP, stats.MP = stats.MaxHP(), stats.MaxMP()
+	return stats
+}
+
+func (s Stats) MaxHP() float64 {
+	return MaxHPForLevel(s.Level) + PerkBonus(HealthPerk, s.Perks[HealthPerk])
+}
+func (s Stats) MaxMP() float64 {
+	return MaxMPForLevel(s.Level) + PerkBonus(ManaPerk, s.Perks[ManaPerk])
+}
 
 func XPForNextLevel(level int) float64 {
 	if level >= MaxLevel {
 		return 0
 	}
-	return parameters.XPFirstLevelCost + parameters.XPLevelCostIncrease*float64(level-1)
+	levelsGained := float64(max(1, level) - 1)
+	return parameters.XPFirstLevelCost + parameters.XPLevelCostGrowth*levelsGained*(levelsGained+1)
 }
 
 func (s *Stats) GainXP(amount float64) {
@@ -60,13 +85,13 @@ func MaxMPForLevel(level int) float64 {
 func (s *Stats) Eat(hp, xp float64) {
 	s.GainXP(xp)
 	if hp > 0 && !math.IsNaN(hp) && !math.IsInf(hp, 0) {
-		s.HP = min(MaxHPForLevel(s.Level), s.HP+hp)
+		s.HP = min(s.MaxHP(), s.HP+hp)
 	}
 }
 
 func (s *Stats) GainMP(amount float64) {
 	if amount > 0 && !math.IsNaN(amount) && !math.IsInf(amount, 0) {
-		s.MP = min(MaxMPForLevel(s.Level), s.MP+amount)
+		s.MP = min(s.MaxMP(), s.MP+amount)
 	}
 }
 

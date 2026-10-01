@@ -41,6 +41,7 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
+	ActiveStatue   string
 	EntranceGate   EntranceGateState
 	ShotCooldown   float64
 	EjectCooldown  float64
@@ -66,13 +67,16 @@ type command struct {
 
 type playerState struct {
 	Player
-	direction    Direction
-	lastInput    time.Time
-	commands     []command
-	lastSequence uint64
+	spawnSlot        uint64
+	progressionReset bool
+	direction        Direction
+	lastInput        time.Time
+	commands         []command
+	lastSequence     uint64
 }
 
 type World struct {
+	statues        []StatueState
 	projectiles    []Projectile
 	nextProjectile uint64
 	safeZones      []SafeZone
@@ -92,6 +96,10 @@ type World struct {
 
 func NewWorld() *World {
 	w := &World{bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState)}
+	for _, statue := range worldmap.Default().Statues() {
+		at := statue.Position()
+		w.statues = append(w.statues, StatueState{ID: statue.ID, X: at.X, Y: at.Y, Cycle: 1})
+	}
 	w.spawnEntranceGuards()
 	w.replenishEntranceFood()
 	return w
@@ -103,12 +111,15 @@ func (w *World) Join(id string) {
 	}
 	x, y := w.spawnPosition(w.nextSpawn)
 	w.nextSpawn++
-	w.players[id] = &playerState{Player: Player{
+	w.players[id] = &playerState{spawnSlot: w.nextSpawn - 1, Player: Player{
 		Character: Square, Stats: NewStats(), ID: id, X: x, Y: y,
 	}}
 }
 
-func (w *World) Leave(id string) { delete(w.players, id) }
+func (w *World) Leave(id string) {
+	w.releaseStatues(id)
+	delete(w.players, id)
+}
 
 func (w *World) Input(id string, direction Direction, now time.Time) bool {
 	return w.Command(id, direction, 0, now)
@@ -205,6 +216,9 @@ func (w *World) Step(now time.Time) {
 				player.InputSeq = next.sequence
 			}
 		}
+		if direction.Interact && w.interactStatue(player) {
+			direction.Interact = false
+		}
 		AdvancePlayer(&player.Player, direction, StepSeconds, w.safeZones)
 		w.fire(&player.Player, direction)
 	}
@@ -242,6 +256,7 @@ func (w *World) Step(now time.Time) {
 		clampPlayerBodies(&p.Player)
 	}
 	w.updatePortals()
+	w.updateStatues()
 	// The surface is only a respawn area while floor one is being redesigned.
 	remaining := w.fruits[:0]
 	for _, fruit := range w.fruits {
@@ -253,6 +268,7 @@ func (w *World) Step(now time.Time) {
 }
 
 type Snapshot struct {
+	Statues     []StatueState
 	Projectiles []Projectile
 	SafeZones   []SafeZone
 	Boss        Boss
@@ -283,7 +299,13 @@ func (w *World) Snapshot() Snapshot {
 	}
 	boss := w.boss
 	boss.Tail = append([]Point(nil), boss.Tail...)
-	return Snapshot{Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	statues := append([]StatueState(nil), w.statues...)
+	for i := range statues {
+		if statues[i].Cards != nil {
+			statues[i].Cards = append([]PerkCard{}, statues[i].Cards...)
+		}
+	}
+	return Snapshot{Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }
