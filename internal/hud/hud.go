@@ -30,16 +30,7 @@ func drawPlayer(p playerView, windowWidth int32) {
 		return
 	}
 	background := rl.Fade(rl.Black, .8)
-	owned := []string{}
-	for family, rank := range p.Perks {
-		if rank > 0 {
-			owned = append(owned, fmt.Sprintf("%s %s", simulation.PerkName(simulation.PerkFamily(family)), simulation.RankName(rank)))
-		}
-	}
-	height := int32(272)
-	if len(owned) > 0 {
-		height = 294 + int32((len(owned)+1)/2)*22
-	}
+	height := int32(220)
 	rl.DrawRectangle(x, y, width, height, background)
 
 	rl.DrawRectangle(x+12, y+10, 36, 36, color.RGBA{48, 48, 48, 255})
@@ -63,18 +54,7 @@ func drawPlayer(p playerView, windowWidth int32) {
 	}
 	drawHUDMeter(x+12, y+142, barWidth, "EXP", xpLabel, xp, nextXP, rl.Yellow)
 	muted := color.RGBA{160, 170, 180, 255}
-	cx, cy := x+19, y+199
-	rl.DrawCircleLines(cx, cy, 7, muted)
-	rl.DrawLine(cx, cy, cx+4, cy-4, rl.RayWhite)
-	primitives.DrawText(fmt.Sprintf("SPEED %.2f", p.Speed), x+34, y+190, 18, muted)
-	primitives.DrawText(fmt.Sprintf("DMG %.2f   RATE %.2f/s", p.Damage, p.AttackRate), x+12, y+218, 18, muted)
-	primitives.DrawText(fmt.Sprintf("SHIFT x%.2f", p.Boost), x+12, y+245, 16, muted)
-	if len(owned) > 0 {
-		primitives.DrawText("BLESSINGS", x+12, y+274, 14, primitives.RuneColor)
-		for i, label := range owned {
-			primitives.DrawText(label, x+12+int32(i%2)*(width-24)/2, y+298+int32(i/2)*22, 16, rl.LightGray)
-		}
-	}
+	primitives.DrawText("[P] Player stats", x+12, y+195, 16, muted)
 
 	counts := fmt.Sprintf("Food: %d    AIs: %d", p.Fruit, p.AIs)
 	if p.Players > 0 {
@@ -105,18 +85,22 @@ func drawHUDMeter(x, y, width int32, label, value string, current, maximum float
 
 type Counts struct{ Food, AIs, Players int }
 
-func DrawPlayer(player protocol.Player, counts Counts, width int32) {
+func playerDetails(player protocol.Player, counts Counts) playerView {
 	stats := player.Stats
 	hp := float32(stats.HP + player.Split.Mass())
 	if player.Dead {
 		hp = 0
 	}
-	drawPlayer(playerView{
+	return playerView{
 		Perks: stats.Perks, Character: player.Character, Name: player.Name, Avatar: primitives.CharacterColor(player.Character),
 		Level: stats.Level, MaxLevel: simulation.MaxLevel, HP: hp, MaxHP: float32(stats.MaxHP()),
 		MP: float32(stats.MP), MaxMP: float32(stats.MaxMP()), XP: float32(stats.XP), NextXP: float32(simulation.XPForNextLevel(stats.Level)),
 		Speed:  float32(simulation.PlayerMovementSpeed(player.Character, stats.Speed, stats.HP, player.Split)),
 		Damage: float32(stats.Damage), AttackRate: float32(stats.AttackRate), Boost: float32(stats.BoostMultiplier),
 		Fruit: counts.Food, AIs: counts.AIs, Players: counts.Players,
-	}, width)
+	}
+}
+
+func DrawPlayer(player protocol.Player, counts Counts, width int32) {
+	drawPlayer(playerDetails(player, counts), width)
 }

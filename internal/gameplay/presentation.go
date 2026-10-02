@@ -10,9 +10,10 @@ import (
 )
 
 type presentation struct {
-	gameMap  *maprender.Map
-	feedback rendering.Feedback
-	perks    hud.PerkPanel
+	gameMap   *maprender.Map
+	feedback  rendering.Feedback
+	perks     hud.PerkPanel
+	statsOpen bool
 }
 
 func newPresentation() presentation { return presentation{gameMap: maprender.NewMap()} }
@@ -78,3 +79,7 @@ func (p *presentation) drawRadar(width, height int32, scene rendering.Scene) {
 	}
 	p.gameMap.DrawRadar(width, height, playerCenter(local), markers, snapshot)
 }
+
+func (p *presentation) StatsOpen() bool { return p.statsOpen }
+func (p *presentation) CloseStats()     { p.statsOpen = false }
+func (p *presentation) ToggleStats()    { p.statsOpen = !p.statsOpen }

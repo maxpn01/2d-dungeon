@@ -70,18 +70,22 @@ func (m *Multiplayer) Poll() {
 func (m *Multiplayer) ReadInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 	m.controls.releaseShoot()
 	s := m.perks.Sync(m.view.Local.ActiveStatue, m.view.Statues)
-	if !mapOpen && s == nil {
+	if !mapOpen && !m.StatsOpen() && s == nil {
 		m.chat.Update(m.view.Ready, m.view.Local.Dead, m.errorText, m.session.SendChat)
 	}
 	if s != nil {
+		m.CloseStats()
 		m.chat.Close()
 		m.controls.suppressShootUntilRelease = true
 		if card := m.perks.Read(*s, m.view.Local.Stats, int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight())); card >= 0 {
 			m.session.ChoosePerk(s.ID, s.Cycle, card)
 		}
 	}
+	if m.StatsOpen() {
+		m.controls.suppressShootUntilRelease = true
+	}
 	direction := protocol.Direction{}
-	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.Open && !mapOpen && s == nil {
+	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.Open && !mapOpen && !m.StatsOpen() && s == nil {
 
 		center := rl.NewVector2(float32(m.view.Local.X+m.view.Local.Size/2), float32(m.view.Local.Y+m.view.Local.Size/2))
 		for _, p := range m.rendered {
@@ -131,6 +135,9 @@ func (m *Multiplayer) Draw(camera rl.Camera2D, width, height int32) {
 	m.presentation.draw(primitives.Context{Camera: camera, WindowWidth: width, WindowHeight: height}, m.scene(), true)
 	m.chat.Draw(width, height, m.session.Chat())
 	m.perks.Draw(m.view.Local.ActiveStatue, m.view.Statues, m.view.Local.Stats, width, height)
+	if m.StatsOpen() {
+		hud.DrawStats(m.view.Local, width, height)
+	}
 }
 
 func (m *Multiplayer) DrawMap(width, height int32) {

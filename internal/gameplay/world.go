@@ -54,12 +54,18 @@ func (w *World) ReadInput(camera rl.Camera2D, width, height int32) {
 	p := w.snapshot.Players[0]
 	statue := w.perks.Sync(p.ActiveStatue, w.snapshot.Statues)
 	if statue != nil {
+		w.CloseStats()
 		w.direction = protocol.Direction{}
 		w.controls.suppressShootUntilRelease = true
 		if card := w.perks.Read(*statue, p.Stats, width, height); card >= 0 {
 			w.simulation.ChoosePerk(localPlayerID, statue.ID, statue.Cycle, card)
 			w.syncSimulation()
 		}
+		return
+	}
+	if w.StatsOpen() {
+		w.direction = protocol.Direction{}
+		w.controls.suppressShootUntilRelease = true
 		return
 	}
 	if !rl.IsWindowFocused() {
@@ -89,6 +95,7 @@ func (w *World) Respawn() {
 	w.syncSimulation()
 	w.previousSnapshot = w.snapshot
 	w.perks = hud.PerkPanel{}
+	w.CloseStats()
 }
 
 func (w *World) syncSimulation() {
@@ -118,6 +125,7 @@ func (w *World) PerksOpen() bool                 { return w.snapshot.Players[0].
 func (w *World) Center() rl.Vector2              { return playerCenter(w.player) }
 
 func (w *World) Start(name string) {
+	w.CloseStats()
 	if w.Dead() {
 		w.Respawn()
 	}
@@ -141,5 +149,8 @@ func (w *World) Draw(camera rl.Camera2D, width, height int32) {
 	w.presentation.draw(primitives.Context{Camera: camera, WindowWidth: width, WindowHeight: height}, w.scene(), false)
 	p := w.snapshot.Players[0]
 	w.perks.Draw(p.ActiveStatue, w.snapshot.Statues, p.Stats, width, height)
+	if w.StatsOpen() {
+		hud.DrawStats(p, width, height)
+	}
 }
 func (w *World) DrawMap(width, height int32) { w.presentation.drawRadar(width, height, w.scene()) }

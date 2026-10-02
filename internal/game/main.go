@@ -96,7 +96,11 @@ func (g *Game) run() {
 	for !rl.WindowShouldClose() && !exitRequested {
 		dt := rl.GetFrameTime()
 		if rl.IsKeyPressed(rl.KeyEscape) {
-			if current == screenSinglePlayer && g.world.PerksOpen() {
+			if current == screenSinglePlayer && g.world.StatsOpen() {
+				g.world.CloseStats()
+			} else if current == screenMultiplayer && g.multiplayer.StatsOpen() {
+				g.multiplayer.CloseStats()
+			} else if current == screenSinglePlayer && g.world.PerksOpen() {
 				g.world.ClosePerks()
 			} else if current == screenMultiplayer && g.multiplayer.PerksOpen() {
 				g.multiplayer.ClosePerks()
@@ -125,10 +129,23 @@ func (g *Game) run() {
 				}
 			}
 		}
-		if rl.IsKeyPressed(rl.KeyM) && !rl.IsKeyPressed(rl.KeyEscape) && rl.IsWindowFocused() {
+		if rl.IsKeyPressed(rl.KeyP) && !rl.IsKeyPressed(rl.KeyEscape) && rl.IsWindowFocused() && !mapOpen {
 			switch current {
 			case screenSinglePlayer:
 				if !g.world.Dead() && !g.world.PerksOpen() {
+					g.world.ToggleStats()
+				}
+			case screenMultiplayer:
+				m := g.multiplayer
+				if m.Ready() && !m.Dead() && m.Error() == "" && !m.ChatOpen() && !m.PerksOpen() {
+					m.ToggleStats()
+				}
+			}
+		}
+		if rl.IsKeyPressed(rl.KeyM) && !rl.IsKeyPressed(rl.KeyEscape) && rl.IsWindowFocused() {
+			switch current {
+			case screenSinglePlayer:
+				if !g.world.Dead() && !g.world.PerksOpen() && !g.world.StatsOpen() {
 					mapOpen = !mapOpen
 				}
 			case screenMultiplayer:
@@ -149,6 +166,7 @@ func (g *Game) run() {
 			g.multiplayer.Poll()
 			if g.multiplayer.Dead() || g.multiplayer.Error() != "" {
 				mapOpen = false
+				g.multiplayer.CloseStats()
 			}
 			g.multiplayer.ReadInput(dt, mapOpen, g.camera)
 			if g.multiplayer.Ready() {
