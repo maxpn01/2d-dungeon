@@ -83,6 +83,9 @@ func (w *World) advanceProjectiles(actors []eater) {
 				target := actors[winner]
 				hp := target.stats.HP
 				target.stats.HP = max(0, hp-shot.Damage)
+				if target.ai != nil && target.stats.HP > 0 {
+					w.alertAI(target.ai, shot)
+				}
 				if target.stats.HP == 0 {
 					w.dropKillLoot(target, hp, target.ownerStats().MP)
 					for _, actor := range actors {
@@ -147,10 +150,19 @@ func (w *World) rangedTarget(ai *aiState) *playerState {
 	best := AIDetectionRadius
 	for _, p := range w.players {
 		distance := math.Hypot(p.X-ai.X, p.Y-ai.Y)
-		if p.Dead || worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, PlayerSize)) || distance > best || !ai.sees(p.X, p.Y) || InSafeZone(p.X, p.Y, PlayerSize, p.Stats.HP, w.safeZones) || worldmap.Default().PrivateGateCrossed(ai.X, ai.Y, p.X, p.Y, PlayerSize) {
+		alerted := p.ID == ai.aggressorID && w.tick < ai.alertUntil
+		radius := AIDetectionRadius
+		if alerted {
+			radius = parameters.ShotSpeed * parameters.ShotLifetime
+		}
+		if !w.aiCanSeePlayer(ai, p, radius) {
 			continue
 		}
-		if target == nil || distance < best || p.ID < target.ID {
+		if alerted {
+			return p
+		}
+
+		if target == nil || distance < best || distance == best && p.ID < target.ID {
 			target, best = p, distance
 		}
 	}

@@ -78,6 +78,9 @@ const (
 	AISize                = PlayerSize
 	AISpeed               = PlayerSpeed
 	AIDetectionRadius     = 300.0
+	AIAlertSeconds        = 10
+	AIChaseLeash          = 900.0
+	AIFiringDistance      = 180.0
 	AISettleTicks         = 2 * TickRate
 	AIReactionTicks       = TickRate
 	AIAttackIntervalTicks = 2 * TickRate

@@ -35,7 +35,10 @@ type AI struct {
 }
 
 type aiState struct {
-	shotCooldown float64
+	aggressorID    string
+	alertUntil     uint64
+	alertX, alertY float64
+	shotCooldown   float64
 	AI
 	den             worldmap.Den
 	settleTicks     int
@@ -117,7 +120,7 @@ func (w *World) updateAIs() {
 		w.fire(&actor, input)
 		ai.shotCooldown = actor.ShotCooldown
 		ai.X, ai.Y, ai.Stats, ai.Combat, ai.Split = actor.X, actor.Y, actor.Stats, actor.Combat, actor.Split
-		if worldmap.Default().PrivateGateCrossed(oldX, oldY, ai.X, ai.Y, AISize) || ai.den.ID != "" && !worldmap.Default().RoomContains(ai.den.RoomID, physics.Square(ai.X, ai.Y, AISize)) {
+		if worldmap.Default().PrivateGateCrossed(oldX, oldY, ai.X, ai.Y, AISize) || ai.den.ID != "" && !w.aiWithinTerritory(ai) {
 			ai.X, ai.Y = oldX, oldY
 		}
 	}
@@ -129,10 +132,18 @@ func (w *World) aiInput(ai *aiState) Direction {
 		length := math.Hypot(dx, dy)
 		d := Direction{AimX: dx / max(1, length), AimY: dy / max(1, length), Shoot: true}
 		ai.Behavior = "attacking"
-		if ai.den.ID == "" && length > 200 {
-			movement := ai.navigate(target.X, target.Y)
+		if target.ID == ai.aggressorID && w.tick < ai.alertUntil {
+			ai.alertX, ai.alertY = target.X, target.Y
+			ai.alertUntil = w.tick + parameters.AIAlertSeconds*TickRate
+		}
+		if (ai.den.ID == "" || w.tick < ai.alertUntil) && length > parameters.AIFiringDistance {
+			ai.Behavior = "pursuing"
+			movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets), target.X, target.Y)
 			d.X, d.Y = movement.X, movement.Y
 		}
+		return d
+	}
+	if d, investigating := w.investigateAI(ai); investigating {
 		return d
 	}
 	if ai.den.ID != "" {
