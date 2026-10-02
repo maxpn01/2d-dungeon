@@ -2,6 +2,7 @@ package gameplay
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"raylib-2d-sandbox/internal/client"
@@ -53,6 +54,9 @@ func (m *Multiplayer) Poll() {
 				m.errorText = "Connection lost. The server may be unavailable."
 			} else {
 				m.errorText = "Could not join the server. Check that it is running."
+				if strings.Contains(update.Err.Error(), "dungeon is full") {
+					m.errorText = "The dungeon is full (2 players). Try again when a spot opens."
+				}
 			}
 			return
 		}
@@ -79,7 +83,7 @@ func (m *Multiplayer) ReadInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 		m.chat.Close()
 		m.controls.suppressShootUntilRelease = true
 		if card := m.perks.Read(*s, m.view.Local.Stats, int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight())); card >= 0 {
-			if s.ID == worldmap.WingStatue && card == 1 {
+			if worldmap.IsWingStatue(s.ID) && card == 1 {
 				m.ClosePerks()
 			} else {
 				m.session.ChoosePerk(s.ID, s.Cycle, card)

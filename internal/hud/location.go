@@ -2,6 +2,7 @@ package hud
 
 import (
 	"fmt"
+	"strings"
 
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/worldmap"
@@ -20,8 +21,17 @@ func DrawLocation(x, y float32, width, height int32) {
 		for _, r := range worldmap.Default().Rooms() {
 			if x >= float32(r.Area.X*40) && x < float32((r.Area.X+r.Area.Width)*40) && y >= float32(r.Area.Y*40) && y < float32((r.Area.Y+r.Area.Height)*40) {
 				name = floorLabel(r.Floor) + " / " + r.Name
+				if strings.HasPrefix(r.ID, "north-") {
+					hint = "Entrance lies to the north"
+				}
+				if r.ID == worldmap.NorthSanctuary {
+					name, hint = "SPAWN ZONE", "Head south through the dungeon entrance."
+				}
 				if r.HasRole(worldmap.Private) {
 					hint = "The statues guard the north gate. Press E nearby to open it."
+					if strings.HasPrefix(r.ID, "north-") {
+						hint = "The statues guard the south gate. Press E nearby to open it."
+					}
 				}
 				if r.HasRole(worldmap.Refuge) {
 					hint = "Runes conceal you from players and mobs and prevent shooting. Shots still pass through."

@@ -47,7 +47,7 @@ func (w *World) interactStatue(p *playerState) bool {
 		return false
 	}
 	s := &w.statues[nearest]
-	if s.ID != worldmap.WingStatue && s.Cards == nil {
+	if !worldmap.IsWingStatue(s.ID) && s.Cards == nil {
 		s.Cards = perkOffer(p.Stats)
 		if len(s.Cards) == 0 {
 			s.Cards = perkOffer(NewStats())
@@ -76,10 +76,10 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 		if s.ID != statueID {
 			continue
 		}
-		if s.ClaimedBy != "" || s.Cycle != cycle || !s.Near(p.X, p.Y, w.openSecrets) || card < 0 || (s.ID != worldmap.WingStatue && card >= len(s.Cards)) {
+		if s.ClaimedBy != "" || s.Cycle != cycle || !s.Near(p.X, p.Y, w.openSecrets) || card < 0 || (!worldmap.IsWingStatue(s.ID) && card >= len(s.Cards)) {
 			return false
 		}
-		if s.ID == worldmap.WingStatue {
+		if worldmap.IsWingStatue(s.ID) {
 			if card != 0 || p.HasWings {
 				return false
 			}
@@ -88,7 +88,7 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 			return false
 		}
 		s.ClaimedBy = id
-		if s.ID != worldmap.WingStatue {
+		if !worldmap.IsWingStatue(s.ID) {
 			s.rechargeUntil = w.tick + parameters.StatueRechargeSeconds*TickRate
 			s.RechargeRemaining = parameters.StatueRechargeSeconds
 			s.Cards = nil
@@ -106,7 +106,7 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 func (w *World) releaseStatues(id string) {
 	for i := range w.statues {
 		s := &w.statues[i]
-		if s.ClaimedBy == id && s.ID == worldmap.WingStatue {
+		if s.ClaimedBy == id && worldmap.IsWingStatue(s.ID) {
 			s.ClaimedBy, s.Cards = "", nil
 			s.Cycle++
 		}
@@ -116,7 +116,7 @@ func (w *World) releaseStatues(id string) {
 func (w *World) updateStatues() {
 	for i := range w.statues {
 		s := &w.statues[i]
-		if s.ID == worldmap.WingStatue || s.rechargeUntil == 0 {
+		if worldmap.IsWingStatue(s.ID) || s.rechargeUntil == 0 {
 			continue
 		}
 		if w.tick < s.rechargeUntil {
@@ -172,7 +172,7 @@ func (w *World) Respawn(id string) bool {
 	}
 	w.releaseStatues(id)
 	x, y := w.spawnPosition(p.spawnSlot)
-	p.Player = Player{ID: id, X: x, Y: y, Character: p.Character, Stats: NewStats(), InputSeq: p.lastSequence}
+	p.Player = Player{EntranceID: p.EntranceID, EntranceGate: EntranceGateState{ID: p.EntranceID}, ID: id, X: x, Y: y, Character: p.Character, Stats: NewStats(), InputSeq: p.lastSequence}
 	p.direction, p.commands, p.progressionReset = Direction{}, nil, false
 	return true
 }

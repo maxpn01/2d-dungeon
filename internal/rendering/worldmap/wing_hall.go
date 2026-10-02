@@ -14,7 +14,7 @@ func drawWingHall(room mapdata.Room) {
 	tint := rl.NewColor(158, 115, 225, 255)
 	rl.DrawRectangleRec(rl.NewRectangle(float32(bounds.X+48), centerY-34, float32(bounds.W-48), 68), rl.Fade(rl.NewColor(52, 42, 73, 255), .22))
 	for _, offset := range []float32{-34, 34} {
-		rl.DrawLineEx(rl.NewVector2(float32(bounds.X+48), centerY+offset), rl.NewVector2(0, centerY+offset), 1, rl.Fade(tint, .15))
+		rl.DrawLineEx(rl.NewVector2(float32(bounds.X+48), centerY+offset), rl.NewVector2(float32(bounds.X+bounds.W), centerY+offset), 1, rl.Fade(tint, .15))
 	}
 	for _, col := range []int{3, 6, 9, 12} {
 		x := float32((room.Area.X+col)*mapdata.Tile + mapdata.Tile/2)

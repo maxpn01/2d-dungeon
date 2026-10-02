@@ -10,6 +10,14 @@ func (m *Map) CanFly(body physics.Rect) bool {
 	if !body.Valid() || body.X < MinCellX*Tile || (body.X+body.W) > MaxCellX*Tile || body.Y < North || (body.Y+body.H) > SurfaceMax {
 		return false
 	}
+	if room, ok := m.Room(NorthSanctuary); ok && body.Overlaps(room.Bounds()) {
+		return walkableSanctuary(body.X, 2*MirrorAxis*Tile-body.Y-body.H, body.W, body.H, func(cx, cy int) int {
+			if m.flightCell(cx, 2*MirrorAxis-cy-1) {
+				return 1
+			}
+			return 0
+		}, false)
+	}
 	if body.Y >= SurfaceMin && body.X >= SurfaceMin && body.X+body.W <= SurfaceMax {
 		return true
 	}

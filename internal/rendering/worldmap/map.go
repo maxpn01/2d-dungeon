@@ -19,7 +19,9 @@ type edgePos struct {
 type Map struct {
 	world       *mapdata.Map
 	gate        simulation.EntranceGateState
+	floor       mapdata.Floor
 	gatePrompt  bool
+	nearGateID  string
 	safeZones   []simulation.SafeZone
 	Exploration Exploration
 	sizeInCells rl.Vector2
@@ -44,10 +46,20 @@ func NewMap() *Map {
 func (m *Map) Draw(ctx primitives.Context, snapshot protocol.Snapshot, local protocol.Player) {
 	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
 	m.safeZones, m.gate = snapshot.SafeZones, local.EntranceGate
-	m.gatePrompt = !local.Dead && simulation.NearEntranceGate(local.X, local.Y)
-	m.drawSanctuary(ctx)
+	m.floor = m.world.FloorAt(local.X+local.Size/2, local.Y+local.Size/2)
+	m.gatePrompt = !local.Dead && simulation.NearEntranceGateFor(local.EntranceID, local.X, local.Y)
+	m.nearGateID = mapdata.EntranceGate
+	north, _ := mapdata.Default().Gate(mapdata.NorthID(mapdata.EntranceGate))
+	if math.Abs(local.Y+local.Size/2-float64(north.Y)) <= 110 {
+		m.nearGateID = mapdata.NorthID(mapdata.EntranceGate)
+	}
+	if m.floor == mapdata.FirstFloor {
+		m.drawSanctuary(ctx)
+	}
 	drawSafeZones(m.safeZones)
-	m.drawSanctuaryAltar(ctx)
+	if m.floor == mapdata.FirstFloor {
+		m.drawSanctuaryAltar(ctx)
+	}
 	m.drawDungeon(ctx)
 	m.drawWingDoor(snapshot)
 	drawOrbPedestal(snapshot.Orb, local, &m.Exploration)
@@ -87,4 +99,27 @@ func clampInt(v, lo, hi int) int {
 		return hi
 	}
 	return v
+}
+
+func (m *Map) sanctuaryTile(x, y int) bool {
+	if m.world.SanctuaryCell(x, y) {
+		return true
+	}
+	room, ok := m.world.Room(mapdata.NorthSanctuary)
+	if !ok {
+		return false
+	}
+	area := room.Area
+	border := mapdata.Cells(area.X-1, area.Y-1, area.Width+2, area.Height+2)
+	if !border.Contains(mapdata.At(x, y)) || m.world.Cell(x, y) != 0 {
+		return false
+	}
+	for dy := -1; dy <= 1; dy++ {
+		for dx := -1; dx <= 1; dx++ {
+			if m.world.Cell(x+dx, y+dy) != 0 && !m.world.SanctuaryCell(x+dx, y+dy) {
+				return false
+			}
+		}
+	}
+	return true
 }

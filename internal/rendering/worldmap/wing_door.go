@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/simulation"
 	mapdata "raylib-2d-sandbox/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -12,7 +13,7 @@ import (
 
 func (m *Map) drawWingDoor(snapshot protocol.Snapshot) {
 	for _, door := range m.world.SecretDoors() {
-		if door.ID != mapdata.WingDoor {
+		if !door.Interactable {
 			continue
 		}
 		bounds := door.Area.Bounds()
@@ -23,7 +24,7 @@ func (m *Map) drawWingDoor(snapshot protocol.Snapshot) {
 		if !opened {
 			rl.DrawCircleGradient(center, 32, rl.Fade(tint, .08*pulse), rl.Blank)
 		}
-		progress := float32(snapshot.WingDoorOpen)
+		progress := float32(simulation.WingDoorProgress(snapshot.WingDoorOpen, snapshot.NorthWingDoorOpen, door.ID))
 		progress = progress * progress * (3 - 2*progress)
 		for i := 0; i < 2; i++ {
 			y := float32(bounds.Y) + float32(i*mapdata.Tile)

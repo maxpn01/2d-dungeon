@@ -40,7 +40,7 @@ func DefaultLayout() Layout {
 			sideRoom(EastGallery, "THE EAST GALLERY", Cells(48, -140, 20, 20), ""),
 			{ID: SecretLibrary, Name: "THE FORGOTTEN LIBRARY", Area: Cells(-47, -103, 14, 17), Floor: FirstFloor, Statues: []Statue{{ID: "secret-inscription", At: At(6, 6)}}, FeedingAreas: []FeedingArea{{ID: "library-rest", At: At(6, 12), Radius: 2, Food: FoodSource{Capacity: 12, Respawn: 30 * time.Second}}}},
 			orbVault(),
-			{ID: WingChamber, Name: "THE SEALED AERIE", Area: Cells(-15, SurfaceCells-9, 15, 8), Floor: FirstFloor, Statues: []Statue{{ID: WingStatue, At: At(2, 3)}}},
+			{ID: WingChamber, Name: "THE SEALED AERIE", Area: Cells(-15, SurfaceCells-9, 14, 8), Floor: FirstFloor, Statues: []Statue{{ID: WingStatue, At: At(2, 3)}}},
 		},
 		SecretDoors: []SecretDoor{
 			{ID: WingDoor, RoomID: WingChamber, Area: Cells(-1, SurfaceCells-6, 1, 2), Interactable: true},
@@ -65,7 +65,7 @@ func DefaultLayout() Layout {
 			},
 			{
 				ID:    "sanctum-entrance",
-				From:  Location{Room: TeleportSanctum, At: At(6, 18)},
+				From:  Location{Room: TeleportSanctum, At: At(4, 18)},
 				To:    Location{Room: CrownArena, At: At(10, -1)},
 				Width: 4,
 			},
@@ -178,11 +178,11 @@ func teleportSanctum() Room {
 	return Room{
 		ID:    TeleportSanctum,
 		Name:  "THE TELEPORT SANCTUM",
-		Area:  Cells(9, -160, 18, 18),
+		Area:  Cells(11, -160, 12, 18),
 		Floor: FirstFloor,
 		Roles: []RoomRole{PortalSanctum},
 		Portals: []Portal{
-			{ID: DescentPortal, At: At(9, 9), Destination: ReturnPortal},
+			{ID: DescentPortal, At: At(6, 9), Destination: ReturnPortal},
 		},
 	}
 }

@@ -35,7 +35,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 	bottom := min(mapdata.SurfaceCells, int(math.Ceil(float64(ctx.Camera.Target.Y+(float32(ctx.WindowHeight)-ctx.Camera.Offset.Y)/zoom)/40))+1)
 	for y := max(mapdata.MinCellY, top); y < bottom; y++ {
 		for x := max(mapdata.MinCellX, left); x < min(mapdata.MaxCellX, right); x++ {
-			if y >= 0 && x >= 0 && x < mapdata.SurfaceCells {
+			if m.sanctuaryTile(x, y) || m.world.CellFloor(x, y) != m.floor {
 				continue
 			}
 			id := m.world.Cell(x, y)
@@ -117,14 +117,34 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 			}
 		}
 	}
-	drawEntranceHall(m.gate, m.gatePrompt, m.world)
+	if m.floor == mapdata.FirstFloor {
+		southState := simulation.EntranceGateState{}
+		if m.gate.ID == mapdata.EntranceGate {
+			southState = m.gate
+		}
+		drawEntranceHall(southState, m.gatePrompt && m.nearGateID == mapdata.EntranceGate, m.world)
+		northGate, _ := m.world.Gate(mapdata.NorthID(mapdata.EntranceGate))
+		state := simulation.EntranceGateState{}
+		if m.gate.ID == mapdata.NorthID(mapdata.EntranceGate) {
+			state = m.gate
+		}
+		drawStatueGate(northGate, state, m.gatePrompt && m.nearGateID == mapdata.NorthID(mapdata.EntranceGate))
+
+	}
+	m.drawFeedingAreas()
 	for _, pool := range m.world.Pools() {
+		if m.world.CellFloor(pool.Area.X, pool.Area.Y) != m.floor {
+			continue
+		}
 		if pool.Area.X+pool.Area.Width >= left && pool.Area.X <= right && pool.Area.Y+pool.Area.Height >= top && pool.Area.Y <= bottom {
 			drawDungeonPool(pool.Area.X*mapdata.Tile, pool.Area.Y*mapdata.Tile, pool.Area.Width*mapdata.Tile, pool.Area.Height*mapdata.Tile)
 		}
 	}
 	for _, room := range m.world.Rooms() {
-		if room.ID == mapdata.WingChamber && m.world.Cell(room.Area.X, room.Area.Y) != 0 && room.Area.Right() >= left && room.Area.X <= right && room.Area.Bottom() >= top && room.Area.Y <= bottom {
+		if room.Floor != m.floor {
+			continue
+		}
+		if (room.ID == mapdata.WingChamber || room.ID == mapdata.NorthID(mapdata.WingChamber)) && m.world.Cell(room.Area.X, room.Area.Y) != 0 && room.Area.Right() >= left && room.Area.X <= right && room.Area.Bottom() >= top && room.Area.Y <= bottom {
 			drawWingHall(room)
 		}
 		if room.ID == mapdata.FeastHall && room.Area.Y+room.Area.Height >= top && room.Area.Y <= bottom {
@@ -139,10 +159,15 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 			rl.DrawPolyLines(center, 8, 164, 22.5, rl.Fade(primitives.RuneColor, .35))
 			rl.DrawCircleLinesV(center, 150, rl.Fade(primitives.RuneColor, .2))
 			rl.DrawRectangleLinesEx(rl.NewRectangle(float32(room.Area.X*mapdata.Tile+24), float32(room.Area.Y*mapdata.Tile+24), float32(room.Area.Width*mapdata.Tile-48), float32(room.Area.Height*mapdata.Tile-48)), 2, rl.Fade(primitives.RuneColor, .25))
-			for _, x := range []int{(room.Area.X+4)*mapdata.Tile - 24, (room.Area.Right()-4)*mapdata.Tile + 8} {
-				y := (room.Area.Y + room.Area.Height) * mapdata.Tile
-				dungeonRect(x, y-24, 16, 48, paleStone)
-				dungeonRect(x+5, y-14, 6, 28, primitives.RuneColor)
+			edges := []int{room.Area.Bottom() * mapdata.Tile}
+			if _, ok := m.world.Passage(mapdata.NorthID("sanctum-entrance")); ok {
+				edges = append(edges, room.Area.Y*mapdata.Tile)
+			}
+			for _, y := range edges {
+				for _, x := range []int{(room.Area.X+4)*mapdata.Tile - 24, (room.Area.Right()-4)*mapdata.Tile + 8} {
+					dungeonRect(x, y-24, 16, 48, paleStone)
+					dungeonRect(x+5, y-14, 6, 28, primitives.RuneColor)
+				}
 			}
 		}
 		if !room.HasRole(mapdata.BossArena) || room.Area.Y+room.Area.Height < top || room.Area.Y > bottom {
@@ -152,15 +177,24 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 		rl.DrawPolyLines(center, 8, 105, 22.5, stone)
 		rl.DrawCircleLinesV(center, 75, paleStone)
 	}
-	entrance, hasEntrance := m.world.Passage("surface-entrance")
-	if !hasEntrance {
-		return
-	}
-	for _, x := range []int{entrance.X*mapdata.Tile - 80, entrance.Right() * mapdata.Tile} {
-		dungeonRect(x, (entrance.Bottom()-3)*mapdata.Tile, 80, 80, stone)
-		dungeonRect(x+6, (entrance.Bottom()-3)*mapdata.Tile+6, 68, 5, paleStone)
-		dungeonRect(x+12, (entrance.Bottom()-3)*mapdata.Tile+20, 56, 48, color.RGBA{31, 39, 49, 255})
-		dungeonRect(x+34, (entrance.Bottom()-3)*mapdata.Tile+28, 12, 28, primitives.RuneColor)
+	if m.floor == mapdata.FirstFloor {
+		for _, id := range []string{"surface-entrance", mapdata.NorthID("surface-entrance")} {
+			entrance, ok := m.world.Passage(id)
+			if !ok {
+				continue
+			}
+			pillarY := (entrance.Bottom() - 3) * mapdata.Tile
+			if id != "surface-entrance" {
+				pillarY = (entrance.Y + 1) * mapdata.Tile
+			}
+			for _, x := range []int{entrance.X*mapdata.Tile - 80, entrance.Right() * mapdata.Tile} {
+				dungeonRect(x, pillarY, 80, 80, stone)
+				dungeonRect(x+6, pillarY+6, 68, 5, paleStone)
+				dungeonRect(x+12, pillarY+20, 56, 48, color.RGBA{31, 39, 49, 255})
+				dungeonRect(x+34, pillarY+28, 12, 28, primitives.RuneColor)
+			}
+
+		}
 	}
 
 }
@@ -181,26 +215,7 @@ func drawEntranceHall(gate simulation.EntranceGateState, prompt bool, world *map
 			}
 		}
 	}
-	for _, patch := range world.Patches() {
-		if world.Cell(patch.At.X, patch.At.Y) == 0 {
-			continue
-		}
-		cx, cy := patch.At.X*tile+tile/2, patch.At.Y*tile+tile/2
-		tint := color.RGBA{58, 115, 112, 255}
-		if patch.Style == mapdata.VioletGarden {
-			tint = color.RGBA{104, 93, 139, 255}
-		}
-		half := patch.Radius * tile
-		dungeonRect(cx-half, cy-half, half*2, half*2, rl.Fade(tint, .18))
-		rl.DrawRectangleLines(int32(cx-half), int32(cy-half), int32(half*2), int32(half*2), tint)
-		rl.DrawRectangleLines(int32(cx-half+12), int32(cy-half+12), int32(half*2-24), int32(half*2-24), rl.Fade(tint, .5))
-		for _, dx := range []int{-half, half - 8} {
-			for _, dy := range []int{-half, half - 8} {
-				dungeonRect(cx+dx, cy+dy, 8, 8, primitives.RuneColor)
-			}
-		}
-		rl.DrawPolyLines(rl.NewVector2(float32(cx), float32(cy)), 4, 12, 45, primitives.RuneColor)
-	}
+
 	line := func(x1, y1, x2, y2 int) {
 		rl.DrawLineEx(rl.NewVector2(float32(x1), float32(y1)), rl.NewVector2(float32(x2), float32(y2)), 3, border)
 	}
@@ -226,7 +241,7 @@ func drawEntranceHall(gate simulation.EntranceGateState, prompt bool, world *map
 			line(left, bottom, right, bottom)
 		}
 	}
-	drawStatueGate(gate, prompt)
+	drawStatueGate(gateBounds, gate, prompt)
 
 }
 
@@ -287,5 +302,30 @@ func drawFeastRoom(room mapdata.Room) {
 		pos := rl.NewVector2(float32(p.X), float32(p.Y))
 		rl.DrawCircleGradient(pos, 52, rl.Fade(tint, .18*pulse), rl.Blank)
 		rl.DrawPolyLines(pos, 4, 10, 45, rl.Fade(tint, .6*pulse))
+	}
+}
+
+func (m *Map) drawFeedingAreas() {
+	const tile = mapdata.Tile
+	world := m.world
+	for _, patch := range world.Patches() {
+		if world.Cell(patch.At.X, patch.At.Y) == 0 || world.CellFloor(patch.At.X, patch.At.Y) != m.floor {
+			continue
+		}
+		cx, cy := patch.At.X*tile+tile/2, patch.At.Y*tile+tile/2
+		tint := color.RGBA{58, 115, 112, 255}
+		if patch.Style == mapdata.VioletGarden {
+			tint = color.RGBA{104, 93, 139, 255}
+		}
+		half := patch.Radius * tile
+		dungeonRect(cx-half, cy-half, half*2, half*2, rl.Fade(tint, .18))
+		rl.DrawRectangleLines(int32(cx-half), int32(cy-half), int32(half*2), int32(half*2), tint)
+		rl.DrawRectangleLines(int32(cx-half+12), int32(cy-half+12), int32(half*2-24), int32(half*2-24), rl.Fade(tint, .5))
+		for _, dx := range []int{-half, half - 8} {
+			for _, dy := range []int{-half, half - 8} {
+				dungeonRect(cx+dx, cy+dy, 8, 8, primitives.RuneColor)
+			}
+		}
+		rl.DrawPolyLines(rl.NewVector2(float32(cx), float32(cy)), 4, 12, 45, primitives.RuneColor)
 	}
 }

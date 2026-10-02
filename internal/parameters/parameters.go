@@ -8,7 +8,7 @@ const (
 	Tile         = 40
 	MinCellX     = -49
 	MaxCellX     = 100
-	MinCellY     = -198
+	MinCellY     = -358
 	SurfaceCells = 36
 	SurfaceMin   = 10
 	SurfaceMax   = SurfaceCells*Tile - 10

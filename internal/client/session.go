@@ -10,6 +10,7 @@ import (
 
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
+	"raylib-2d-sandbox/internal/worldmap"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
@@ -57,6 +58,7 @@ func ConnectWithName(endpoint, name string) *Session {
 }
 
 func ConnectWithCharacter(endpoint, name string, character simulation.Character) *Session {
+	worldmap.SetMultiplayer(true)
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Session{updates: make(chan Update, 1), done: make(chan struct{}), cancel: cancel}
 	go func() {

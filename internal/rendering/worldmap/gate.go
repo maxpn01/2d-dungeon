@@ -11,8 +11,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func drawStatueGate(gate simulation.EntranceGateState, prompt bool) {
-	bounds := mapdata.Default().EntranceGate()
+func drawStatueGate(bounds mapdata.GateBounds, gate simulation.EntranceGateState, prompt bool) {
 	x, y := bounds.Left, bounds.Y
 	w := bounds.Right - x
 	if w <= 0 {
@@ -82,7 +81,11 @@ func drawStatueGate(gate simulation.EntranceGateState, prompt bool) {
 		if gate.Remaining > 0 {
 			label = "GATE OPEN"
 		}
-		drawInteractionPrompt(label, rl.NewVector2(float32(x+w/2), float32(y+72)))
+		promptY := y + 72
+		if y < mapdata.MirrorAxis*mapdata.Tile {
+			promptY = y - 88
+		}
+		drawInteractionPrompt(label, rl.NewVector2(float32(x+w/2), float32(promptY)))
 	}
 }
 

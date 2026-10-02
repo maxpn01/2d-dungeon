@@ -79,7 +79,7 @@ func (v *radarView) begin(m *Map) {
 	bottom := min(mapdata.SurfaceCells, int(math.Ceil(float64((v.focus.Y+v.bounds.Height/(2*v.scale))/mapdata.Tile))))
 	for y := top; y < bottom; y++ {
 		for x := left; x < right; x++ {
-			if y >= 0 && x >= 0 && x < mapdata.SurfaceCells {
+			if m.world.CellFloor(x, y) != m.floor || y >= 0 && x >= 0 && x < mapdata.SurfaceCells {
 				continue
 			}
 			if m.world.Cover(x, y) && m.world.Cell(x, y) != 0 {
@@ -193,6 +193,7 @@ type Marker struct {
 func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker, snapshot protocol.Snapshot) {
 	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
 	m.safeZones = snapshot.SafeZones
+	m.floor = m.world.FloorAt(float64(focus.X), float64(focus.Y))
 	v := newRadarView(width, focus)
 	if height > 0 {
 		v = newFullMapView(width, height, m)

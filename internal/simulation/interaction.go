@@ -6,23 +6,28 @@ import (
 )
 
 type EntranceGateState struct {
+	ID        string  `json:"id,omitempty"`
 	Open      float64 `json:"open"`
 	Remaining float64 `json:"remaining"`
 	Side      int     `json:"side"`
 	Passed    bool    `json:"passed"`
 }
 
-func NearEntranceGate(x, y float64) bool {
-	gate := worldmap.Default().EntranceGate()
-	left, right, yGate := float64(gate.Left), float64(gate.Right), float64(gate.Y)
-	return right > left && x+PlayerSize >= left-48 && x <= right+48 && math.Abs(y+PlayerSize/2-yGate) <= 110
+func NearEntranceGateFor(id string, x, y float64) bool {
+	gate, ok := worldmap.Default().Gate(id)
+	return ok && x+PlayerSize >= float64(gate.Left)-48 && x <= float64(gate.Right)+48 && math.Abs(y+PlayerSize/2-float64(gate.Y)) <= 110
 }
 
 func advanceEntranceGate(p *Player, input Direction, dt float64) {
-	gate := worldmap.Default().EntranceGate()
+	id := p.EntranceID
+	gate, ok := worldmap.Default().Gate(id)
+	if !ok {
+		return
+	}
+	p.EntranceGate.ID = id
 	left, right, yGate := float64(gate.Left), float64(gate.Right), float64(gate.Y)
 	g := &p.EntranceGate
-	if input.Interact && NearEntranceGate(p.X, p.Y) && g.Remaining == 0 {
+	if input.Interact && NearEntranceGateFor(id, p.X, p.Y) && g.Remaining == 0 {
 		g.Remaining = 6
 		g.Passed = false
 		g.Side = 1
@@ -48,20 +53,36 @@ func advanceEntranceGate(p *Player, input Direction, dt float64) {
 }
 
 func constrainEntranceGate(p *Player, oldX, oldY float64) {
-	gate := worldmap.Default().EntranceGate()
-	if gate.Right <= gate.Left {
-		return
-	}
-	left, right, yGate := float64(gate.Left), float64(gate.Right), float64(gate.Y)
-	g := &p.EntranceGate
-	if g.Open < .95 && p.X+PlayerSize > left && p.X < right {
-		if oldY+PlayerSize/2 >= yGate && p.Y < yGate+30 {
-			p.Y = yGate + 30
-		} else if oldY+PlayerSize/2 < yGate && p.Y+PlayerSize > yGate-30 {
-			p.Y = yGate - 30 - PlayerSize
+	for _, id := range []string{worldmap.EntranceGate, worldmap.NorthID(worldmap.EntranceGate)} {
+		gate, _ := worldmap.Default().Gate(id)
+		left, right, yGate := float64(gate.Left), float64(gate.Right), float64(gate.Y)
+		g := &p.EntranceGate
+		open := 0.0
+		if p.EntranceID == id && g.ID == id {
+			open = g.Open
+		}
+		if open < .95 && p.X+PlayerSize > left && p.X < right {
+			if oldY+PlayerSize/2 >= yGate && p.Y < yGate+30 && oldY >= yGate {
+				p.Y = yGate + 30
+			} else if oldY+PlayerSize/2 < yGate && p.Y+PlayerSize > yGate-30 && oldY+PlayerSize <= yGate {
+				p.Y = yGate - 30 - PlayerSize
+			}
+		}
+		if g.ID == id && g.Remaining > 0 && ((g.Side == 1 && p.Y+PlayerSize < yGate-38) || (g.Side == -1 && p.Y > yGate+38)) {
+			g.Passed = true
 		}
 	}
-	if g.Remaining > 0 && ((g.Side == 1 && p.Y+PlayerSize < yGate-38) || (g.Side == -1 && p.Y > yGate+38)) {
-		g.Passed = true
+}
+
+func constrainPrivateEntrance(p *Player, oldX, oldY float64, oldFlight FlightState) {
+	geometry := worldmap.Default()
+	if !geometry.CanAccessEntrance(p.EntranceID, p.X, p.Y, PlayerSize) {
+		p.X, p.Y, p.Flight = oldX, oldY, oldFlight
+	}
+	for i := range p.Split {
+		cell := &p.Split[i]
+		if cell.Active && !geometry.CanAccessEntrance(p.EntranceID, cell.X, cell.Y, PlayerSize) {
+			cell.X, cell.Y = p.X, p.Y
+		}
 	}
 }

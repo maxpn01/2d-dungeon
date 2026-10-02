@@ -25,9 +25,18 @@ func (h *Hub) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	c := &client{character: simulation.NormalizeCharacter(simulation.Character(r.URL.Query().Get("character"))), name: protocol.NormalizePlayerName(r.URL.Query().Get("name")), send: make(chan protocol.Message, 16), cancel: cancel}
+	c := &client{joined: make(chan bool, 1), character: simulation.NormalizeCharacter(simulation.Character(r.URL.Query().Get("character"))), name: protocol.NormalizePlayerName(r.URL.Query().Get("name")), send: make(chan protocol.Message, 16), cancel: cancel}
 	select {
 	case h.join <- c:
+	case <-h.done:
+		return
+	}
+	select {
+	case accepted := <-c.joined:
+		if !accepted {
+			conn.Close(websocket.StatusPolicyViolation, "dungeon is full (2 players)")
+			return
+		}
 	case <-h.done:
 		return
 	}

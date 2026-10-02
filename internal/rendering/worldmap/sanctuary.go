@@ -14,41 +14,75 @@ var sanctuarySeam = rl.NewColor(22, 38, 42, 255)
 var sanctuaryGold = rl.NewColor(133, 117, 70, 255)
 
 func (m *Map) drawSanctuary(ctx primitives.Context) {
-	rl.DrawRectangle(0, 0, int32(m.size.X), int32(m.size.Y), sanctuaryFloor)
-	cs, rs, ce, re := m.visibleCellRange(ctx.Camera, ctx.WindowWidth, ctx.WindowHeight)
-	left, top := int(float32(cs)*m.cellSize.X)/40, int(float32(rs)*m.cellSize.Y)/40
-	right, bottom := int(math.Ceil(float64(float32(ce)*m.cellSize.X/40))), int(math.Ceil(float64(float32(re)*m.cellSize.Y/40)))
+	m.drawSanctuaryAt(ctx, 0, false)
+	if room, ok := m.world.Room(mapdata.NorthSanctuary); ok {
+		m.drawSanctuaryAt(ctx, room.Area.Y*mapdata.Tile, true)
+	}
+}
+
+func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int, north bool) {
+	camera := ctx.Camera
+	camera.Target.Y -= float32(originY)
+	cs, rs, ce, re := m.visibleCellRange(camera, ctx.WindowWidth, ctx.WindowHeight)
+	if cs == ce || rs == re {
+		return
+	}
+	left, top := cs/4, rs/4
+	right, bottom := (ce+3)/4, (re+3)/4
+	w, h := int(m.size.X), int(m.size.Y)
+	rl.DrawRectangle(0, int32(originY), int32(w), int32(h), sanctuaryFloor)
 	for row := top; row < bottom; row++ {
 		for col := left; col < right; col++ {
-			x, y := col*40, row*40
-			hash := uint32(col*73856093) ^ uint32(row*19349663)
+			x, y := col*mapdata.Tile, originY+row*mapdata.Tile
+			patternRow := row
+			if north {
+				patternRow = mapdata.SurfaceCells - 1 - row
+			}
+			hash := uint32(col*73856093) ^ uint32(patternRow*19349663)
 			tone := uint8(hash % 5)
 			dungeonRect(x+1, y+1, 39, 39, rl.NewColor(14+tone, 27+tone, 31+tone, 255))
 			dungeonRect(x, y, 40, 1, sanctuarySeam)
 			dungeonRect(x, y, 1, 40, sanctuarySeam)
 		}
 	}
-	w, h := int(m.size.X), int(m.size.Y)
 	var wingDoor mapdata.CellRect
+	doorID := mapdata.WingDoor
+	if north {
+		doorID = mapdata.NorthID(doorID)
+	}
 	for _, door := range m.world.SecretDoors() {
-		if door.ID == mapdata.WingDoor {
+		if door.ID == doorID {
 			wingDoor = door.Area
 		}
 	}
-	for x := left * 40; x < min(right*40, w); x += 40 {
-		col := x / mapdata.Tile
-		if mapdata.Default().Cell(col-2, -1) == 0 && mapdata.Default().Cell(col-1, -1) == 0 && mapdata.Default().Cell(col, -1) == 0 && mapdata.Default().Cell(col+1, -1) == 0 && mapdata.Default().Cell(col+2, -1) == 0 {
-			drawSanctuaryBorder(x, 0, 40, 10, col)
+	for col := left; col < right; col++ {
+		entranceRow, entranceY, closedY := -1, originY, originY+h-10
+		if north {
+			entranceRow, entranceY, closedY = originY/mapdata.Tile+mapdata.SurfaceCells, originY+h-10, originY
 		}
-		drawSanctuaryBorder(x, h-10, 40, 10, x/40)
+		connected := false
+		for dx := -2; dx <= 2; dx++ {
+			if mapdata.Default().Cell(col+dx, entranceRow) != 0 {
+				connected = true
+			}
+		}
+		if !connected {
+			drawSanctuaryBorder(col*40, entranceY, 40, 10, col)
+		}
+		drawSanctuaryBorder(col*40, closedY, 40, 10, col)
 	}
-	for y := top * 40; y < min(bottom*40, h); y += 40 {
+	for row := top; row < bottom; row++ {
+		y := originY + row*40
+		index := row
+		if north {
+			index = mapdata.SurfaceCells - 1 - row
+		}
 		if y/mapdata.Tile < wingDoor.Y || y/mapdata.Tile >= wingDoor.Bottom() {
-			drawSanctuaryBorder(0, y, 10, 40, y/40)
+			drawSanctuaryBorder(0, y, 10, 40, index)
 		}
-		drawSanctuaryBorder(w-10, y, 10, 40, y/40)
+		drawSanctuaryBorder(w-10, y, 10, 40, index)
 	}
-	for _, p := range []rl.Vector2{{X: 22, Y: 22}, {X: float32(w - 22), Y: 22}, {X: 22, Y: float32(h - 22)}, {X: float32(w - 22), Y: float32(h - 22)}} {
+	for _, p := range []rl.Vector2{{X: 22, Y: float32(originY + 22)}, {X: float32(w - 22), Y: float32(originY + 22)}, {X: 22, Y: float32(originY + h - 22)}, {X: float32(w - 22), Y: float32(originY + h - 22)}} {
 		rl.DrawRectangle(int32(p.X-10), int32(p.Y-8), 20, 24, rl.NewColor(8, 17, 22, 255))
 		rl.DrawRectangle(int32(p.X-8), int32(p.Y-10), 16, 20, stone)
 		rl.DrawRectangle(int32(p.X-6), int32(p.Y-8), 12, 2, paleStone)
@@ -57,10 +91,10 @@ func (m *Map) drawSanctuary(ctx primitives.Context) {
 }
 
 func (m *Map) drawSanctuaryAltar(ctx primitives.Context) {
-	cs, rs, ce, re := m.visibleCellRange(ctx.Camera, ctx.WindowWidth, ctx.WindowHeight)
-	center := rl.NewVector2(mapdata.SpawnAltarCenter, mapdata.SpawnAltarCenter)
-	if center.X+150 >= float32(cs)*m.cellSize.X && center.X-150 <= float32(ce)*m.cellSize.X && center.Y+150 >= float32(rs)*m.cellSize.Y && center.Y-150 <= float32(re)*m.cellSize.Y {
-		drawSpawnAltar(center)
+	drawSpawnAltar(rl.NewVector2(mapdata.SpawnAltarCenter, mapdata.SpawnAltarCenter))
+	if room, ok := m.world.Room(mapdata.NorthSanctuary); ok {
+		bounds := room.Bounds()
+		drawSpawnAltar(rl.NewVector2(float32(bounds.X+bounds.W/2), float32(bounds.Y+bounds.H/2)))
 	}
 }
 

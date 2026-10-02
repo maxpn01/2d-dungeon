@@ -69,7 +69,9 @@ func (m *Map) Validate() error {
 		}
 	}
 	for cell := range m.floors {
-		if cell[1] < 0 && !seen[cell] {
+		x, y := CellPosition(cell[0], cell[1], ActorSize)
+		sanctuaryWall := m.SanctuaryCell(cell[0], cell[1]) && !m.Walkable(x, y, ActorSize, ActorSize)
+		if cell[1] < 0 && !seen[cell] && !sanctuaryWall {
 			return fmt.Errorf("unreachable floor cell %v", cell)
 		}
 	}

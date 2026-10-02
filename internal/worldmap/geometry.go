@@ -23,16 +23,17 @@ const SpawnAltarCenter = SurfaceCells * Tile / 2
 const SpawnAltarRadius = 49
 
 func (m *Map) PrivateGateCrossed(fromX, fromY, toX, toY, size float64) bool {
-	gate := m.EntranceGate()
-	if gate.Right <= gate.Left {
-		return false
+	for _, gate := range m.gates {
+		fromCenter, toCenter := fromY+size/2, toY+size/2
+		if (fromCenter < float64(gate.Y)) == (toCenter < float64(gate.Y)) {
+			continue
+		}
+		left, right := min(fromX, toX), max(fromX, toX)+size
+		if left < float64(gate.Right) && right > float64(gate.Left) {
+			return true
+		}
 	}
-	fromCenter, toCenter := fromY+size/2, toY+size/2
-	if (fromCenter < float64(gate.Y)) == (toCenter < float64(gate.Y)) {
-		return false
-	}
-	left, right := min(fromX, toX), max(fromX, toX)+size
-	return left < float64(gate.Right) && right > float64(gate.Left)
+	return false
 }
 
 func (m *Map) Pool(x, y int) bool {
@@ -87,30 +88,37 @@ func (m *Map) walkableLayout(x, y, w, h float64) bool {
 	if !(physics.Rect{X: x, Y: y, W: w, H: h}).Valid() || x < MinCellX*Tile || x+w > MaxCellX*Tile || y < North || y+h > SurfaceMax {
 		return false
 	}
-	if y >= SurfaceMin && x < SurfaceMin && x+w > 0 {
-		connected := false
-		for _, door := range m.layout.SecretDoors {
-			if door.Area.Right() == 0 && y >= float64(door.Area.Y*Tile) && y+h <= float64(door.Area.Bottom()*Tile) && m.Cell(door.Area.X, door.Area.Y) != 0 {
-				connected = true
-				break
-			}
-		}
-		if !connected {
-			return false
-		}
+	body := physics.Rect{X: x, Y: y, W: w, H: h}
+	if room, ok := m.Room(NorthSanctuary); ok && body.Overlaps(room.Bounds()) {
+		return walkableSanctuary(x, 2*MirrorAxis*Tile-y-h, w, h, func(cx, cy int) int { return m.Cell(cx, 2*MirrorAxis-cy-1) }, true)
 	}
-	if y >= SurfaceMin && x >= SurfaceMin && x+w <= SurfaceMax {
-		return !overlapsSpawnAltar(x, y, w, h)
+	if body.Overlaps(physics.Rect{X: 0, Y: 0, W: SurfaceCells * Tile, H: SurfaceCells * Tile}) {
+		return walkableSanctuary(x, y, w, h, m.Cell, true)
 	}
 	for cy := int(math.Floor(y / Tile)); cy <= int(math.Floor(math.Nextafter((y+h)/Tile, math.Inf(-1)))); cy++ {
 		for cx := int(math.Floor(x / Tile)); cx <= int(math.Floor(math.Nextafter((x+w)/Tile, math.Inf(-1)))); cx++ {
-			if cy >= 0 && cx >= 0 && cx < SurfaceCells {
-				if y < SurfaceMin && cy == 0 && m.Cell(cx, -1) == 0 || x < SurfaceMin && cx == 0 && m.Cell(-1, cy) == 0 || x+w > SurfaceMax && cx == SurfaceCells-1 && m.Cell(SurfaceCells, cy) == 0 {
+			if m.Cell(cx, cy) == 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func walkableSanctuary(x, y, w, h float64, cell func(int, int) int, altar bool) bool {
+	if y+h > SurfaceMax || altar && overlapsSpawnAltar(x, y, w, h) {
+		return false
+	}
+	if y >= SurfaceMin && x >= SurfaceMin && x+w <= SurfaceMax {
+		return true
+	}
+	for cy := int(math.Floor(y / Tile)); cy <= int(math.Floor(math.Nextafter((y+h)/Tile, math.Inf(-1)))); cy++ {
+		for cx := int(math.Floor(x / Tile)); cx <= int(math.Floor(math.Nextafter((x+w)/Tile, math.Inf(-1)))); cx++ {
+			if cy >= 0 && cy < SurfaceCells && cx >= 0 && cx < SurfaceCells {
+				if y < SurfaceMin && cy == 0 && cell(cx, -1) == 0 || x < SurfaceMin && cx == 0 && cell(-1, cy) == 0 || x+w > SurfaceMax && cx == SurfaceCells-1 && cell(SurfaceCells, cy) == 0 {
 					return false
 				}
-				continue
-			}
-			if m.Cell(cx, cy) == 0 {
+			} else if cell(cx, cy) == 0 {
 				return false
 			}
 		}

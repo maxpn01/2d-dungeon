@@ -52,7 +52,7 @@ func (e *Exploration) Visible(cell [2]int) bool {
 
 func (e *Exploration) EntityVisible(x, y, size float64) bool {
 	center := physics.Square(x, y, size).Center()
-	return e.world != nil && !e.world.SecretHidden(center.X, center.Y) && center.DistanceSquared(physics.Vector{X: float64(e.focus.X), Y: float64(e.focus.Y)}) <= entityDetectionRadius*entityDetectionRadius
+	return e.world != nil && e.world.FloorAt(center.X, center.Y) == e.world.FloorAt(float64(e.focus.X), float64(e.focus.Y)) && !e.world.SecretHidden(center.X, center.Y) && center.DistanceSquared(physics.Vector{X: float64(e.focus.X), Y: float64(e.focus.Y)}) <= entityDetectionRadius*entityDetectionRadius
 }
 
 func (e *Exploration) PlayerVisible(x, y, size float64) bool {

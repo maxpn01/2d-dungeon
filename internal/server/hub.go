@@ -8,9 +8,11 @@ import (
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
+	"raylib-2d-sandbox/internal/worldmap"
 )
 
 type client struct {
+	joined    chan bool
 	character simulation.Character
 	name      string
 	id        string
@@ -41,6 +43,7 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) Run(ctx context.Context) {
+	worldmap.SetMultiplayer(true)
 	defer close(h.done)
 	clients := make(map[*client]struct{})
 	names := make(map[string]string)
@@ -52,6 +55,9 @@ func (h *Hub) Run(ctx context.Context) {
 		delete(clients, c)
 		delete(names, c.id)
 		world.Leave(c.id)
+		if len(clients) == 0 {
+			world = simulation.NewWorld()
+		}
 		c.cancel()
 	}
 	defer func() {
@@ -88,9 +94,13 @@ func (h *Hub) Run(ctx context.Context) {
 		case c := <-h.join:
 			nextID++
 			c.id = fmt.Sprintf("p%d", nextID)
+			if !world.Join(c.id) {
+				c.joined <- false
+				continue
+			}
+			c.joined <- true
 			clients[c] = struct{}{}
 			names[c.id] = c.name
-			world.Join(c.id)
 			world.SetCharacter(c.id, c.character)
 			c.send <- protocol.Message{Type: protocol.TypeWelcome, PlayerID: c.id}
 			broadcast()

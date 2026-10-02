@@ -49,6 +49,9 @@ func ValidateSnapshot(snapshot Snapshot, localID string) error {
 }
 
 func validatePlayers(players []Player, localID string) error {
+	if len(players) > simulation.MaxPlayers {
+		return errors.New("server sent too many players")
+	}
 	ids := make(map[string]bool, len(players))
 	for _, player := range players {
 		if player.ID == "" || ids[player.ID] {
@@ -81,14 +84,22 @@ func validatePlayers(players []Player, localID string) error {
 					return errors.New("server sent invalid split cell")
 				}
 			}
-			if cell.Remaining < 0 || cell.Remaining > simulation.SplitDuration || cell.Launch < 0 || cell.Launch > simulation.SplitLaunchDuration || !cell.Direction.Valid() || !worldmap.Default().Walkable(cell.X, cell.Y, simulation.PlayerSize, simulation.PlayerSize) {
+			if cell.Remaining < 0 || cell.Remaining > simulation.SplitDuration || cell.Launch < 0 || cell.Launch > simulation.SplitLaunchDuration || !cell.Direction.Valid() || !worldmap.Default().Walkable(cell.X, cell.Y, simulation.PlayerSize, simulation.PlayerSize) || !worldmap.Default().CanAccessEntrance(player.EntranceID, cell.X, cell.Y, simulation.PlayerSize) {
 				return errors.New("server sent invalid split position or timer")
 			}
 		}
 		if err := validateFlight(player); err != nil {
 			return err
 		}
+		if _, ok := worldmap.Default().Gate(player.EntranceID); !ok || player.EntranceGate.ID != player.EntranceID || !worldmap.Default().CanAccessEntrance(player.EntranceID, player.X, player.Y, simulation.PlayerSize) {
+			return errors.New("server sent invalid private entrance ownership")
+		}
 		gate := player.EntranceGate
+		if gate.ID != "" {
+			if _, ok := worldmap.Default().Gate(gate.ID); !ok {
+				return errors.New("server sent unknown entrance gate")
+			}
+		}
 		if math.IsNaN(gate.Open) || math.IsInf(gate.Open, 0) || gate.Open < 0 || gate.Open > 1 || math.IsNaN(gate.Remaining) || math.IsInf(gate.Remaining, 0) || gate.Remaining < 0 || gate.Remaining > 6 || gate.Side < -1 || gate.Side > 1 {
 			return errors.New("server sent invalid entrance gate state")
 		}
@@ -157,7 +168,7 @@ func validStats(stats PlayerStats, baseSpeed float64) bool {
 	if stats.MP < 0 || stats.MP > stats.MaxMP() {
 		return false
 	}
-	if stats.Level < 1 || stats.Level > simulation.MaxLevel || stats.XP < 0 || stats.HP < 0 || stats.HP > stats.MaxHP() || stats.Speed <= 0 || stats.Speed > baseSpeed*2 || stats.Damage <= 0 || stats.Damage > 100 || stats.AttackRate <= 0 || stats.AttackRate > simulation.TickRate || stats.BoostMultiplier < 1 || stats.BoostMultiplier > 10 || stats.BoostCost <= 0 || stats.BoostCost > 10 {
+	if stats.Level < 1 || stats.Level > simulation.MaxLevel || stats.XP < 0 || stats.HP < 0 || stats.HP > stats.MaxHP() || stats.Speed <= 0 || stats.Speed > baseSpeed*2 || stats.Damage <= 0 || stats.Damage > max(100, parameters.ShotDamage*(1+simulation.PerkBonus(simulation.DamagePerk, simulation.MaxPerkRank)+simulation.PerkBonus(simulation.HeavyPerk, simulation.MaxPerkRank))) || stats.AttackRate <= 0 || stats.AttackRate > max(simulation.TickRate, parameters.PlayerAttackRate*(1+simulation.PerkBonus(simulation.AttackRatePerk, simulation.MaxPerkRank))) || stats.BoostMultiplier < 1 || stats.BoostMultiplier > 10 || stats.BoostCost <= 0 || stats.BoostCost > 10 {
 		return false
 	}
 	if stats.Level == simulation.MaxLevel {
@@ -300,7 +311,7 @@ func validateProjectiles(shots []simulation.Projectile) error {
 				return errors.New("server sent invalid projectile coordinates")
 			}
 		}
-		if shot.Size < parameters.ShotSize || shot.Size > parameters.ShotSize*(1+simulation.PerkBonus(simulation.ShotSizePerk, simulation.MaxPerkRank)) || shot.Damage <= 0 || shot.Damage > 100 || shot.Remaining <= 0 || shot.Remaining > parameters.ShotLifetime || !worldmap.Default().Walkable(shot.X, shot.Y, shot.Size, shot.Size) {
+		if shot.Size < parameters.ShotSize || shot.Size > parameters.ShotSize*(1+simulation.PerkBonus(simulation.ShotSizePerk, simulation.MaxPerkRank)) || shot.Damage <= 0 || shot.Damage > max(100, parameters.ShotDamage*(1+simulation.PerkBonus(simulation.DamagePerk, simulation.MaxPerkRank)+simulation.PerkBonus(simulation.HeavyPerk, simulation.MaxPerkRank))) || shot.Remaining <= 0 || shot.Remaining > parameters.ShotLifetime || !worldmap.Default().Walkable(shot.X, shot.Y, shot.Size, shot.Size) {
 			return errors.New("server sent invalid projectile position or lifetime")
 		}
 	}
@@ -314,7 +325,7 @@ func validateStatues(statues []simulation.StatueState) error {
 	}
 	seen := map[string]bool{}
 	for _, s := range statues {
-		if seen[s.ID] || s.Cycle == 0 || len(s.Cards) > 3 || math.IsNaN(s.RechargeRemaining) || math.IsInf(s.RechargeRemaining, 0) || s.RechargeRemaining < 0 || s.RechargeRemaining > parameters.StatueRechargeSeconds || s.RechargeRemaining > 0 && (s.ClaimedBy == "" || s.ID == worldmap.WingStatue) {
+		if seen[s.ID] || s.Cycle == 0 || len(s.Cards) > 3 || math.IsNaN(s.RechargeRemaining) || math.IsInf(s.RechargeRemaining, 0) || s.RechargeRemaining < 0 || s.RechargeRemaining > parameters.StatueRechargeSeconds || s.RechargeRemaining > 0 && (s.ClaimedBy == "" || worldmap.IsWingStatue(s.ID)) {
 			return errors.New("server sent invalid statue")
 		}
 		seen[s.ID] = true
@@ -358,6 +369,9 @@ func validateObjective(snapshot Snapshot) error {
 	if !open[worldmap.WingDoor] && snapshot.WingDoorOpen != 0 {
 		return errors.New("server sent inconsistent secret door animation")
 	}
+	if math.IsNaN(snapshot.NorthWingDoorOpen) || math.IsInf(snapshot.NorthWingDoorOpen, 0) || snapshot.NorthWingDoorOpen < 0 || snapshot.NorthWingDoorOpen > 1 || !open[worldmap.NorthID(worldmap.WingDoor)] && snapshot.NorthWingDoorOpen != 0 {
+		return errors.New("server sent invalid north door animation")
+	}
 	position := worldmap.Default().OrbPosition()
 	orb := snapshot.Orb
 	if orb.X != position.X || orb.Y != position.Y || orb.GuardsRemaining < 0 || orb.GuardsRemaining > 3 || orb.Unlocked != (orb.GuardsRemaining == 0) {
@@ -365,7 +379,7 @@ func validateObjective(snapshot Snapshot) error {
 	}
 	carrierFound := orb.Carrier == ""
 	for _, player := range snapshot.Players {
-		if player.WingDoorOpen != snapshot.WingDoorOpen {
+		if player.WingDoorOpen != snapshot.WingDoorOpen || player.NorthWingDoorOpen != snapshot.NorthWingDoorOpen {
 			return errors.New("server sent inconsistent secret door animation")
 		}
 		if player.HasOrb != (player.ID == orb.Carrier) || player.HasOrb && (player.Dead || !orb.Unlocked) {

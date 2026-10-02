@@ -42,7 +42,7 @@ func (e *Exploration) Reveal(position physics.Vector) {
 				continue
 			}
 			cell := [2]int{x, y}
-			if e.world.Trace(origin, cell) {
+			if e.world.CellFloor(x, y) == e.world.CellFloor(origin[0], origin[1]) && e.world.Trace(origin, cell) {
 				e.visible[cell] = true
 				e.explored[cell] = true
 			}
@@ -50,8 +50,12 @@ func (e *Exploration) Reveal(position physics.Vector) {
 	}
 }
 
-func (e *Exploration) Explored(cell [2]int) bool { return e.explored[cell] }
-func (e *Exploration) Visible(cell [2]int) bool  { return e.visible[cell] }
+func (e *Exploration) Explored(cell [2]int) bool {
+	return e.explored[cell] && e.world.CellFloor(cell[0], cell[1]) == e.world.CellFloor(e.origin[0], e.origin[1])
+}
+func (e *Exploration) Visible(cell [2]int) bool {
+	return e.visible[cell] && e.world.CellFloor(cell[0], cell[1]) == e.world.CellFloor(e.origin[0], e.origin[1])
+}
 func (e *Exploration) ActorVisible(body physics.Rect) bool {
 	center := body.Center()
 	cell := WorldCell(center.X, center.Y)

@@ -53,7 +53,7 @@ func (p *PerkPanel) Read(s simulation.StatueState, stats simulation.Stats, width
 	if p.pending || p.Closing || !rl.IsWindowFocused() {
 		return -1
 	}
-	if s.ID == worldmap.WingStatue {
+	if worldmap.IsWingStatue(s.ID) {
 		return p.readWingOffer(width, height)
 	}
 	keys := [...]int32{rl.KeyOne, rl.KeyTwo, rl.KeyThree}
@@ -133,7 +133,7 @@ func (p *PerkPanel) Draw(active string, statues []simulation.StatueState, stats 
 	if s == nil || p.Closing {
 		return
 	}
-	if s.ID == worldmap.WingStatue {
+	if worldmap.IsWingStatue(s.ID) {
 		p.drawWingOffer(width, height)
 		return
 	}

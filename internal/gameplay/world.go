@@ -30,6 +30,7 @@ type World struct {
 }
 
 func NewWorld() *World {
+	worldmap.SetMultiplayer(false)
 	w := &World{simulation: simulation.NewWorld(), presentation: newPresentation()}
 	w.simulation.Join(localPlayerID)
 	w.syncSimulation()
@@ -61,7 +62,7 @@ func (w *World) ReadInput(camera rl.Camera2D, width, height int32) {
 		w.direction = protocol.Direction{}
 		w.controls.suppressShootUntilRelease = true
 		if card := w.perks.Read(*statue, p.Stats, width, height); card >= 0 {
-			if statue.ID == worldmap.WingStatue && card == 1 {
+			if worldmap.IsWingStatue(statue.ID) && card == 1 {
 				w.ClosePerks()
 			} else {
 				w.simulation.ChoosePerk(localPlayerID, statue.ID, statue.Cycle, card)
@@ -132,6 +133,7 @@ func (w *World) PerksOpen() bool                 { return w.snapshot.Players[0].
 func (w *World) Center() rl.Vector2              { return playerCenter(w.player) }
 
 func (w *World) Start(name string) {
+	worldmap.SetMultiplayer(false)
 	w.CloseStats()
 	if w.Dead() {
 		w.Respawn()

@@ -41,29 +41,31 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
-	HasWings       bool
-	Flight         FlightState
-	WingDoorOpen   float64
-	OpenSecrets    []string
-	HasOrb         bool
-	Escaped        bool
-	ActiveStatue   string
-	EntranceGate   EntranceGateState
-	ShotCooldown   float64
-	EjectCooldown  float64
-	Character      Character
-	Split          SplitCells
-	GatesClosed    bool
-	InArena        bool
-	TeleportCharge float64
-	portalCooldown int
-	Combat         CombatState
-	Dead           bool
-	KilledBy       string
-	Stats          Stats
-	InputSeq       uint64
-	ID             string
-	X, Y           float64
+	EntranceID        string `json:"entrance_id"`
+	HasWings          bool
+	Flight            FlightState
+	WingDoorOpen      float64
+	NorthWingDoorOpen float64
+	OpenSecrets       []string
+	HasOrb            bool
+	Escaped           bool
+	ActiveStatue      string
+	EntranceGate      EntranceGateState
+	ShotCooldown      float64
+	EjectCooldown     float64
+	Character         Character
+	Split             SplitCells
+	GatesClosed       bool
+	InArena           bool
+	TeleportCharge    float64
+	portalCooldown    int
+	Combat            CombatState
+	Dead              bool
+	KilledBy          string
+	Stats             Stats
+	InputSeq          uint64
+	ID                string
+	X, Y              float64
 }
 
 type command struct {
@@ -82,27 +84,27 @@ type playerState struct {
 }
 
 type World struct {
-	wingDoorOpen   float64
-	winnerID       string
-	secretWallHits map[string]int
-	openSecrets    []string
-	orb            OrbState
-	statues        []StatueState
-	projectiles    []Projectile
-	nextProjectile uint64
-	safeZones      []SafeZone
-	boss           Boss
-	bossHitUntil   map[string]uint64
-	ais            []aiState
-	nextAI         uint64
-	fruits         []Fruit
-	patchNext      map[string]uint64
-	nextFruit      uint64
-	players        map[string]*playerState
-	nextSpawn      uint64
-	tick           uint64
-	aiSpawnTicks   int
-	protectedUntil map[string]uint64
+	wingDoorOpen      float64
+	northWingDoorOpen float64
+	winnerID          string
+	secretWallHits    map[string]int
+	openSecrets       []string
+	orb               OrbState
+	statues           []StatueState
+	projectiles       []Projectile
+	nextProjectile    uint64
+	safeZones         []SafeZone
+	boss              Boss
+	bossHitUntil      map[string]uint64
+	ais               []aiState
+	nextAI            uint64
+	fruits            []Fruit
+	patchNext         map[string]uint64
+	nextFruit         uint64
+	players           map[string]*playerState
+	tick              uint64
+	aiSpawnTicks      int
+	protectedUntil    map[string]uint64
 }
 
 func NewWorld() *World {
@@ -119,15 +121,24 @@ func NewWorld() *World {
 	return w
 }
 
-func (w *World) Join(id string) {
+const MaxPlayers = 2
+
+func (w *World) Join(id string) bool {
 	if _, exists := w.players[id]; exists {
-		return
+		return true
 	}
-	x, y := w.spawnPosition(w.nextSpawn)
-	w.nextSpawn++
-	w.players[id] = &playerState{spawnSlot: w.nextSpawn - 1, Player: Player{
-		Character: Square, Stats: NewStats(), ID: id, X: x, Y: y,
-	}}
+	if len(w.players) >= MaxPlayers {
+		return false
+	}
+	slot := uint64(0)
+	for _, p := range w.players {
+		if p.spawnSlot == 0 {
+			slot = 1
+		}
+	}
+	x, y := w.spawnPosition(slot)
+	w.players[id] = &playerState{spawnSlot: slot, Player: Player{EntranceID: worldmap.EntranceID(slot), EntranceGate: EntranceGateState{ID: worldmap.EntranceID(slot)}, Character: Square, Stats: NewStats(), ID: id, X: x, Y: y}}
+	return true
 }
 
 func (w *World) Leave(id string) {
@@ -234,6 +245,7 @@ func (w *World) Step(now time.Time) {
 		}
 		player.OpenSecrets = w.openSecrets
 		player.WingDoorOpen = w.wingDoorOpen
+		player.NorthWingDoorOpen = w.northWingDoorOpen
 		if direction.Interact && (w.interactSecret(player) || w.interactObjective(player) || w.interactStatue(player)) {
 			direction.Interact = false
 		}
@@ -288,18 +300,19 @@ func (w *World) Step(now time.Time) {
 }
 
 type Snapshot struct {
-	WingDoorOpen float64
-	WinnerID     string
-	OpenSecrets  []string
-	Orb          OrbState
-	Statues      []StatueState
-	Projectiles  []Projectile
-	SafeZones    []SafeZone
-	Boss         Boss
-	AIs          []AI
-	Tick         uint64
-	Players      []Player
-	Fruits       []Fruit
+	WingDoorOpen      float64
+	NorthWingDoorOpen float64
+	WinnerID          string
+	OpenSecrets       []string
+	Orb               OrbState
+	Statues           []StatueState
+	Projectiles       []Projectile
+	SafeZones         []SafeZone
+	Boss              Boss
+	AIs               []AI
+	Tick              uint64
+	Players           []Player
+	Fruits            []Fruit
 }
 
 func (w *World) Snapshot() Snapshot {
@@ -307,6 +320,7 @@ func (w *World) Snapshot() Snapshot {
 	for _, player := range w.players {
 		state := player.Player
 		state.WingDoorOpen = w.wingDoorOpen
+		state.NorthWingDoorOpen = w.northWingDoorOpen
 		state.OpenSecrets = append([]string(nil), w.openSecrets...)
 		state.Split = state.Split.Clone()
 		players = append(players, state)
@@ -331,7 +345,7 @@ func (w *World) Snapshot() Snapshot {
 			statues[i].Cards = append([]PerkCard{}, statues[i].Cards...)
 		}
 	}
-	return Snapshot{WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	return Snapshot{NorthWingDoorOpen: w.northWingDoorOpen, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }

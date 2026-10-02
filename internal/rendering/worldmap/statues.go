@@ -20,7 +20,7 @@ func drawStatues(statues []simulation.StatueState, active string, px, py float64
 		}
 		x, y := int32(s.X), int32(s.Y)
 		tint := primitives.RuneColor
-		winged := s.ID == mapdata.WingStatue
+		winged := mapdata.IsWingStatue(s.ID)
 		if winged {
 			tint = color.RGBA{192, 220, 244, 255}
 		}

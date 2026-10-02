@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"raylib-2d-sandbox/internal/physics"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -62,7 +63,16 @@ type Map struct {
 
 var defaultMap = mustBuild(DefaultLayout())
 
-func Default() *Map { return defaultMap }
+var multiplayerMap = mustBuild(MultiplayerLayout())
+var multiplayerActive atomic.Bool
+
+func SetMultiplayer(enabled bool) { multiplayerActive.Store(enabled) }
+func Default() *Map {
+	if multiplayerActive.Load() {
+		return multiplayerMap
+	}
+	return defaultMap
+}
 func mustBuild(layout Layout) *Map {
 	m, err := New(layout)
 	if err != nil {
