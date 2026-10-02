@@ -70,20 +70,25 @@ const (
 
 // AI behavior and population.
 const (
-	InitialAIs            = 5
-	InitialAISpawnDelay   = 10
-	AIRespawnSeconds      = 45
-	AIAwakeSeconds        = 120
-	AIAsleepSeconds       = 60
-	AISize                = PlayerSize
-	AISpeed               = PlayerSpeed
-	AIDetectionRadius     = 300.0
-	AIAlertSeconds        = 10
-	AIChaseLeash          = 900.0
-	AIFiringDistance      = 180.0
-	AISettleTicks         = 2 * TickRate
-	AIReactionTicks       = TickRate
-	AIAttackIntervalTicks = 2 * TickRate
+	InitialAIs                = 5
+	InitialAISpawnDelay       = 10
+	AIRespawnSeconds          = 45
+	AIAwakeSeconds            = 120
+	AIAsleepSeconds           = 60
+	AISize                    = PlayerSize
+	AISpeed                   = PlayerSpeed
+	AIDetectionRadius         = 300.0
+	AIAlertSeconds            = 10
+	AIFrenzyLevel             = 5
+	AIFrenzyAttackMultiplier  = 1.75
+	AIFrenzyMinimumAttackRate = 4.0
+	AIFrenzyBoostTicks        = TickRate
+	AIFrenzyBoostCycleTicks   = 3 * TickRate
+	AIChaseLeash              = 900.0
+	AIFiringDistance          = 180.0
+	AISettleTicks             = 2 * TickRate
+	AIReactionTicks           = TickRate
+	AIAttackIntervalTicks     = 2 * TickRate
 )
 
 // Character abilities and combat.

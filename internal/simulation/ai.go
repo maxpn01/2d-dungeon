@@ -25,6 +25,7 @@ const (
 )
 
 type AI struct {
+	Frenzied  bool
 	Combat    CombatState
 	Behavior  string
 	Character Character
@@ -35,10 +36,15 @@ type AI struct {
 }
 
 type aiState struct {
-	aggressorID    string
-	alertUntil     uint64
-	alertX, alertY float64
-	shotCooldown   float64
+	frenzyBase         Stats
+	orbTargetID        string
+	orbPathFound       bool
+	orbPathUntil       uint64
+	orbPathX, orbPathY float64
+	aggressorID        string
+	alertUntil         uint64
+	alertX, alertY     float64
+	shotCooldown       float64
 	AI
 	den             worldmap.Den
 	settleTicks     int
@@ -112,6 +118,7 @@ func (w *World) updateAIs() {
 		if worldmap.Default().WithSecrets(w.openSecrets).Cell(ai.den.At.X, ai.den.At.Y) == 0 && ai.den.ID != "" {
 			continue
 		}
+		ai.setFrenzy(w.orbTarget(ai) != nil)
 		input := w.aiInput(ai)
 		oldX, oldY := ai.X, ai.Y
 		actor := Player{OpenSecrets: w.openSecrets, ID: ai.ID, ShotCooldown: ai.shotCooldown, X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character, Split: ai.Split}
@@ -127,6 +134,15 @@ func (w *World) updateAIs() {
 }
 
 func (w *World) aiInput(ai *aiState) Direction {
+	if carrier := w.orbTarget(ai); carrier != nil {
+		d := w.huntOrb(ai, carrier)
+		offset := uint64(math.Abs(float64(ai.den.At.X*17 + ai.den.At.Y*31)))
+		d.Boost = ai.Frenzied && (d.X != 0 || d.Y != 0) && (w.tick+offset)%parameters.AIFrenzyBoostCycleTicks < parameters.AIFrenzyBoostTicks
+		return d
+	}
+	ai.orbTargetID = ""
+	ai.orbPathUntil = 0
+	ai.orbPathFound = false
 	if target := w.rangedTarget(ai); target != nil {
 		dx, dy := target.X-ai.X, target.Y-ai.Y
 		length := math.Hypot(dx, dy)

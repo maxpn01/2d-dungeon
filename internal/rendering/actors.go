@@ -10,6 +10,7 @@ import (
 )
 
 type Actor struct {
+	Frenzied       bool
 	ID, Label      string
 	X, Y, Size, HP float64
 	Dead           bool
@@ -41,7 +42,13 @@ func DrawAIActor(ai Actor, exploration Visibility) {
 	}
 	count := ai.Split.Count()
 	if exploration == nil || exploration.EntityVisible(ai.X, ai.Y, ai.Size) {
+		if ai.Frenzied {
+			drawPossession(ai)
+		}
 		bounds := DrawActor(ai.X, ai.Y, ai.Size, ai.HP, ai.Combat, ai.Tint, ai.Character)
+		if ai.Frenzied {
+			drawPossessedEyes(bounds)
+		}
 		primitives.DrawTextAt(ai.Label, rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 	}
 	for _, cell := range ai.Split {

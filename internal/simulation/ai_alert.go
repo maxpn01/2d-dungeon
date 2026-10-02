@@ -31,6 +31,9 @@ func (w *World) aiCanSeePlayer(ai *aiState, p *playerState, radius float64) bool
 func (w *World) aiWithinTerritory(ai *aiState) bool {
 	geometry := worldmap.Default()
 	body := physics.Square(ai.X, ai.Y, AISize)
+	if w.orbTarget(ai) != nil {
+		return ai.Y < 0 && geometry.FloorAt(ai.X+AISize/2, ai.Y+AISize/2) == worldmap.FirstFloor
+	}
 	if room, ok := geometry.Room(ai.den.RoomID); ok && room.HasRole(worldmap.Private) {
 		return room.Bounds().Contains(body)
 	}

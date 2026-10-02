@@ -42,7 +42,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		DrawAIActor(Actor{
 			ID: ai.ID, Label: fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior),
 			X: ai.X, Y: ai.Y, Size: ai.Size, HP: ai.Stats.HP, Character: ai.Character,
-			Combat: ai.Combat, Split: ai.Split, Tint: rl.Green,
+			Frenzied: ai.Frenzied, Combat: ai.Combat, Split: ai.Split, Tint: rl.Green,
 		}, &scene.Map.Exploration)
 	}
 	for _, player := range scene.RenderedPlayers {
