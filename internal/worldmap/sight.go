@@ -1,6 +1,9 @@
 package worldmap
 
-import "math"
+import (
+	"math"
+	"raylib-2d-sandbox/internal/physics"
+)
 
 var steps = [][2]int{{0, -1}, {-1, 0}, {1, 0}, {0, 1}}
 
@@ -64,6 +67,10 @@ func (m *Map) Visible(ax, ay, bx, by float64) bool {
 }
 
 func (m *Map) NextStep(x, y, tx, ty, size float64) (float64, float64, bool) {
+	return m.nextStep(x, y, tx, ty, size, m.CanOccupy)
+}
+
+func (m *Map) nextStep(x, y, tx, ty, size float64, canOccupy func(physics.Rect) bool) (float64, float64, bool) {
 	start := WorldCell(x+size/2, y+size/2)
 	goal := WorldCell(tx+size/2, ty+size/2)
 	if start == goal {
@@ -73,7 +80,7 @@ func (m *Map) NextStep(x, y, tx, ty, size float64) (float64, float64, bool) {
 	seen := map[[2]int]bool{goal: true}
 	next := map[[2]int][2]int{}
 	gx, gy := CellPosition(goal[0], goal[1], size)
-	if !m.Walkable(gx, gy, size, size) {
+	if !canOccupy(physics.Square(gx, gy, size)) {
 		return x, y, false
 	}
 	for len(queue) > 0 && len(seen) < 20000 {
@@ -85,7 +92,7 @@ func (m *Map) NextStep(x, y, tx, ty, size float64) (float64, float64, bool) {
 				continue
 			}
 			px, py := CellPosition(n[0], n[1], size)
-			if !m.Walkable(px, py, size, size) {
+			if !canOccupy(physics.Square(px, py, size)) {
 				continue
 			}
 			seen[n] = true

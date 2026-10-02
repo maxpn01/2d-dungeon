@@ -65,9 +65,7 @@ func (m *Map) Validate() error {
 		}
 		for _, step := range steps {
 			next := [2]int{cell[0] + step[0], cell[1] + step[1]}
-			if next[1] < 0 {
-				add(next)
-			}
+			add(next)
 		}
 	}
 	for cell := range m.floors {

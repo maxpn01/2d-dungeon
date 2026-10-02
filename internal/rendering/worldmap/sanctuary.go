@@ -29,15 +29,23 @@ func (m *Map) drawSanctuary(ctx primitives.Context) {
 		}
 	}
 	w, h := int(m.size.X), int(m.size.Y)
+	var wingDoor mapdata.CellRect
+	for _, door := range m.world.SecretDoors() {
+		if door.ID == mapdata.WingDoor {
+			wingDoor = door.Area
+		}
+	}
 	for x := left * 40; x < min(right*40, w); x += 40 {
 		col := x / mapdata.Tile
 		if mapdata.Default().Cell(col-2, -1) == 0 && mapdata.Default().Cell(col-1, -1) == 0 && mapdata.Default().Cell(col, -1) == 0 && mapdata.Default().Cell(col+1, -1) == 0 && mapdata.Default().Cell(col+2, -1) == 0 {
-			drawSanctuaryBorder(x, 0, 40, 10, x/40)
+			drawSanctuaryBorder(x, 0, 40, 10, col)
 		}
 		drawSanctuaryBorder(x, h-10, 40, 10, x/40)
 	}
 	for y := top * 40; y < min(bottom*40, h); y += 40 {
-		drawSanctuaryBorder(0, y, 10, 40, y/40)
+		if y/mapdata.Tile < wingDoor.Y || y/mapdata.Tile >= wingDoor.Bottom() {
+			drawSanctuaryBorder(0, y, 10, 40, y/40)
+		}
 		drawSanctuaryBorder(w-10, y, 10, 40, y/40)
 	}
 	for _, p := range []rl.Vector2{{X: 22, Y: 22}, {X: float32(w - 22), Y: 22}, {X: 22, Y: float32(h - 22)}, {X: float32(w - 22), Y: float32(h - 22)}} {

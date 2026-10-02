@@ -41,6 +41,9 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
+	HasWings       bool
+	Flight         FlightState
+	WingDoorOpen   float64
 	OpenSecrets    []string
 	HasOrb         bool
 	Escaped        bool
@@ -79,6 +82,7 @@ type playerState struct {
 }
 
 type World struct {
+	wingDoorOpen   float64
 	winnerID       string
 	secretWallHits map[string]int
 	openSecrets    []string
@@ -189,6 +193,7 @@ func moveByMotion(x, y float64, d Direction, distance float64) physics.Motion {
 
 func (w *World) Step(now time.Time) {
 	w.tick++
+	w.advanceWingDoor()
 	for id, until := range w.protectedUntil {
 		if w.tick >= until {
 			delete(w.protectedUntil, id)
@@ -228,10 +233,12 @@ func (w *World) Step(now time.Time) {
 			}
 		}
 		player.OpenSecrets = w.openSecrets
-		if direction.Interact && (w.interactObjective(player) || w.interactStatue(player)) {
+		player.WingDoorOpen = w.wingDoorOpen
+		if direction.Interact && (w.interactSecret(player) || w.interactObjective(player) || w.interactStatue(player)) {
 			direction.Interact = false
 		}
 		AdvancePlayer(&player.Player, direction, StepSeconds, w.safeZones)
+		w.revealFlownSecrets(player)
 		w.fire(&player.Player, direction)
 	}
 	for _, ai := range w.ais {
@@ -281,23 +288,25 @@ func (w *World) Step(now time.Time) {
 }
 
 type Snapshot struct {
-	WinnerID    string
-	OpenSecrets []string
-	Orb         OrbState
-	Statues     []StatueState
-	Projectiles []Projectile
-	SafeZones   []SafeZone
-	Boss        Boss
-	AIs         []AI
-	Tick        uint64
-	Players     []Player
-	Fruits      []Fruit
+	WingDoorOpen float64
+	WinnerID     string
+	OpenSecrets  []string
+	Orb          OrbState
+	Statues      []StatueState
+	Projectiles  []Projectile
+	SafeZones    []SafeZone
+	Boss         Boss
+	AIs          []AI
+	Tick         uint64
+	Players      []Player
+	Fruits       []Fruit
 }
 
 func (w *World) Snapshot() Snapshot {
 	players := make([]Player, 0, len(w.players))
 	for _, player := range w.players {
 		state := player.Player
+		state.WingDoorOpen = w.wingDoorOpen
 		state.OpenSecrets = append([]string(nil), w.openSecrets...)
 		state.Split = state.Split.Clone()
 		players = append(players, state)
@@ -322,7 +331,7 @@ func (w *World) Snapshot() Snapshot {
 			statues[i].Cards = append([]PerkCard{}, statues[i].Cards...)
 		}
 	}
-	return Snapshot{WinnerID: w.winnerID, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	return Snapshot{WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }

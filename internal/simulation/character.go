@@ -82,8 +82,13 @@ func AdvancePlayer(p *Player, input Direction, dt float64, zones ...[]SafeZone) 
 	oldX, oldY := p.X, p.Y
 	advanceEntranceGate(p, input, dt)
 	defer constrainEntranceGate(p, oldX, oldY)
+	defer constrainWingDoor(p, oldX, oldY)
 	p.Stats.GainMP(parameters.MPRecoveryPerSecond * dt)
 	p.ShotCooldown = max(-dt, p.ShotCooldown-dt)
+	if p.HasWings {
+		advanceWingPlayer(p, input, dt)
+		return
+	}
 	switch NormalizeCharacter(p.Character) {
 	case Triangle:
 		AdvanceDashPlayer(p, input, dt)
@@ -107,6 +112,9 @@ func clampPlayerBodies(p *Player) {
 func ClampSurfaceBody(x, y *float64, size, hp float64) {
 	if *y < MapMin {
 		return // the dungeon is governed by its own passages
+	}
+	if (*x < MapMin || *x+size > MapMax) && worldmap.Default().CanFly(physics.Square(*x, *y, size)) {
+		return
 	}
 	radius := min(BodySize(size, hp)/2, (MapMax-MapMin)/2)
 	body := physics.Rect{X: *x + size/2 - radius, Y: *y + size/2 - radius, W: radius * 2, H: radius * 2}

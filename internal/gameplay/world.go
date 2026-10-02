@@ -8,6 +8,7 @@ import (
 	"raylib-2d-sandbox/internal/rendering"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
+	"raylib-2d-sandbox/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -60,7 +61,11 @@ func (w *World) ReadInput(camera rl.Camera2D, width, height int32) {
 		w.direction = protocol.Direction{}
 		w.controls.suppressShootUntilRelease = true
 		if card := w.perks.Read(*statue, p.Stats, width, height); card >= 0 {
-			w.simulation.ChoosePerk(localPlayerID, statue.ID, statue.Cycle, card)
+			if statue.ID == worldmap.WingStatue && card == 1 {
+				w.ClosePerks()
+			} else {
+				w.simulation.ChoosePerk(localPlayerID, statue.ID, statue.Cycle, card)
+			}
 			w.syncSimulation()
 		}
 		return

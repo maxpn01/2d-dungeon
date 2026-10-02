@@ -82,7 +82,11 @@ func drawStatueGate(gate simulation.EntranceGateState, prompt bool) {
 		if gate.Remaining > 0 {
 			label = "GATE OPEN"
 		}
-		tw := primitives.MeasureText(label, 16)
-		primitives.DrawText(label, int32(x+w/2)-tw/2, int32(y+72), 16, primitives.RuneColor)
+		drawInteractionPrompt(label, rl.NewVector2(float32(x+w/2), float32(y+72)))
 	}
+}
+
+func drawInteractionPrompt(label string, at rl.Vector2) {
+	width := primitives.MeasureText(label, 16)
+	primitives.DrawText(label, int32(at.X)-width/2, int32(at.Y), 16, primitives.RuneColor)
 }

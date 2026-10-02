@@ -356,7 +356,7 @@ func (w *World) feedBoss(old position) {
 
 func (w *World) updatePortals() {
 	for _, p := range w.players {
-		if p.Dead {
+		if p.Dead || p.Flight.Flying {
 			p.TeleportCharge = 0
 			continue
 		}

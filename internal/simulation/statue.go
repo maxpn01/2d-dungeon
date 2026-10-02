@@ -27,6 +27,9 @@ func (s StatueState) Near(x, y float64, open ...[]string) bool {
 }
 
 func (w *World) interactStatue(p *playerState) bool {
+	if p.Flight.Flying {
+		return false
+	}
 	nearest, distance := -1, math.Inf(1)
 	for i, s := range w.statues {
 		if s.ClaimedBy != "" || !s.Near(p.X, p.Y, w.openSecrets) {
@@ -41,7 +44,7 @@ func (w *World) interactStatue(p *playerState) bool {
 		return false
 	}
 	s := &w.statues[nearest]
-	if s.Cards == nil {
+	if s.ID != worldmap.WingStatue && s.Cards == nil {
 		s.Cards = perkOffer(p.Stats)
 		if len(s.Cards) == 0 {
 			s.Cards = perkOffer(NewStats())
@@ -70,10 +73,15 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 		if s.ID != statueID {
 			continue
 		}
-		if s.ClaimedBy != "" || s.Cycle != cycle || !s.Near(p.X, p.Y, w.openSecrets) || card < 0 || (card >= len(s.Cards)) {
+		if s.ClaimedBy != "" || s.Cycle != cycle || !s.Near(p.X, p.Y, w.openSecrets) || card < 0 || (s.ID != worldmap.WingStatue && card >= len(s.Cards)) {
 			return false
 		}
-		if !p.Stats.ApplyPerk(s.Cards[card]) {
+		if s.ID == worldmap.WingStatue {
+			if card != 0 || p.HasWings {
+				return false
+			}
+			p.HasWings = true
+		} else if !p.Stats.ApplyPerk(s.Cards[card]) {
 			return false
 		}
 		s.ClaimedBy = id
@@ -104,6 +112,7 @@ func (w *World) updateStatues() {
 			if !p.progressionReset {
 				w.releaseStatues(p.ID)
 				w.releaseOrb(p.ID)
+				p.HasWings, p.Flight = false, FlightState{}
 				p.Stats = NewStats()
 				p.Stats.HP = 0
 				p.Split = nil

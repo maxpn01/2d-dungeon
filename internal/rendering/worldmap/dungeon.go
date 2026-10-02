@@ -124,6 +124,9 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 		}
 	}
 	for _, room := range m.world.Rooms() {
+		if room.ID == mapdata.WingChamber && m.world.Cell(room.Area.X, room.Area.Y) != 0 && room.Area.Right() >= left && room.Area.X <= right && room.Area.Bottom() >= top && room.Area.Y <= bottom {
+			drawWingHall(room)
+		}
 		if room.ID == mapdata.FeastHall && room.Area.Y+room.Area.Height >= top && room.Area.Y <= bottom {
 			drawFeastRoom(room)
 		}

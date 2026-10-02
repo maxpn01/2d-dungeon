@@ -48,6 +48,7 @@ type Map struct {
 	secretVariants sync.Map
 	layout         Layout
 	floors         map[[2]int]int
+	flightCells    map[[2]int]bool
 	cover          map[[2]int]bool
 	passages       []CellRect
 	pools          []Pool
@@ -110,6 +111,7 @@ func New(layout Layout) (*Map, error) {
 		}
 	}
 	m.floors = m.build()
+	m.flightCells = m.buildFlightCells()
 	for _, room := range layout.Rooms {
 		for _, prop := range room.Props {
 			area := room.WorldArea(prop.Area)

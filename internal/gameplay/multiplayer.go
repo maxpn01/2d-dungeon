@@ -10,6 +10,7 @@ import (
 	"raylib-2d-sandbox/internal/rendering"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
+	"raylib-2d-sandbox/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -78,7 +79,11 @@ func (m *Multiplayer) ReadInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 		m.chat.Close()
 		m.controls.suppressShootUntilRelease = true
 		if card := m.perks.Read(*s, m.view.Local.Stats, int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight())); card >= 0 {
-			m.session.ChoosePerk(s.ID, s.Cycle, card)
+			if s.ID == worldmap.WingStatue && card == 1 {
+				m.ClosePerks()
+			} else {
+				m.session.ChoosePerk(s.ID, s.Cycle, card)
+			}
 		}
 	}
 	if m.StatsOpen() {

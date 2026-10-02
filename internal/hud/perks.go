@@ -7,6 +7,7 @@ import (
 
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
+	"raylib-2d-sandbox/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -51,6 +52,9 @@ func perkCardRects(width, height int32, count int) []rl.Rectangle {
 func (p *PerkPanel) Read(s simulation.StatueState, stats simulation.Stats, width, height int32) int {
 	if p.pending || p.Closing || !rl.IsWindowFocused() {
 		return -1
+	}
+	if s.ID == worldmap.WingStatue {
+		return p.readWingOffer(width, height)
 	}
 	keys := [...]int32{rl.KeyOne, rl.KeyTwo, rl.KeyThree}
 	for i, rect := range perkCardRects(width, height, len(s.Cards)) {
@@ -121,6 +125,10 @@ func perkPreview(stats simulation.Stats, card simulation.PerkCard) string {
 func (p *PerkPanel) Draw(active string, statues []simulation.StatueState, stats simulation.Stats, width, height int32) {
 	s := p.Sync(active, statues)
 	if s == nil || p.Closing {
+		return
+	}
+	if s.ID == worldmap.WingStatue {
+		p.drawWingOffer(width, height)
 		return
 	}
 	rl.DrawRectangle(0, 0, width, height, color.RGBA{6, 10, 17, 210})

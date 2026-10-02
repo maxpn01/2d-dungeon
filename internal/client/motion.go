@@ -107,6 +107,12 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 		return
 	}
 	speed := playerMovementSpeed(target) * simulation.SpeedScale
+	if target.Flight.Flying || m.local.Flight.Flying {
+		speed *= simulation.WingSpeedMultiplier
+		if target.Flight.Returning {
+			speed *= 2
+		}
+	}
 	if target.Combat.Boosting || m.local.Combat.Boosting {
 		speed *= target.Stats.BoostMultiplier
 	}
@@ -124,7 +130,11 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 		m.local.Split = target.Split.Clone()
 		return
 	}
-	x, y := worldmap.Default().WithSecrets(target.OpenSecrets).Move(m.local.X, m.local.Y, dx/distance*speed*dt, dy/distance*speed*dt, simulation.PlayerSize, simulation.PlayerSize)
+	geometry := worldmap.Default().WithSecrets(target.OpenSecrets)
+	x, y := geometry.Move(m.local.X, m.local.Y, dx/distance*speed*dt, dy/distance*speed*dt, simulation.PlayerSize, simulation.PlayerSize)
+	if target.Flight.Flying || m.local.Flight.Flying {
+		x, y = geometry.MoveFlying(m.local.X, m.local.Y, dx/distance*speed*dt, dy/distance*speed*dt, simulation.PlayerSize)
+	}
 	m.local = target
 	m.local.Split = target.Split.Clone()
 	m.local.X, m.local.Y = x, y
@@ -156,7 +166,12 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 			if math.Hypot(next.X-player.X, next.Y-player.Y) <= teleportDistance {
 				oldX, oldY := player.X, player.Y
 				oldSplit := player.Split
-				player.X, player.Y = interpolatePosition(player.X, player.Y, next.X, next.Y, alpha)
+				if player.Flight.Flying || next.Flight.Flying {
+					player.X, player.Y = worldmap.Default().WithSecrets(next.OpenSecrets).MoveFlying(player.X, player.Y, (next.X-player.X)*alpha, (next.Y-player.Y)*alpha, simulation.PlayerSize)
+				} else {
+					player.X, player.Y = interpolatePosition(player.X, player.Y, next.X, next.Y, alpha)
+				}
+				player.HasWings, player.Flight = next.HasWings, next.Flight
 				player.Split = next.Split.Clone()
 				for i, cell := range next.Split {
 					if !cell.Active {

@@ -105,6 +105,10 @@ func DrawPlayer(player protocol.Player, counts Counts, width int32) {
 	drawPlayer(playerDetails(player, counts), width)
 	label := ""
 	tint := rl.LightGray
+	if player.HasWings {
+		label = "Stonewing / Hold Shift to fly"
+		tint = wingTint
+	}
 	if player.HasOrb {
 		label = "Orb carried / bring it to the circle"
 		tint = primitives.RuneColor

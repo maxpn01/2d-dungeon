@@ -19,6 +19,9 @@ const (
 	EastGallery     = "east-gallery"
 	SecretLibrary   = "secret-library"
 	OrbVault        = "orb-vault"
+	WingChamber     = "wing-chamber"
+	WingDoor        = "wing-door"
+	WingStatue      = "wing-statue"
 )
 
 func DefaultLayout() Layout {
@@ -37,12 +40,15 @@ func DefaultLayout() Layout {
 			sideRoom(EastGallery, "THE EAST GALLERY", Cells(48, -140, 20, 20), ""),
 			{ID: SecretLibrary, Name: "THE FORGOTTEN LIBRARY", Area: Cells(-47, -103, 14, 17), Floor: FirstFloor, Statues: []Statue{{ID: "secret-inscription", At: At(6, 6)}}, FeedingAreas: []FeedingArea{{ID: "library-rest", At: At(6, 12), Radius: 2, Food: FoodSource{Capacity: 12, Respawn: 30 * time.Second}}}},
 			orbVault(),
+			{ID: WingChamber, Name: "THE SEALED AERIE", Area: Cells(-15, SurfaceCells-9, 15, 8), Floor: FirstFloor, Statues: []Statue{{ID: WingStatue, At: At(2, 3)}}},
 		},
 		SecretDoors: []SecretDoor{
+			{ID: WingDoor, RoomID: WingChamber, Area: Cells(-1, SurfaceCells-6, 1, 2), Interactable: true},
 			{ID: "library-wall", RoomID: SecretLibrary, Area: Cells(-33, -89, 1, 2)},
 			{ID: "vault-wall", RoomID: OrbVault, Area: Cells(68, -131, 1, 3)},
 		},
 		Passages: []Passage{
+			{ID: "aerie-entrance", From: Location{At: At(-1, SurfaceCells-6)}, To: Location{At: At(-1, SurfaceCells-5)}, Width: 1},
 			{ID: "archive-approach", From: Location{At: At(-12, -94)}, To: Location{At: At(-6, -94)}, Width: 4},
 			{ID: "west-loop", From: Location{At: At(-24, -114)}, To: Location{At: At(-24, -106)}, Width: 4},
 			{ID: "west-crown", From: Location{At: At(-12, -124)}, To: Location{At: At(5, -124)}, Width: 4},

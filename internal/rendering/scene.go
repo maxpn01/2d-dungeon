@@ -58,6 +58,9 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 			label += " (you)"
 		}
 		lift := float64(0)
+		if player.HasWings {
+			lift = DrawWings(player.X, player.Y, player.Size, player.Flight.Flying)
+		}
 		if player.HasOrb {
 			center := rl.NewVector2(float32(player.X+player.Size/2), float32(player.Y-30-lift))
 			rl.DrawCircleGradient(center, 25, rl.Fade(primitives.RuneColor, .35), rl.Blank)

@@ -47,7 +47,11 @@ func DrawStats(player protocol.Player, width, height int32) {
 	row("Attack rate", fmt.Sprintf("%.2f /s", p.AttackRate), y+182)
 	primitives.DrawText("MOVEMENT", left, y+228, 14, primitives.RuneColor)
 	row("Speed", fmt.Sprintf("%.2f", p.Speed), y+257)
-	row("Shift multiplier", fmt.Sprintf("x%.2f", p.Boost), y+291)
+	if player.HasWings {
+		row("Shift ability", "STONEWING FLIGHT", y+291)
+	} else {
+		row("Shift multiplier", fmt.Sprintf("x%.2f", p.Boost), y+291)
+	}
 	rl.DrawLine(left, y+330, right, y+330, divider)
 	primitives.DrawText("BLESSINGS", left, y+349, 14, primitives.RuneColor)
 	if len(owned) == 0 {

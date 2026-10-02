@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/worldmap"
 )
@@ -83,6 +84,9 @@ func validatePlayers(players []Player, localID string) error {
 			if cell.Remaining < 0 || cell.Remaining > simulation.SplitDuration || cell.Launch < 0 || cell.Launch > simulation.SplitLaunchDuration || !cell.Direction.Valid() || !worldmap.Default().Walkable(cell.X, cell.Y, simulation.PlayerSize, simulation.PlayerSize) {
 				return errors.New("server sent invalid split position or timer")
 			}
+		}
+		if err := validateFlight(player); err != nil {
+			return err
 		}
 		gate := player.EntranceGate
 		if math.IsNaN(gate.Open) || math.IsInf(gate.Open, 0) || gate.Open < 0 || gate.Open > 1 || math.IsNaN(gate.Remaining) || math.IsInf(gate.Remaining, 0) || gate.Remaining < 0 || gate.Remaining > 6 || gate.Side < -1 || gate.Side > 1 {
@@ -337,6 +341,9 @@ func validateStatues(statues []simulation.StatueState) error {
 }
 
 func validateObjective(snapshot Snapshot) error {
+	if math.IsNaN(snapshot.WingDoorOpen) || math.IsInf(snapshot.WingDoorOpen, 0) || snapshot.WingDoorOpen < 0 || snapshot.WingDoorOpen > 1 {
+		return errors.New("server sent invalid secret door animation")
+	}
 	known := map[string]bool{}
 	for _, door := range worldmap.Default().SecretDoors() {
 		known[door.ID] = true
@@ -348,6 +355,9 @@ func validateObjective(snapshot Snapshot) error {
 		}
 		open[id] = true
 	}
+	if !open[worldmap.WingDoor] && snapshot.WingDoorOpen != 0 {
+		return errors.New("server sent inconsistent secret door animation")
+	}
 	position := worldmap.Default().OrbPosition()
 	orb := snapshot.Orb
 	if orb.X != position.X || orb.Y != position.Y || orb.GuardsRemaining < 0 || orb.GuardsRemaining > 3 || orb.Unlocked != (orb.GuardsRemaining == 0) {
@@ -355,6 +365,9 @@ func validateObjective(snapshot Snapshot) error {
 	}
 	carrierFound := orb.Carrier == ""
 	for _, player := range snapshot.Players {
+		if player.WingDoorOpen != snapshot.WingDoorOpen {
+			return errors.New("server sent inconsistent secret door animation")
+		}
 		if player.HasOrb != (player.ID == orb.Carrier) || player.HasOrb && (player.Dead || !orb.Unlocked) {
 			return errors.New("server sent invalid orb carrier")
 		}
@@ -377,6 +390,20 @@ func validateObjective(snapshot Snapshot) error {
 	}
 	if !carrierFound {
 		return errors.New("server sent missing orb carrier")
+	}
+	return nil
+}
+
+func validateFlight(p Player) error {
+	f := p.Flight
+	if math.IsNaN(f.LandingX) || math.IsNaN(f.LandingY) || math.IsInf(f.LandingX, 0) || math.IsInf(f.LandingY, 0) || f.Flying && (!p.HasWings || p.Dead) || f.Returning && !f.Flying {
+		return errors.New("server sent invalid flight state")
+	}
+	if f.Flying {
+		geometry := worldmap.Default().WithSecrets(p.OpenSecrets)
+		if !geometry.CanFly(physics.Square(p.X, p.Y, simulation.PlayerSize)) || !geometry.Walkable(f.LandingX, f.LandingY, simulation.PlayerSize, simulation.PlayerSize) {
+			return errors.New("server sent flight outside the map")
+		}
 	}
 	return nil
 }

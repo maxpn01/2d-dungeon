@@ -17,7 +17,11 @@ func (w *World) interpolateActors() {
 		return worldmap.Default().Move(ax, ay, (bx-ax)*alpha, (by-ay)*alpha, simulation.PlayerSize, simulation.PlayerSize)
 	}
 	before, after := w.previousSnapshot.Players[0], w.snapshot.Players[0]
-	w.player.X, w.player.Y = interpolate(before.X, before.Y, after.X, after.Y)
+	if before.Flight.Flying || after.Flight.Flying {
+		w.player.X, w.player.Y = worldmap.Default().WithSecrets(after.OpenSecrets).MoveFlying(before.X, before.Y, (after.X-before.X)*alpha, (after.Y-before.Y)*alpha, simulation.PlayerSize)
+	} else {
+		w.player.X, w.player.Y = interpolate(before.X, before.Y, after.X, after.Y)
+	}
 	for i, cell := range after.Split {
 		if !cell.Active {
 			continue

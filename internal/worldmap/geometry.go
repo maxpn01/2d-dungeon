@@ -87,13 +87,25 @@ func (m *Map) walkableLayout(x, y, w, h float64) bool {
 	if !(physics.Rect{X: x, Y: y, W: w, H: h}).Valid() || x < MinCellX*Tile || x+w > MaxCellX*Tile || y < North || y+h > SurfaceMax {
 		return false
 	}
-	if y >= SurfaceMin {
-		return x >= SurfaceMin && x+w <= SurfaceMax && !overlapsSpawnAltar(x, y, w, h)
+	if y >= SurfaceMin && x < SurfaceMin && x+w > 0 {
+		connected := false
+		for _, door := range m.layout.SecretDoors {
+			if door.Area.Right() == 0 && y >= float64(door.Area.Y*Tile) && y+h <= float64(door.Area.Bottom()*Tile) && m.Cell(door.Area.X, door.Area.Y) != 0 {
+				connected = true
+				break
+			}
+		}
+		if !connected {
+			return false
+		}
+	}
+	if y >= SurfaceMin && x >= SurfaceMin && x+w <= SurfaceMax {
+		return !overlapsSpawnAltar(x, y, w, h)
 	}
 	for cy := int(math.Floor(y / Tile)); cy <= int(math.Floor(math.Nextafter((y+h)/Tile, math.Inf(-1)))); cy++ {
 		for cx := int(math.Floor(x / Tile)); cx <= int(math.Floor(math.Nextafter((x+w)/Tile, math.Inf(-1)))); cx++ {
-			if cy >= 0 {
-				if y < SurfaceMin && m.Cell(cx, -1) == 0 {
+			if cy >= 0 && cx >= 0 && cx < SurfaceCells {
+				if y < SurfaceMin && cy == 0 && m.Cell(cx, -1) == 0 || x < SurfaceMin && cx == 0 && m.Cell(-1, cy) == 0 || x+w > SurfaceMax && cx == SurfaceCells-1 && m.Cell(SurfaceCells, cy) == 0 {
 					return false
 				}
 				continue

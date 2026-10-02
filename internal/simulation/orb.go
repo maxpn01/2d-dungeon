@@ -65,7 +65,7 @@ func (w *World) releaseOrb(id string) {
 }
 
 func (w *World) interactObjective(p *playerState) bool {
-	if p.Dead {
+	if p.Dead || p.Flight.Flying {
 		return false
 	}
 	geometry := worldmap.Default().WithSecrets(w.openSecrets)
