@@ -135,6 +135,8 @@ const (
 	BossRecoilDistance  = 85.0
 )
 
+const StatueRechargeSeconds = 60
+
 var PerkRankWeights = [6]int{40, 28, 16, 9, 5, 2}
 
 var PerkBonuses = [11][6]float64{

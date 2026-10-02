@@ -314,7 +314,7 @@ func validateStatues(statues []simulation.StatueState) error {
 	}
 	seen := map[string]bool{}
 	for _, s := range statues {
-		if seen[s.ID] || s.Cycle == 0 || len(s.Cards) > 3 {
+		if seen[s.ID] || s.Cycle == 0 || len(s.Cards) > 3 || math.IsNaN(s.RechargeRemaining) || math.IsInf(s.RechargeRemaining, 0) || s.RechargeRemaining < 0 || s.RechargeRemaining > parameters.StatueRechargeSeconds || s.RechargeRemaining > 0 && (s.ClaimedBy == "" || s.ID == worldmap.WingStatue) {
 			return errors.New("server sent invalid statue")
 		}
 		seen[s.ID] = true

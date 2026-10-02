@@ -140,7 +140,7 @@ func (p *PerkPanel) Draw(active string, statues []simulation.StatueState, stats 
 	rl.DrawRectangle(0, 0, width, height, color.RGBA{6, 10, 17, 210})
 	y := height/2 - 222
 	primitives.DrawCenteredText("THE INSCRIPTION", y, 30, primitives.RuneColor)
-	primitives.DrawCenteredText("Choose one blessing. This statue can be claimed by one player.", y+43, 18, rl.LightGray)
+	primitives.DrawCenteredText("Choose one blessing. Recharges 30 seconds after use.", y+43, 18, rl.LightGray)
 	if len(s.Cards) == 0 {
 		primitives.DrawCenteredText("Your blessings are already complete.", height/2, 22, rl.LightGray)
 	}

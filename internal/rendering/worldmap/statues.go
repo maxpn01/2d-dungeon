@@ -1,8 +1,10 @@
 package worldmap
 
 import (
+	"fmt"
 	"image/color"
 	"math"
+	"raylib-2d-sandbox/internal/parameters"
 
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
@@ -24,6 +26,9 @@ func drawStatues(statues []simulation.StatueState, active string, px, py float64
 		}
 		if s.ClaimedBy != "" {
 			tint = color.RGBA{73, 83, 88, 255}
+		}
+		if !winged {
+			drawStatueCharge(s, tint)
 		}
 		if winged {
 			drawStatueWings(x, y, tint)
@@ -52,7 +57,7 @@ func drawStatues(statues []simulation.StatueState, active string, px, py float64
 				primitives.DrawText(label, x-width/2, y-68, 16, tint)
 			}
 		} else if !dead && !winged && s.Near(px, py) {
-			label := "INSCRIPTION CLAIMED"
+			label := fmt.Sprintf("RECHARGING %.0fs", math.Ceil(s.RechargeRemaining))
 			primitives.DrawText(label, x-primitives.MeasureText(label, 14)/2, y-68, 14, rl.Gray)
 		}
 	}
@@ -77,4 +82,25 @@ func drawStatueWings(x, y int32, tint color.RGBA) {
 		}
 	}
 	rl.DrawPolyLines(rl.NewVector2(float32(x), float32(y-52)), 4, 7, 45, rl.Fade(tint, pulse))
+}
+
+func drawStatueCharge(s simulation.StatueState, tint color.RGBA) {
+	center := rl.NewVector2(float32(s.X), float32(s.Y-9))
+	if s.ClaimedBy != "" {
+		progress := float32(1 - s.RechargeRemaining/parameters.StatueRechargeSeconds)
+		rl.DrawCircleLinesV(center, 37, rl.Fade(tint, .3))
+		if progress > 0 {
+			rl.DrawRing(center, 36, 38, -90, -90+360*progress, 64, rl.Fade(primitives.RuneColor, .4))
+		}
+		return
+	}
+	phase := rl.GetTime()*1.5 + s.X*.01
+	pulse := float32(.7 + .2*math.Sin(phase))
+	rl.DrawCircleGradient(center, 65, rl.Fade(tint, .18*pulse), rl.Blank)
+	for i := 0; i < 4; i++ {
+		angle := phase + float64(i)*math.Pi/2
+		mote := rl.NewVector2(center.X+float32(math.Cos(angle))*39, center.Y+float32(math.Sin(angle))*30)
+		rl.DrawCircleGradient(mote, 7, rl.Fade(tint, .5*pulse), rl.Blank)
+		rl.DrawCircleV(mote, 1.5, rl.Fade(rl.RayWhite, .7*pulse))
+	}
 }
