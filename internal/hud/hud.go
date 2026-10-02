@@ -103,4 +103,19 @@ func playerDetails(player protocol.Player, counts Counts) playerView {
 
 func DrawPlayer(player protocol.Player, counts Counts, width int32) {
 	drawPlayer(playerDetails(player, counts), width)
+	label := ""
+	tint := rl.LightGray
+	if player.HasOrb {
+		label = "Orb carried / bring it to the circle"
+		tint = primitives.RuneColor
+	}
+	if player.Escaped {
+		label = "FLOOR I COMPLETE"
+		tint = rl.Gold
+	}
+	if label != "" && width >= 420 && !player.Dead {
+		panelWidth := primitives.MeasureText(label, 16) + 24
+		rl.DrawRectangle(0, 220, panelWidth, 30, rl.Fade(rl.Black, .8))
+		primitives.DrawText(label, 12, 227, 16, tint)
+	}
 }

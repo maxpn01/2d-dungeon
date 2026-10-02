@@ -16,7 +16,8 @@ type feedbackActor struct {
 	x, y, size, hp, xp float64
 	level              int
 	tint               color.RGBA
-	ai, dead           bool
+	ai, dead, hidden   bool
+	escaped            bool
 }
 
 type feedbackEffect struct {
@@ -61,7 +62,13 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 	}
 	if f.actors != nil {
 		for id, actor := range actors {
+			if actor.hidden {
+				continue
+			}
 			old, existed := f.actors[id]
+			if actor.escaped && !actor.dead && (!existed || !old.escaped) {
+				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, rl.Gold, "completion")
+			}
 			if existed && !old.dead && !actor.dead && actor.level > old.level && !actor.ai {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, primitives.RuneColor, "level")
 			}
@@ -73,7 +80,7 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 			}
 		}
 		for id, old := range f.actors {
-			if actor, exists := actors[id]; !old.dead && (!exists || actor.dead) {
+			if actor, exists := actors[id]; !old.dead && !old.hidden && (!exists || actor.dead && !actor.hidden) {
 				emit(old.x+old.size/2, old.y+old.size/2, float64(actorRenderSize(old.size, old.hp)), old.tint, "prey")
 			}
 		}
@@ -93,13 +100,13 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 	}
 }
 
-func (f *Feedback) Observe(now time.Time, snapshot protocol.Snapshot) {
+func (f *Feedback) Observe(now time.Time, snapshot protocol.Snapshot, localID string) {
 	actors := make(map[string]feedbackActor)
 	for _, p := range snapshot.Players {
-		actors[p.ID] = feedbackActor{p.X, p.Y, p.Size, p.Stats.HP, p.Stats.XP, p.Stats.Level, primitives.CharacterColor(p.Character), false, p.Dead}
+		actors[p.ID] = feedbackActor{p.X, p.Y, p.Size, p.Stats.HP, p.Stats.XP, p.Stats.Level, primitives.CharacterColor(p.Character), false, p.Dead, false, p.Escaped}
 	}
 	for _, a := range snapshot.AIs {
-		actors[a.ID] = feedbackActor{a.X, a.Y, a.Size, a.Stats.HP, a.Stats.XP, a.Stats.Level, rl.Green, true, false}
+		actors[a.ID] = feedbackActor{a.X, a.Y, a.Size, a.Stats.HP, a.Stats.XP, a.Stats.Level, rl.Green, true, false, false, false}
 	}
 	f.observe(now, actors, snapshot.Fruits)
 }
@@ -110,6 +117,9 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 		duration := .35
 		if e.kind == "level" {
 			duration = 1.6
+		}
+		if e.kind == "completion" {
+			duration = 4.5
 		}
 		p := float32(max(0, now.Sub(e.started).Seconds()) / duration)
 		if p >= 1 {
@@ -122,6 +132,19 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 		tint := rl.Fade(e.tint, 1-p)
 		center := rl.NewVector2(e.x, e.y)
 		switch e.kind {
+		case "completion":
+			glow := float32(math.Sin(float64(p) * math.Pi))
+			rl.DrawCircleGradient(center, 150, rl.Fade(e.tint, .32*glow), rl.Blank)
+			radius := 40 + 100*p
+			rl.DrawRing(center, radius, radius+2, 0, 360, 64, rl.Fade(e.tint, .55*(1-p)))
+			rl.DrawCircleLinesV(center, 65+20*p, rl.Fade(primitives.RuneColor, .5*glow))
+			for i := 0; i < 8; i++ {
+				angle := float64(i)*math.Pi/4 + float64(p)*.25
+				inner, outer := float32(66+12*p), float32(76+12*p)
+				a := rl.NewVector2(center.X+float32(math.Cos(angle))*inner, center.Y+float32(math.Sin(angle))*inner)
+				b := rl.NewVector2(center.X+float32(math.Cos(angle))*outer, center.Y+float32(math.Sin(angle))*outer)
+				rl.DrawLineEx(a, b, 2, rl.Fade(e.tint, .7*glow))
+			}
 		case "level":
 			label := "LEVEL UP / +5 MAX HP & MP"
 			primitives.DrawText(label, int32(e.x)-primitives.MeasureText(label, 16)/2, int32(e.y-50-30*p), 16, tint)

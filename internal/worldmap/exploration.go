@@ -18,6 +18,13 @@ func (m *Map) NewExploration(radius float64) *Exploration {
 	return &Exploration{world: m, radius: cells, explored: make(map[[2]int]bool)}
 }
 
+func (e *Exploration) SetWorld(world *Map) {
+	if e.world != world {
+		e.world = world
+		e.visible = nil
+	}
+}
+
 func (e *Exploration) Reveal(position physics.Vector) {
 	if !position.Valid() {
 		return

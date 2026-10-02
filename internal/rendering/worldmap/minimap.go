@@ -76,12 +76,15 @@ func (v *radarView) begin(m *Map) {
 	left := max(mapdata.MinCellX, int(math.Floor(float64((v.focus.X-v.bounds.Width/(2*v.scale))/mapdata.Tile))))
 	right := min(mapdata.MaxCellX, int(math.Ceil(float64((v.focus.X+v.bounds.Width/(2*v.scale))/mapdata.Tile))))
 	top := max(mapdata.North/mapdata.Tile, int(math.Floor(float64((v.focus.Y-v.bounds.Height/(2*v.scale))/mapdata.Tile))))
-	bottom := min(0, int(math.Ceil(float64((v.focus.Y+v.bounds.Height/(2*v.scale))/mapdata.Tile))))
+	bottom := min(mapdata.SurfaceCells, int(math.Ceil(float64((v.focus.Y+v.bounds.Height/(2*v.scale))/mapdata.Tile))))
 	for y := top; y < bottom; y++ {
 		for x := left; x < right; x++ {
-			if mapdata.Default().Cover(x, y) {
+			if y >= 0 && x >= 0 && x < mapdata.SurfaceCells {
+				continue
+			}
+			if m.world.Cover(x, y) && m.world.Cell(x, y) != 0 {
 				v.rect(float32(x*mapdata.Tile), float32(y*mapdata.Tile), mapdata.Tile, mapdata.Tile, color.RGBA{102, 91, 150, 255})
-			} else if mapdata.Default().Cell(x, y) != 0 {
+			} else if m.world.Cell(x, y) != 0 {
 				v.rect(float32(x*mapdata.Tile), float32(y*mapdata.Tile), mapdata.Tile, mapdata.Tile, paleStone)
 			} else if mapdata.Default().Pool(x, y) {
 				v.rect(float32(x*mapdata.Tile), float32(y*mapdata.Tile), mapdata.Tile, mapdata.Tile, color.RGBA{23, 58, 71, 255})
@@ -188,6 +191,7 @@ type Marker struct {
 }
 
 func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker, snapshot protocol.Snapshot) {
+	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
 	m.safeZones = snapshot.SafeZones
 	v := newRadarView(width, focus)
 	if height > 0 {
@@ -200,5 +204,23 @@ func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker,
 	}
 	v.bossMarker(snapshot.Boss)
 	v.statueMarkers(snapshot.Statues)
+	if snapshot.Orb.Carrier == "" {
+		center := rl.NewVector2(float32(snapshot.Orb.X), float32(snapshot.Orb.Y))
+		if v.Exploration.Explored(explorationCell(center)) {
+			point := v.point(center)
+			tint := rl.Orange
+			if snapshot.Orb.Unlocked {
+				tint = primitives.RuneColor
+			}
+			rl.DrawCircleV(point, 6, rl.Black)
+			rl.DrawCircleV(point, 4, tint)
+		}
+	} else {
+		for _, player := range snapshot.Players {
+			if player.ID == snapshot.Orb.Carrier && m.Exploration.PlayerVisible(player.X, player.Y, player.Size) {
+				v.marker(rl.NewVector2(float32(player.X+player.Size/2), float32(player.Y+player.Size/2)), 5, primitives.RuneColor)
+			}
+		}
+	}
 	v.end(focus)
 }

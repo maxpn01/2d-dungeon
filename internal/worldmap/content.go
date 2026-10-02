@@ -5,7 +5,8 @@ import (
 	"raylib-2d-sandbox/internal/physics"
 )
 
-func (m *Map) Cover(x, y int) bool  { return m.cover[[2]int{x, y}] }
+func (m *Map) Cover(x, y int) bool { return m.cover[[2]int{x, y}] }
+
 func (m *Map) Opaque(x, y int) bool { return (y < 0 && m.Cell(x, y) == 0) || m.Cover(x, y) }
 func CellPosition(x, y int, size float64) (float64, float64) {
 	return float64(x*Tile) + (Tile-size)/2, float64(y*Tile) + (Tile-size)/2

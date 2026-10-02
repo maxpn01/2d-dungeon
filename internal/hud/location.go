@@ -27,7 +27,10 @@ func DrawLocation(x, y float32, width, height int32) {
 					hint = "Arcane veils confuse creatures. They do not stop attacks."
 				}
 				if len(r.Portals) > 0 {
-					hint = "The circle links the floors. Stand inside to travel."
+					hint = "Press E inside the circle to interact."
+				}
+				if r.ID == worldmap.OrbVault {
+					hint = "Defeat the level-5 sentinels, then press E at the pedestal."
 				}
 				break
 			}
@@ -37,7 +40,7 @@ func DrawLocation(x, y float32, width, height int32) {
 	if room, ok := worldmap.Default().RoomAt(float64(x), float64(y)); ok && room.Floor > worldmap.FirstFloor {
 		name = floorLabel(room.Floor) + " / " + room.Name
 		if len(room.Portals) > 0 {
-			hint = "Leave and re-enter the circle to return to floor I."
+			hint = "Press E in the circle to return to floor I."
 		}
 	}
 

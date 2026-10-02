@@ -10,6 +10,9 @@ import (
 )
 
 func ValidateSnapshot(snapshot Snapshot, localID string) error {
+	if err := validateObjective(snapshot); err != nil {
+		return err
+	}
 	if err := validatePlayers(snapshot.Players, localID); err != nil {
 		return err
 	}
@@ -329,6 +332,51 @@ func validateStatues(statues []simulation.StatueState) error {
 			}
 			families[card.Family] = true
 		}
+	}
+	return nil
+}
+
+func validateObjective(snapshot Snapshot) error {
+	known := map[string]bool{}
+	for _, door := range worldmap.Default().SecretDoors() {
+		known[door.ID] = true
+	}
+	open := map[string]bool{}
+	for _, id := range snapshot.OpenSecrets {
+		if !known[id] || open[id] {
+			return errors.New("server sent invalid secret discovery")
+		}
+		open[id] = true
+	}
+	position := worldmap.Default().OrbPosition()
+	orb := snapshot.Orb
+	if orb.X != position.X || orb.Y != position.Y || orb.GuardsRemaining < 0 || orb.GuardsRemaining > 3 || orb.Unlocked != (orb.GuardsRemaining == 0) {
+		return errors.New("server sent invalid orb state")
+	}
+	carrierFound := orb.Carrier == ""
+	for _, player := range snapshot.Players {
+		if player.HasOrb != (player.ID == orb.Carrier) || player.HasOrb && (player.Dead || !orb.Unlocked) {
+			return errors.New("server sent invalid orb carrier")
+		}
+		if player.ID == orb.Carrier {
+			carrierFound = true
+		}
+		if len(player.OpenSecrets) != len(open) {
+			return errors.New("server sent inconsistent secret state")
+		}
+		seen := map[string]bool{}
+		for _, id := range player.OpenSecrets {
+			if !open[id] || seen[id] {
+				return errors.New("server sent inconsistent secret state")
+			}
+			seen[id] = true
+		}
+		if math.IsNaN(player.TeleportCharge) || math.IsInf(player.TeleportCharge, 0) || player.TeleportCharge < 0 || player.TeleportCharge > simulation.PortalSeconds {
+			return errors.New("server sent invalid teleport charge")
+		}
+	}
+	if !carrierFound {
+		return errors.New("server sent missing orb carrier")
 	}
 	return nil
 }

@@ -17,14 +17,19 @@ type StatueState struct {
 	Cards     []PerkCard `json:"cards"`
 }
 
-func (s StatueState) Near(x, y float64) bool {
-	return math.Hypot(x+PlayerSize/2-s.X, y+PlayerSize/2-s.Y) <= StatueInteractionRadius && worldmap.Default().Visible(x+PlayerSize/2, y+PlayerSize/2, s.X, s.Y)
+func (s StatueState) Near(x, y float64, open ...[]string) bool {
+	geometry := worldmap.Default()
+	if len(open) > 0 {
+		geometry = geometry.WithSecrets(open[0])
+	}
+
+	return math.Hypot(x+PlayerSize/2-s.X, y+PlayerSize/2-s.Y) <= StatueInteractionRadius && geometry.Visible(x+PlayerSize/2, y+PlayerSize/2, s.X, s.Y)
 }
 
 func (w *World) interactStatue(p *playerState) bool {
 	nearest, distance := -1, math.Inf(1)
 	for i, s := range w.statues {
-		if s.ClaimedBy != "" || !s.Near(p.X, p.Y) {
+		if s.ClaimedBy != "" || !s.Near(p.X, p.Y, w.openSecrets) {
 			continue
 		}
 		d := math.Hypot(p.X+PlayerSize/2-s.X, p.Y+PlayerSize/2-s.Y)
@@ -65,7 +70,7 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 		if s.ID != statueID {
 			continue
 		}
-		if s.ClaimedBy != "" || s.Cycle != cycle || !s.Near(p.X, p.Y) || card < 0 || card >= len(s.Cards) {
+		if s.ClaimedBy != "" || s.Cycle != cycle || !s.Near(p.X, p.Y, w.openSecrets) || card < 0 || (card >= len(s.Cards)) {
 			return false
 		}
 		if !p.Stats.ApplyPerk(s.Cards[card]) {
@@ -93,10 +98,12 @@ func (w *World) releaseStatues(id string) {
 }
 
 func (w *World) updateStatues() {
+
 	for _, p := range w.players {
 		if p.Dead {
 			if !p.progressionReset {
 				w.releaseStatues(p.ID)
+				w.releaseOrb(p.ID)
 				p.Stats = NewStats()
 				p.Stats.HP = 0
 				p.Split = nil
@@ -110,7 +117,7 @@ func (w *World) updateStatues() {
 		}
 		valid := false
 		for _, s := range w.statues {
-			if s.ID == p.ActiveStatue && s.ClaimedBy == "" && s.Near(p.X, p.Y) {
+			if s.ID == p.ActiveStatue && s.ClaimedBy == "" && s.Near(p.X, p.Y, w.openSecrets) {
 				valid = true
 				break
 			}

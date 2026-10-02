@@ -3,6 +3,7 @@ package rendering
 import (
 	"math"
 
+	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/worldmap"
@@ -10,22 +11,21 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func DrawEncounter(b simulation.Boss, e Visibility) {
+func DrawEncounter(b simulation.Boss, local protocol.Player, e Visibility) {
 	for _, portal := range worldmap.Default().Portals() {
 		position := portal.Position()
 		pad := rl.NewVector2(float32(position.X), float32(position.Y))
 		if !e.EntityVisible(float64(pad.X), float64(pad.Y), 0) {
 			continue
 		}
-		active := b.Phase == "" || b.Defeats > 0
+		active := local.HasOrb || portal.ID == worldmap.ReturnPortal
 		tint := rl.Gray
-		label := "DEFEAT THE CROWN DEVOURER"
+		label := ""
 		if active {
 			tint = primitives.RuneColor
-			label = "STAND IN THE CIRCLE TO DESCEND"
-			destination, _ := worldmap.Default().Portal(portal.Destination)
-			if destination.Floor < portal.Floor {
-				label = "STAND IN THE CIRCLE TO RETURN"
+			label = "[E] ACTIVATE TELEPORT"
+			if portal.ID == worldmap.ReturnPortal {
+				label = "[E] RETURN TO FLOOR I"
 			}
 		}
 		pulse := float32(.65 + .2*math.Sin(rl.GetTime()*3))
@@ -40,7 +40,9 @@ func DrawEncounter(b simulation.Boss, e Visibility) {
 			rotation += float32(rl.GetTime() * 25)
 		}
 		rl.DrawPolyLines(pad, 6, 78, rotation, tint)
-		primitives.DrawTextAt(label, rl.NewVector2(pad.X-float32(primitives.MeasureText(label, 14))/2, pad.Y+105), 14, tint)
+		if label != "" {
+			primitives.DrawTextAt(label, rl.NewVector2(pad.X-float32(primitives.MeasureText(label, 14))/2, pad.Y+105), 14, tint)
+		}
 	}
 	if b.Phase == "" || b.Phase == "waiting" || b.Phase == "defeated" || !e.EntityVisible(b.X, b.Y, simulation.BossSize) {
 		return

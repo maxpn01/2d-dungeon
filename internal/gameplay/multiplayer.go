@@ -55,7 +55,7 @@ func (m *Multiplayer) Poll() {
 			}
 			return
 		}
-		m.feedback.Observe(time.Now(), update.Snapshot)
+		m.feedback.Observe(time.Now(), update.Snapshot, update.PlayerID)
 		m.previousProjectiles = m.view.Projectiles
 		m.projectileInterval = simulation.StepSeconds
 		if update.Tick > m.view.Tick && m.view.Ready {
@@ -106,6 +106,7 @@ func (m *Multiplayer) ReadInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" {
 		for _, player := range m.rendered {
 			if player.ID == m.view.PlayerID {
+				m.gameMap.Exploration.SetSecrets(m.view.OpenSecrets)
 				m.gameMap.Exploration.Reveal(rl.NewVector2(float32(player.X+player.Size/2), float32(player.Y+player.Size/2)))
 				break
 			}

@@ -11,6 +11,21 @@ func validateLayout(layout Layout) error {
 	if len(layout.Entrances) == 0 {
 		return fmt.Errorf("map needs at least one entrance")
 	}
+	secretIDs := map[string]bool{}
+	if len(layout.SecretDoors) > 63 {
+		return fmt.Errorf("too many secret doors")
+	}
+	for _, door := range layout.SecretDoors {
+		if err := uniqueID(secretIDs, door.ID, "secret door"); err != nil {
+			return err
+		}
+		if _, ok := layout.Room(door.RoomID); !ok {
+			return fmt.Errorf("secret door %s has unknown room", door.ID)
+		}
+		if !Cells(MinCellX, MinCellY, MaxCellX-MinCellX, SurfaceCells-MinCellY).ContainsArea(door.Area) {
+			return fmt.Errorf("invalid secret door %s", door.ID)
+		}
+	}
 	world := Cells(MinCellX, MinCellY, MaxCellX-MinCellX, SurfaceCells-MinCellY)
 	roomIDs, passageIDs, feedingIDs, gateIDs, portalIDs := map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}
 	statueIDs := map[string]bool{}

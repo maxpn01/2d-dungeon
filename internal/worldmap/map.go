@@ -3,6 +3,7 @@ package worldmap
 import (
 	"fmt"
 	"raylib-2d-sandbox/internal/physics"
+	"sync"
 	"time"
 )
 
@@ -44,6 +45,7 @@ type PortalPoint struct {
 func (p PortalPoint) Position() physics.Vector { return p.At.World() }
 
 type Map struct {
+	secretVariants sync.Map
 	layout         Layout
 	floors         map[[2]int]int
 	cover          map[[2]int]bool
@@ -205,6 +207,7 @@ func cloneRooms(rooms []Room) []Room {
 	return result
 }
 func cloneLayout(layout Layout) Layout {
+	layout.SecretDoors = append([]SecretDoor(nil), layout.SecretDoors...)
 	layout.Rooms = cloneRooms(layout.Rooms)
 	layout.Passages = append([]Passage(nil), layout.Passages...)
 	layout.Entrances = append([]Location(nil), layout.Entrances...)

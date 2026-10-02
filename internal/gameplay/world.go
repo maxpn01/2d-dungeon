@@ -32,6 +32,7 @@ func NewWorld() *World {
 	w := &World{simulation: simulation.NewWorld(), presentation: newPresentation()}
 	w.simulation.Join(localPlayerID)
 	w.syncSimulation()
+	w.gameMap.Exploration.SetSecrets(w.snapshot.OpenSecrets)
 	w.gameMap.Exploration.Reveal(w.Center())
 	return w
 }
@@ -47,6 +48,7 @@ func (w *World) Update(dt float32) {
 		w.syncSimulation()
 	}
 	w.interpolateActors()
+	w.gameMap.Exploration.SetSecrets(w.snapshot.OpenSecrets)
 	w.gameMap.Exploration.Reveal(w.Center())
 }
 
@@ -100,7 +102,7 @@ func (w *World) Respawn() {
 
 func (w *World) syncSimulation() {
 	snapshot := protocol.SnapshotFromSimulation(w.simulation.Snapshot(), map[string]string{localPlayerID: w.name})
-	w.feedback.Observe(time.Now(), snapshot)
+	w.feedback.Observe(time.Now(), snapshot, localPlayerID)
 	w.previousSnapshot, w.snapshot = w.snapshot, snapshot
 	w.player = snapshot.Players[0]
 	w.player.Split = w.player.Split.Clone()

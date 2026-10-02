@@ -41,6 +41,9 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
+	OpenSecrets    []string
+	HasOrb         bool
+	Escaped        bool
 	ActiveStatue   string
 	EntranceGate   EntranceGateState
 	ShotCooldown   float64
@@ -76,6 +79,10 @@ type playerState struct {
 }
 
 type World struct {
+	winnerID       string
+	secretWallHits map[string]int
+	openSecrets    []string
+	orb            OrbState
 	statues        []StatueState
 	projectiles    []Projectile
 	nextProjectile uint64
@@ -95,13 +102,16 @@ type World struct {
 }
 
 func NewWorld() *World {
-	w := &World{bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState)}
+	w := &World{secretWallHits: make(map[string]int), bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState)}
 	for _, statue := range worldmap.Default().Statues() {
 		at := statue.Position()
 		w.statues = append(w.statues, StatueState{ID: statue.ID, X: at.X, Y: at.Y, Cycle: 1})
 	}
+	at := worldmap.Default().OrbPosition()
+	w.orb = OrbState{X: at.X, Y: at.Y}
 	w.spawnEntranceGuards()
 	w.replenishEntranceFood()
+	w.updateOrb()
 	return w
 }
 
@@ -118,6 +128,7 @@ func (w *World) Join(id string) {
 
 func (w *World) Leave(id string) {
 	w.releaseStatues(id)
+	w.releaseOrb(id)
 	delete(w.players, id)
 }
 
@@ -216,7 +227,8 @@ func (w *World) Step(now time.Time) {
 				player.InputSeq = next.sequence
 			}
 		}
-		if direction.Interact && w.interactStatue(player) {
+		player.OpenSecrets = w.openSecrets
+		if direction.Interact && (w.interactObjective(player) || w.interactStatue(player)) {
 			direction.Interact = false
 		}
 		AdvancePlayer(&player.Player, direction, StepSeconds, w.safeZones)
@@ -255,6 +267,7 @@ func (w *World) Step(now time.Time) {
 	for _, p := range w.players {
 		clampPlayerBodies(&p.Player)
 	}
+	w.updateOrb()
 	w.updatePortals()
 	w.updateStatues()
 	// The surface is only a respawn area while floor one is being redesigned.
@@ -268,6 +281,9 @@ func (w *World) Step(now time.Time) {
 }
 
 type Snapshot struct {
+	WinnerID    string
+	OpenSecrets []string
+	Orb         OrbState
 	Statues     []StatueState
 	Projectiles []Projectile
 	SafeZones   []SafeZone
@@ -282,6 +298,7 @@ func (w *World) Snapshot() Snapshot {
 	players := make([]Player, 0, len(w.players))
 	for _, player := range w.players {
 		state := player.Player
+		state.OpenSecrets = append([]string(nil), w.openSecrets...)
 		state.Split = state.Split.Clone()
 		players = append(players, state)
 	}
@@ -305,7 +322,7 @@ func (w *World) Snapshot() Snapshot {
 			statues[i].Cards = append([]PerkCard{}, statues[i].Cards...)
 		}
 	}
-	return Snapshot{Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	return Snapshot{WinnerID: w.winnerID, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }

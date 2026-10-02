@@ -3,6 +3,9 @@ package protocol
 import "raylib-2d-sandbox/internal/simulation"
 
 type Message struct {
+	WinnerID    string                   `json:"winner_id,omitempty"`
+	OpenSecrets []string                 `json:"open_secrets"`
+	Orb         simulation.OrbState      `json:"orb"`
 	Statues     []simulation.StatueState `json:"statues"`
 	Projectiles []simulation.Projectile  `json:"projectiles"`
 	SafeZones   []simulation.SafeZone    `json:"safe_zones"`

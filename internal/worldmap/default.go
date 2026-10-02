@@ -13,6 +13,12 @@ const (
 	EntranceGate    = "entrance-gate"
 	DescentPortal   = "descent"
 	ReturnPortal    = "return"
+	WestArchive     = "west-archive"
+	WestGallery     = "west-gallery"
+	EastArmory      = "east-armory"
+	EastGallery     = "east-gallery"
+	SecretLibrary   = "secret-library"
+	OrbVault        = "orb-vault"
 )
 
 func DefaultLayout() Layout {
@@ -25,8 +31,26 @@ func DefaultLayout() Layout {
 			crownArena(),
 			teleportSanctum(),
 			feastHall(),
+			sideRoom(WestArchive, "THE SUNKEN ARCHIVE", Cells(-32, -106, 20, 20), ""),
+			sideRoom(WestGallery, "THE WEST GALLERY", Cells(-32, -134, 20, 20), "column-inscription"),
+			sideRoom(EastArmory, "THE BROKEN ARMORY", Cells(48, -112, 20, 20), "armory-inscription"),
+			sideRoom(EastGallery, "THE EAST GALLERY", Cells(48, -140, 20, 20), ""),
+			{ID: SecretLibrary, Name: "THE FORGOTTEN LIBRARY", Area: Cells(-47, -103, 14, 17), Floor: FirstFloor, Statues: []Statue{{ID: "secret-inscription", At: At(6, 6)}}, FeedingAreas: []FeedingArea{{ID: "library-rest", At: At(6, 12), Radius: 2, Food: FoodSource{Capacity: 12, Respawn: 30 * time.Second}}}},
+			orbVault(),
+		},
+		SecretDoors: []SecretDoor{
+			{ID: "library-wall", RoomID: SecretLibrary, Area: Cells(-33, -89, 1, 2)},
+			{ID: "vault-wall", RoomID: OrbVault, Area: Cells(68, -131, 1, 3)},
 		},
 		Passages: []Passage{
+			{ID: "archive-approach", From: Location{At: At(-12, -94)}, To: Location{At: At(-6, -94)}, Width: 4},
+			{ID: "west-loop", From: Location{At: At(-24, -114)}, To: Location{At: At(-24, -106)}, Width: 4},
+			{ID: "west-crown", From: Location{At: At(-12, -124)}, To: Location{At: At(5, -124)}, Width: 4},
+			{ID: "armory-approach", From: Location{At: At(41, -98)}, To: Location{At: At(48, -98)}, Width: 4},
+			{ID: "east-loop", From: Location{At: At(56, -120)}, To: Location{At: At(56, -112)}, Width: 4},
+			{ID: "east-crown", From: Location{At: At(30, -128)}, To: Location{At: At(48, -128)}, Width: 4},
+			{ID: "library-secret", From: Location{At: At(-33, -89)}, To: Location{At: At(-32, -89)}, Width: 2},
+			{ID: "vault-secret", From: Location{At: At(68, -131)}, To: Location{At: At(69, -131)}, Width: 3},
 			{
 				ID:    "surface-entrance",
 				From:  Location{Room: ProvisionCourt, At: At(13, 32)},
@@ -35,8 +59,8 @@ func DefaultLayout() Layout {
 			},
 			{
 				ID:    "sanctum-entrance",
-				From:  Location{Room: TeleportSanctum, At: At(4, 12)},
-				To:    Location{Room: CrownArena, At: At(7, -1)},
+				From:  Location{Room: TeleportSanctum, At: At(6, 18)},
+				To:    Location{Room: CrownArena, At: At(10, -1)},
 				Width: 4,
 			},
 		},
@@ -90,15 +114,14 @@ func columnHall() Room {
 	return Room{
 		ID:    ColumnHall,
 		Name:  "THE COLUMN HALL",
-		Area:  Cells(9, -72, 18, 8),
+		Area:  Cells(5, -80, 26, 16),
 		Floor: FirstFloor,
 		Roles: []RoomRole{ExplorationRoom, Refuge},
 		Props: []Prop{
-			Cover("west-veil", Cells(1, 2, 3, 4)),
-			Cover("east-veil", Cells(14, 2, 3, 4)),
+			Cover("west-veil", Cells(3, 5, 3, 4)),
+			Cover("east-veil", Cells(20, 5, 3, 4)),
 		},
-		Statues:      []Statue{{ID: "column-inscription", At: At(9, 5)}},
-		FeedingAreas: []FeedingArea{dungeonEncounter("column-guard", At(9, 2), 1, 3)},
+		FeedingAreas: []FeedingArea{dungeonEncounter("column-guard", At(13, 4), 1, 3)},
 	}
 }
 
@@ -106,19 +129,18 @@ func stillwaterCourt() Room {
 	return Room{
 		ID:    StillwaterCourt,
 		Name:  "THE STILLWATER COURT",
-		Area:  Cells(0, -92, 36, 20),
+		Area:  Cells(-6, -108, 48, 28),
 		Floor: FirstFloor,
 		Roles: []RoomRole{ExplorationRoom},
 		Pools: []Pool{
-			{ID: "pool-1", Area: Cells(11, 5, 5, 4)},
-			{ID: "pool-2", Area: Cells(20, 5, 5, 4)},
-			{ID: "pool-3", Area: Cells(11, 13, 5, 4)},
-			{ID: "pool-4", Area: Cells(20, 13, 5, 4)},
+			{ID: "pool-1", Area: Cells(14, 6, 5, 4)},
+			{ID: "pool-2", Area: Cells(29, 6, 5, 4)},
+			{ID: "pool-3", Area: Cells(14, 18, 5, 4)},
+			{ID: "pool-4", Area: Cells(29, 18, 5, 4)},
 		},
-		Statues: []Statue{{ID: "stillwater-inscription", At: At(5, 10)}},
 		FeedingAreas: []FeedingArea{
-			dungeonEncounter("stillwater-west", At(5, 5), 3, 5),
-			dungeonEncounter("stillwater-east", At(30, 10), 3, 5),
+			dungeonEncounter("stillwater-west", At(6, 7), 3, 5),
+			dungeonEncounter("stillwater-east", At(41, 18), 3, 5),
 		},
 	}
 }
@@ -127,15 +149,15 @@ func crownArena() Room {
 	return Room{
 		ID:    CrownArena,
 		Name:  "THE CROWN",
-		Area:  Cells(9, -112, 18, 20),
+		Area:  Cells(5, -138, 26, 30),
 		Floor: FirstFloor,
 		Roles: []RoomRole{ExplorationRoom, Refuge, BossArena},
 		Props: []Prop{
-			Cover("west-veil", Cells(1, 10, 3, 4)),
-			Cover("east-veil", Cells(14, 10, 3, 4)),
+			Cover("west-veil", Cells(3, 16, 3, 4)),
+			Cover("east-veil", Cells(20, 16, 3, 4)),
 		},
-		Statues:      []Statue{{ID: "crown-inscription", At: At(9, 16)}},
-		FeedingAreas: []FeedingArea{dungeonEncounter("crown-guard", At(9, 6), 3, 6)},
+		Statues:      []Statue{{ID: "crown-inscription", At: At(13, 4)}},
+		FeedingAreas: []FeedingArea{dungeonEncounter("crown-guard", At(13, 10), 3, 6)},
 	}
 }
 
@@ -150,23 +172,63 @@ func teleportSanctum() Room {
 	return Room{
 		ID:    TeleportSanctum,
 		Name:  "THE TELEPORT SANCTUM",
-		Area:  Cells(12, -128, 12, 12),
+		Area:  Cells(9, -160, 18, 18),
 		Floor: FirstFloor,
 		Roles: []RoomRole{PortalSanctum},
 		Portals: []Portal{
-			{ID: DescentPortal, At: At(6, 6), Destination: ReturnPortal},
+			{ID: DescentPortal, At: At(9, 9), Destination: ReturnPortal},
 		},
 	}
 }
 
 func feastHall() Room {
 	return Room{
-		ID:    FeastHall,
-		Name:  "THE FEAST",
-		Area:  Cells(10, -156, 16, 16),
+		ID:   FeastHall,
+		Name: "THE FEAST",
+		FeedingAreas: []FeedingArea{
+			feastFood("feast-northwest", At(5, 5)),
+			feastFood("feast-northeast", At(18, 5)),
+			feastFood("feast-southwest", At(5, 18)),
+			feastFood("feast-southeast", At(18, 18)),
+		},
+		Area:  Cells(6, -196, 24, 24),
 		Floor: SecondFloor,
 		Portals: []Portal{
-			{ID: ReturnPortal, At: At(8, 11), Destination: DescentPortal},
+			{ID: ReturnPortal, At: At(12, 17), Destination: DescentPortal},
 		},
 	}
+}
+
+func sideRoom(id, name string, area CellRect, statue string) Room {
+	r := Room{ID: id, Name: name, Area: area, Floor: FirstFloor,
+		Props:        []Prop{Cover("west-veil", Cells(3, 8, 2, 3)), Cover("east-veil", Cells(15, 8, 2, 3))},
+		FeedingAreas: []FeedingArea{dungeonEncounter(id+"-north", At(10, 4), 2, 4), dungeonEncounter(id+"-south", At(10, 15), 2, 4)}}
+	switch id {
+	case WestArchive:
+		r.Props = []Prop{Cover("west-shelves", Cells(3, 4, 2, 12)), Cover("east-shelves", Cells(15, 4, 2, 12))}
+	case EastArmory:
+		r.Props = []Prop{Cover("north-veil", Cells(3, 3, 2, 2)), Cover("south-veil", Cells(15, 15, 2, 2))}
+		r.Pools = []Pool{{ID: "west-basin", Area: Cells(3, 8, 3, 3)}, {ID: "east-basin", Area: Cells(14, 8, 3, 3)}}
+	}
+	if statue != "" {
+		r.Statues = []Statue{{ID: statue, At: At(10, 10)}}
+	}
+	return r
+}
+
+func orbVault() Room {
+	r := Room{ID: OrbVault, Name: "THE SEALED ORB VAULT", Area: Cells(69, -140, 18, 20), Floor: FirstFloor,
+		Props: []Prop{Cover("north-veil", Cells(6, 3, 2, 2)), Cover("south-veil", Cells(6, 15, 2, 2))}}
+	for i, at := range []Cell{At(5, 10), At(12, 4), At(12, 15)} {
+		encounter := dungeonEncounter([]string{"vault-sentinel-west", "vault-sentinel-north", "vault-sentinel-south"}[i], at, 2, 0)
+		encounter.Guard.Level = 5
+		encounter.Guard.Damage = 2
+		encounter.Guard.AttackRate = 2.5
+		r.FeedingAreas = append(r.FeedingAreas, encounter)
+	}
+	return r
+}
+
+func feastFood(id string, at Cell) FeedingArea {
+	return FeedingArea{ID: id, At: at, Radius: 3, Style: VioletGarden, Food: FoodSource{Capacity: 20, Respawn: 20 * time.Second}}
 }

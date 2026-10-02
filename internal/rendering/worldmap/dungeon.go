@@ -19,21 +19,26 @@ func dungeonRect(x, y, w, h int, c color.RGBA) {
 }
 
 func (m *Map) drawDungeon(ctx primitives.Context) {
-	sanctumID := 0
-	for i, room := range mapdata.Default().Rooms() {
+	sanctumID, feastID := 0, 0
+	for i, room := range m.world.Rooms() {
 		if room.HasRole(mapdata.PortalSanctum) {
 			sanctumID = i + 2
-			break
+		}
+		if room.ID == mapdata.FeastHall {
+			feastID = i + 2
 		}
 	}
 	zoom := max(ctx.Camera.Zoom, .1)
 	left := int(math.Floor(float64(ctx.Camera.Target.X-ctx.Camera.Offset.X/zoom)/40)) - 1
 	right := int(math.Ceil(float64(ctx.Camera.Target.X+(float32(ctx.WindowWidth)-ctx.Camera.Offset.X)/zoom)/40)) + 1
 	top := int(math.Floor(float64(ctx.Camera.Target.Y-ctx.Camera.Offset.Y/zoom)/40)) - 1
-	bottom := min(0, int(math.Ceil(float64(ctx.Camera.Target.Y+(float32(ctx.WindowHeight)-ctx.Camera.Offset.Y)/zoom)/40))+1)
+	bottom := min(mapdata.SurfaceCells, int(math.Ceil(float64(ctx.Camera.Target.Y+(float32(ctx.WindowHeight)-ctx.Camera.Offset.Y)/zoom)/40))+1)
 	for y := max(mapdata.MinCellY, top); y < bottom; y++ {
 		for x := max(mapdata.MinCellX, left); x < min(mapdata.MaxCellX, right); x++ {
-			id := mapdata.Default().Cell(x, y)
+			if y >= 0 && x >= 0 && x < mapdata.SurfaceCells {
+				continue
+			}
+			id := m.world.Cell(x, y)
 			px, py := x*40, y*40
 			hash := uint32(x*73856093) ^ uint32((y+100)*19349663)
 			if id != 0 {
@@ -42,6 +47,9 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 				if id == sanctumID {
 					c = color.RGBA{22 + tone, 40 + tone, 46 + tone, 255}
 				}
+				if id == feastID {
+					c = color.RGBA{33 + tone, 32 + tone, 36 + tone, 255}
+				}
 				dungeonRect(px, py, 40, 40, c)
 				dungeonRect(px, py, 40, 1, color.RGBA{43, 49, 57, 255})
 				dungeonRect(px, py, 1, 40, color.RGBA{43, 49, 57, 255})
@@ -49,7 +57,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 					dungeonRect(px+4, py+3, 32, 34, color.RGBA{47, 52, 58, 255})
 					dungeonRect(px+7, py+6, 26, 1, color.RGBA{69, 70, 66, 255})
 				}
-				if mapdata.Default().Cover(x, y) {
+				if m.world.Cover(x, y) {
 					center := rl.NewVector2(float32(px+20), float32(py+20))
 					pulse := float32(.7 + .15*math.Sin(rl.GetTime()*1.4+float64(hash%31)))
 					dungeonRect(px+2, py+2, 36, 36, color.RGBA{33, 35, 57, 255})
@@ -61,16 +69,16 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 						rl.DrawCircleV(rl.NewVector2(float32(px)+ox, float32(py)+oy), 1.5, rl.Fade(color.RGBA{164, 155, 233, 255}, .65*pulse))
 					}
 				}
-				if mapdata.Default().Cell(x, y-1) == 0 {
+				if m.world.Cell(x, y-1) == 0 {
 					dungeonRect(px, py, 40, 10, color.RGBA{8, 13, 20, 150})
 				}
-			} else if mapdata.Default().Pool(x, y) {
+			} else if m.world.Pool(x, y) {
 				continue
 			} else {
 				near := false
 				for dy := -1; dy <= 1; dy++ {
 					for dx := -1; dx <= 1; dx++ {
-						if mapdata.Default().Cell(x+dx, y+dy) != 0 {
+						if m.world.Cell(x+dx, y+dy) != 0 {
 							near = true
 						}
 					}
@@ -78,23 +86,47 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 				if !near {
 					continue
 				}
+				sliding := false
+				for _, door := range m.world.SecretDoors() {
+					if door.Interactable && door.Area.Contains(mapdata.At(x, y)) {
+						sliding = true
+					}
+				}
+				if sliding {
+					continue
+				}
 				dungeonRect(px, py, 40, 40, color.RGBA{17, 22, 30, 255})
-				dungeonRect(px+1, py+1, 38, 30, stone)
-				dungeonRect(px+3, py+3, 34, 2, paleStone)
+				wallStone, wallHighlight := stone, paleStone
+				cracked := false
+				for _, door := range m.world.SecretDoors() {
+					if door.Area.Contains(mapdata.At(x, y)) {
+						wallStone = color.RGBA{56, 64, 74, 255}
+						wallHighlight = color.RGBA{96, 110, 120, 255}
+						cracked = y == door.Area.Y+door.Area.Height/2 && x == door.Area.X+door.Area.Width/2
+					}
+				}
+				dungeonRect(px+1, py+1, 38, 30, wallStone)
+				dungeonRect(px+3, py+3, 34, 2, wallHighlight)
 				dungeonRect(px+3, py+6, 2, 22, color.RGBA{67, 78, 87, 255})
-				if mapdata.Default().Cell(x, y+1) != 0 {
+				if cracked {
+					drawSecretCrack(px, py)
+				}
+				if m.world.Cell(x, y+1) != 0 {
 					dungeonRect(px+1, py+31, 38, 9, color.RGBA{32, 39, 49, 255})
 				}
 			}
 		}
 	}
-	drawEntranceHall(m.gate, m.gatePrompt)
-	for _, pool := range mapdata.Default().Pools() {
+	drawEntranceHall(m.gate, m.gatePrompt, m.world)
+	for _, pool := range m.world.Pools() {
 		if pool.Area.X+pool.Area.Width >= left && pool.Area.X <= right && pool.Area.Y+pool.Area.Height >= top && pool.Area.Y <= bottom {
 			drawDungeonPool(pool.Area.X*mapdata.Tile, pool.Area.Y*mapdata.Tile, pool.Area.Width*mapdata.Tile, pool.Area.Height*mapdata.Tile)
 		}
 	}
-	for _, room := range mapdata.Default().Rooms() {
+	for _, room := range m.world.Rooms() {
+		if room.ID == mapdata.FeastHall && room.Area.Y+room.Area.Height >= top && room.Area.Y <= bottom {
+			drawFeastRoom(room)
+		}
 		if room.HasRole(mapdata.PortalSanctum) && room.Area.Y+room.Area.Height >= top && room.Area.Y <= bottom {
 			if len(room.Portals) == 0 {
 				continue
@@ -113,11 +145,11 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 		if !room.HasRole(mapdata.BossArena) || room.Area.Y+room.Area.Height < top || room.Area.Y > bottom {
 			continue
 		}
-		center := rl.NewVector2(float32((room.Area.X*2+room.Area.Width)*20), float32((room.Area.Y+13)*mapdata.Tile))
+		center := rl.NewVector2(float32((room.Area.X*2+room.Area.Width)*20), float32((room.Area.Y+room.Area.Height*2/3)*mapdata.Tile))
 		rl.DrawPolyLines(center, 8, 105, 22.5, stone)
 		rl.DrawCircleLinesV(center, 75, paleStone)
 	}
-	entrance, hasEntrance := mapdata.Default().Passage("surface-entrance")
+	entrance, hasEntrance := m.world.Passage("surface-entrance")
 	if !hasEntrance {
 		return
 	}
@@ -130,10 +162,9 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 
 }
 
-func drawEntranceHall(gate simulation.EntranceGateState, prompt bool) {
+func drawEntranceHall(gate simulation.EntranceGateState, prompt bool, world *mapdata.Map) {
 	const tile = mapdata.Tile
 	border := color.RGBA{71, 86, 94, 255}
-	world := mapdata.Default()
 	gateBounds := world.EntranceGate()
 	if hall, ok := world.Room(mapdata.GateHall); ok && gateBounds.Right > gateBounds.Left {
 		centerCol := (gateBounds.Left + gateBounds.Right) / (2 * tile)
@@ -147,7 +178,10 @@ func drawEntranceHall(gate simulation.EntranceGateState, prompt bool) {
 			}
 		}
 	}
-	for _, patch := range mapdata.Default().Patches() {
+	for _, patch := range world.Patches() {
+		if world.Cell(patch.At.X, patch.At.Y) == 0 {
+			continue
+		}
 		cx, cy := patch.At.X*tile+tile/2, patch.At.Y*tile+tile/2
 		tint := color.RGBA{58, 115, 112, 255}
 		if patch.Style == mapdata.VioletGarden {
@@ -183,6 +217,7 @@ func drawEntranceHall(gate simulation.EntranceGateState, prompt bool) {
 		line(right, top, right, bottom)
 		if hasPassage {
 			line(left, bottom, entrance.X*tile, bottom)
+
 			line(entrance.Right()*tile, bottom, right, bottom)
 		} else {
 			line(left, bottom, right, bottom)
@@ -220,5 +255,34 @@ func drawDungeonPool(x, y, width, height int) {
 		cy := int32(y) + int32(float64(57+(i%2)*44)*sy)
 		tint := rl.Fade(color.RGBA{79, 137, 150, 255}, float32(math.Sin(phase*math.Pi))*.38)
 		rl.DrawEllipseLines(cx, cy, radius*float32(sx), radius*.3*float32(sy), tint)
+	}
+}
+
+func drawSecretCrack(x, y int) {
+	tint := color.RGBA{26, 34, 43, 255}
+	points := [][2]int{{20, 9}, {23, 13}, {21, 16}, {24, 21}}
+	for i := 1; i < len(points); i++ {
+		a, b := points[i-1], points[i]
+		rl.DrawLine(int32(x+a[0]), int32(y+a[1]), int32(x+b[0]), int32(y+b[1]), tint)
+	}
+	rl.DrawLine(int32(x+22), int32(y+15), int32(x+27), int32(y+13), rl.Fade(tint, .75))
+	rl.DrawPixel(int32(x+24), int32(y+14), color.RGBA{77, 87, 96, 255})
+}
+
+func drawFeastRoom(room mapdata.Room) {
+	bounds := room.Bounds()
+	tint := color.RGBA{181, 155, 97, 255}
+	rl.DrawRectangleLinesEx(rl.NewRectangle(float32(bounds.X+18), float32(bounds.Y+18), float32(bounds.W-36), float32(bounds.H-36)), 2, rl.Fade(tint, .3))
+	center := room.WorldCell(mapdata.At(room.Area.Width/2, room.Area.Height/2)).Center()
+	at := rl.NewVector2(float32(center.X), float32(center.Y))
+	pulse := float32(.7 + .12*math.Sin(rl.GetTime()*1.2))
+	rl.DrawCircleGradient(at, 180, rl.Fade(tint, .10*pulse), rl.Blank)
+	rl.DrawPolyLines(at, 8, 120, 22.5, rl.Fade(tint, .25*pulse))
+	rl.DrawCircleLinesV(at, 96, rl.Fade(tint, .2*pulse))
+	for _, offset := range []mapdata.Cell{mapdata.At(2, 2), mapdata.At(room.Area.Width-3, 2), mapdata.At(2, room.Area.Height-3), mapdata.At(room.Area.Width-3, room.Area.Height-3)} {
+		p := room.WorldCell(offset).Center()
+		pos := rl.NewVector2(float32(p.X), float32(p.Y))
+		rl.DrawCircleGradient(pos, 52, rl.Fade(tint, .18*pulse), rl.Blank)
+		rl.DrawPolyLines(pos, 4, 10, 45, rl.Fade(tint, .6*pulse))
 	}
 }

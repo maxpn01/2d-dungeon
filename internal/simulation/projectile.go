@@ -10,18 +10,19 @@ import (
 )
 
 type Projectile struct {
-	ID        string    `json:"id"`
-	Owner     string    `json:"owner"`
-	X         float64   `json:"x"`
-	Y         float64   `json:"y"`
-	Direction Direction `json:"direction"`
-	Remaining float64   `json:"remaining"`
-	Damage    float64   `json:"damage"`
+	originX, originY float64
+	ID               string    `json:"id"`
+	Owner            string    `json:"owner"`
+	X                float64   `json:"x"`
+	Y                float64   `json:"y"`
+	Direction        Direction `json:"direction"`
+	Remaining        float64   `json:"remaining"`
+	Damage           float64   `json:"damage"`
 }
 
 func PrepareShot(p *Player, input Direction) bool {
 	defer func() { p.ShotCooldown = max(0, p.ShotCooldown) }()
-	if p.Dead || !input.Valid() || !input.Shoot || p.ShotCooldown > 1e-9 || p.Stats.MP < parameters.ShotMPCost || math.Hypot(input.AimX, input.AimY) == 0 {
+	if p.Dead || !worldmap.Default().WithSecrets(p.OpenSecrets).Walkable(p.X, p.Y, PlayerSize, PlayerSize) || !input.Valid() || !input.Shoot || p.ShotCooldown > 1e-9 || p.Stats.MP < parameters.ShotMPCost || math.Hypot(input.AimX, input.AimY) == 0 {
 		return false
 	}
 	p.Stats.MP -= parameters.ShotMPCost
@@ -37,7 +38,7 @@ func (w *World) fire(p *Player, input Direction) {
 	length := math.Hypot(input.AimX, input.AimY)
 	w.nextProjectile++
 	w.projectiles = append(w.projectiles, Projectile{
-		ID: fmt.Sprintf("shot-%d", w.nextProjectile), Owner: p.ID,
+		ID: fmt.Sprintf("shot-%d", w.nextProjectile), Owner: p.ID, originX: p.X, originY: p.Y,
 		X: p.X + (PlayerSize-parameters.ShotSize)/2, Y: p.Y + (PlayerSize-parameters.ShotSize)/2,
 		Direction: Direction{X: input.AimX / length, Y: input.AimY / length}, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage,
 	})
@@ -55,7 +56,7 @@ func (w *World) advanceProjectiles(actors []eater) {
 		for step := range steps {
 			start := position{shot.X, shot.Y}
 			end := position{shot.X + shot.Direction.X*parameters.ShotSpeed*StepSeconds/float64(steps), shot.Y + shot.Direction.Y*parameters.ShotSpeed*StepSeconds/float64(steps)}
-			wallFraction, wallBlocked := worldmap.Default().MovementLimit(start.x, start.y, end.x-start.x, end.y-start.y, parameters.ShotSize, parameters.ShotSize)
+			wallFraction, wallBlocked := worldmap.Default().WithSecrets(w.openSecrets).MovementLimit(start.x, start.y, end.x-start.x, end.y-start.y, parameters.ShotSize, parameters.ShotSize)
 			if worldmap.Default().PrivateGateCrossed(start.x, start.y, end.x, end.y, parameters.ShotSize) {
 				alive = false
 				break
@@ -70,6 +71,9 @@ func (w *World) advanceProjectiles(actors []eater) {
 				}
 			}
 			if wallBlocked && (winner < 0 || wallFraction <= first) {
+				if w.players[shot.Owner] != nil {
+					w.revealSecret(start.x, start.y, end.x-start.x, end.y-start.y, parameters.ShotSize)
+				}
 				alive = false
 				break
 			}
@@ -125,7 +129,7 @@ func (w *World) dropKillLoot(target eater, hp, mp float64) {
 		if !worldmap.Default().Walkable(x, y, size, size) {
 			x, y, size = target.end.x, target.end.y, FruitSize
 		}
-		food := Fruit{X: x, Y: y, Size: size, Source: target.id, Ejected: true, VelocityX: math.Cos(angle) * 180, VelocityY: math.Sin(angle) * 180, AvailableTick: w.tick + TickRate/3, ExpiresTick: w.tick + parameters.MassDropLifetimeTicks}
+		food := Fruit{X: x, Y: y, Source: target.id, Ejected: true, VelocityX: math.Cos(angle) * 180, VelocityY: math.Sin(angle) * 180, AvailableTick: w.tick + TickRate/3, ExpiresTick: w.tick + parameters.MassDropLifetimeTicks}
 		if i < hpCount {
 			food.HP = hp / float64(hpCount)
 		} else {

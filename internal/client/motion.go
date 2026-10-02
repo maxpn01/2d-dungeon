@@ -124,7 +124,7 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 		m.local.Split = target.Split.Clone()
 		return
 	}
-	x, y := worldmap.Default().Move(m.local.X, m.local.Y, dx/distance*speed*dt, dy/distance*speed*dt, simulation.PlayerSize, simulation.PlayerSize)
+	x, y := worldmap.Default().WithSecrets(target.OpenSecrets).Move(m.local.X, m.local.Y, dx/distance*speed*dt, dy/distance*speed*dt, simulation.PlayerSize, simulation.PlayerSize)
 	m.local = target
 	m.local.Split = target.Split.Clone()
 	m.local.X, m.local.Y = x, y

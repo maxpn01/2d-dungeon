@@ -112,10 +112,17 @@ type Location struct {
 	At   Cell
 }
 
+type SecretDoor struct {
+	Interactable bool
+	ID, RoomID   string
+	Area         CellRect
+}
+
 type Layout struct {
-	Rooms     []Room
-	Passages  []Passage
-	Entrances []Location
+	SecretDoors []SecretDoor
+	Rooms       []Room
+	Passages    []Passage
+	Entrances   []Location
 }
 
 func (r Room) HasRole(role RoomRole) bool { return slices.Contains(r.Roles, role) }

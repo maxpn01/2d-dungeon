@@ -106,9 +106,12 @@ func (w *World) updateAIs() {
 		if ai.respawnTick != 0 {
 			continue
 		}
+		if worldmap.Default().WithSecrets(w.openSecrets).Cell(ai.den.At.X, ai.den.At.Y) == 0 && ai.den.ID != "" {
+			continue
+		}
 		input := w.aiInput(ai)
 		oldX, oldY := ai.X, ai.Y
-		actor := Player{ID: ai.ID, ShotCooldown: ai.shotCooldown, X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character, Split: ai.Split}
+		actor := Player{OpenSecrets: w.openSecrets, ID: ai.ID, ShotCooldown: ai.shotCooldown, X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character, Split: ai.Split}
 		actor.GatesClosed = w.boss.Phase == "fighting"
 		AdvancePlayer(&actor, input, StepSeconds, w.safeZones)
 		w.fire(&actor, input)
@@ -214,7 +217,7 @@ func (ai *aiState) choosePatrolTarget() {
 func (w *World) respawnEntranceGuards() {
 	for i := range w.ais {
 		ai := &w.ais[i]
-		if ai.den.ID == "" || ai.respawnTick == 0 || w.tick < ai.respawnTick {
+		if ai.den.RoomID == worldmap.OrbVault || ai.den.ID == "" || ai.respawnTick == 0 || w.tick < ai.respawnTick {
 			continue
 		}
 		x, y := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, AISize)

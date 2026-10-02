@@ -33,6 +33,15 @@ func (p *presentation) draw(ctx primitives.Context, scene rendering.Scene, multi
 	}
 	hud.DrawPlayer(local, counts, width)
 	hud.DrawBossTimer(snapshot.Boss, width)
+	if snapshot.WinnerID != "" {
+		label := "FLOOR I COMPLETE"
+		if snapshot.WinnerID != local.ID {
+			label = "THE OTHER PLAYER ESCAPED FIRST"
+		}
+		panelWidth := primitives.MeasureText(label, 24) + 40
+		rl.DrawRectangle((width-panelWidth)/2, 50, panelWidth, 44, rl.Fade(rl.Black, .85))
+		primitives.DrawCenteredText(label, 60, 24, rl.Gold)
+	}
 	for _, player := range players {
 		if player.ID != local.ID {
 			continue
@@ -73,7 +82,7 @@ func (p *presentation) drawRadar(width, height int32, scene rendering.Scene) {
 		})
 	}
 	for _, player := range players {
-		if player.ID != local.ID && !player.Dead {
+		if player.ID != local.ID && !player.Dead && p.gameMap.Exploration.PlayerVisible(player.X, player.Y, player.Size) {
 			markers = append(markers, maprender.Marker{Center: playerCenter(player), Radius: 3, Tint: rl.SkyBlue})
 		}
 	}

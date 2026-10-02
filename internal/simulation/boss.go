@@ -360,8 +360,12 @@ func (w *World) updatePortals() {
 			p.TeleportCharge = 0
 			continue
 		}
-		if w.boss.Defeats == 0 {
+		if p.portalCooldown > 0 {
+			p.portalCooldown--
 			p.TeleportCharge = 0
+			continue
+		}
+		if p.TeleportCharge <= 0 {
 			continue
 		}
 		portal, distance, found := nearestPortal(p.X+PlayerSize/2, p.Y+PlayerSize/2)
@@ -370,16 +374,13 @@ func (w *World) updatePortals() {
 			p.portalCooldown = 0
 			continue
 		}
-		destination, _ := worldmap.Default().Portal(portal.Destination)
-		landing := destination.Position()
-		toX, toY := landing.X, landing.Y
-		if p.portalCooldown != 0 {
-			if distance > 90 {
-				p.portalCooldown = 0
-			}
+		if portal.ID == worldmap.DescentPortal && !p.HasOrb {
 			p.TeleportCharge = 0
 			continue
 		}
+		destination, _ := worldmap.Default().Portal(portal.Destination)
+		landing := destination.Position()
+		toX, toY := landing.X, landing.Y
 		if distance > 60 {
 			p.TeleportCharge = 0
 			continue
@@ -387,6 +388,12 @@ func (w *World) updatePortals() {
 		p.TeleportCharge += StepSeconds
 		if p.TeleportCharge >= PortalSeconds {
 			p.X, p.Y = toX-PlayerSize/2, toY-PlayerSize/2
+			if portal.ID == worldmap.DescentPortal {
+				p.Escaped = true
+				if w.winnerID == "" {
+					w.winnerID = p.ID
+				}
+			}
 			if p.Split.Count() > 0 {
 				p.Stats.HP += p.Split.Mass()
 				p.Split = nil

@@ -17,6 +17,7 @@ type edgePos struct {
 }
 
 type Map struct {
+	world       *mapdata.Map
 	gate        simulation.EntranceGateState
 	gatePrompt  bool
 	safeZones   []simulation.SafeZone
@@ -31,7 +32,7 @@ type Map struct {
 func NewMap() *Map {
 	cellSize := rl.NewVector2(10, 10)
 	size := rl.NewVector2(mapdata.SurfaceCells*mapdata.Tile, mapdata.SurfaceCells*mapdata.Tile)
-	return &Map{
+	return &Map{world: mapdata.Default().WithSecrets(nil),
 		sizeInCells: rl.NewVector2(size.X/cellSize.X, size.Y/cellSize.Y),
 		cellSize:    cellSize,
 		size:        size,
@@ -41,12 +42,14 @@ func NewMap() *Map {
 }
 
 func (m *Map) Draw(ctx primitives.Context, snapshot protocol.Snapshot, local protocol.Player) {
+	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
 	m.safeZones, m.gate = snapshot.SafeZones, local.EntranceGate
 	m.gatePrompt = !local.Dead && simulation.NearEntranceGate(local.X, local.Y)
 	m.drawSanctuary(ctx)
 	drawSafeZones(m.safeZones)
 	m.drawSanctuaryAltar(ctx)
 	m.drawDungeon(ctx)
+	drawOrbPedestal(snapshot.Orb, local, &m.Exploration)
 	drawStatues(snapshot.Statues, local.ActiveStatue, local.X, local.Y, local.Dead, &m.Exploration)
 }
 

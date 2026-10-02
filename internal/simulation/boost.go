@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/worldmap"
 )
 
 const (
@@ -34,10 +35,19 @@ func advanceBoostPlayer(p *Player, input Direction, dt float64) {
 		boosted = min(dt, p.Stats.MP/p.Stats.BoostCost)
 	}
 	oldX, oldY := p.X, p.Y
-	p.X, p.Y = Move(p.X, p.Y, input, boosted, p.MovementSpeed()*p.Stats.BoostMultiplier)
+	p.X, p.Y = moveBoostPlayer(p, input, boosted, p.MovementSpeed()*p.Stats.BoostMultiplier)
 	if p.X != oldX || p.Y != oldY {
 		p.Stats.MP = max(0, p.Stats.MP-boosted*p.Stats.BoostCost)
 		p.Combat.Boosting = boosted > 0
 	}
-	p.X, p.Y = Move(p.X, p.Y, input, dt-boosted, p.MovementSpeed())
+	p.X, p.Y = moveBoostPlayer(p, input, dt-boosted, p.MovementSpeed())
+}
+
+func moveBoostPlayer(p *Player, input Direction, dt, speed float64) (float64, float64) {
+	length := math.Hypot(input.X, input.Y)
+	if dt <= 0 || length == 0 {
+		return p.X, p.Y
+	}
+	distance := speed * SpeedScale * dt
+	return worldmap.Default().WithSecrets(p.OpenSecrets).Move(p.X, p.Y, input.X/length*distance, input.Y/length*distance, PlayerSize, PlayerSize)
 }

@@ -48,7 +48,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		if player.Dead {
 			continue
 		}
-		if player.ID != scene.Local.ID && !scene.Map.Exploration.EntityVisible(player.X, player.Y, player.Size) {
+		if player.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(player.X, player.Y, player.Size) {
 			continue
 		}
 		tint := primitives.CharacterColor(player.Character)
@@ -56,15 +56,25 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		if player.ID == scene.Local.ID {
 			label += " (you)"
 		}
+		lift := float64(0)
+		if player.HasOrb {
+			center := rl.NewVector2(float32(player.X+player.Size/2), float32(player.Y-30-lift))
+			rl.DrawCircleGradient(center, 25, rl.Fade(primitives.RuneColor, .35), rl.Blank)
+			rl.DrawCircleV(center, 8, primitives.RuneColor)
+			rl.DrawCircleV(rl.NewVector2(center.X-2, center.Y-2), 2, rl.RayWhite)
+		}
 		DrawPlayerActor(Actor{
-			ID: player.ID, Label: label, X: player.X, Y: player.Y, Size: player.Size,
+			ID: player.ID, Label: label, X: player.X, Y: player.Y - lift, Size: player.Size,
 			HP: player.Stats.HP, Dead: player.Dead, Character: player.Character,
 			Combat: player.Combat, Split: player.Split, Tint: tint,
 		}, scene.Feedback, &scene.Map.Exploration)
 	}
 	DrawProjectiles(scene.PreviousProjectiles, scene.Projectiles, scene.ProjectileAlpha, &scene.Map.Exploration)
-	DrawEncounter(scene.Boss, &scene.Map.Exploration)
+	DrawEncounter(scene.Boss, scene.Local, &scene.Map.Exploration)
 	for _, p := range scene.Players {
+		if p.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(p.X, p.Y, p.Size) {
+			continue
+		}
 		DrawTeleportCharge(p.X, p.Y, p.TeleportCharge)
 	}
 	scene.Feedback.Draw(time.Now(), &scene.Map.Exploration)

@@ -6,9 +6,9 @@ import "time"
 // derived world bounds used by both the client and server.
 const (
 	Tile         = 40
-	MinCellX     = -27
+	MinCellX     = -49
 	MaxCellX     = 100
-	MinCellY     = -158
+	MinCellY     = -198
 	SurfaceCells = 36
 	SurfaceMin   = 10
 	SurfaceMax   = SurfaceCells*Tile - 10
@@ -97,12 +97,13 @@ const (
 	ShotMPCost          = 0.5
 	ShotCooldown        = 1.0 / PlayerAttackRate
 	ShotDamage          = 2.0
-	PlayerAttackRate    = 8.0
-	MobDamage           = 1.0
-	MobAttackRate       = 2.0
+	PlayerAttackRate    = 4.0
+	MobDamage           = 1.5
+	MobAttackRate       = 4.0
 	ShotSpeed           = 1400.0
 	ShotSize            = 10.0
 	ShotLifetime        = 1.5
+	SecretWallHits      = 5
 	MaxProjectiles      = 512
 	BoostMinimumMass    = 1.0
 	EjectInterval       = .15
