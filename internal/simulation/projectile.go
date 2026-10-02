@@ -19,6 +19,7 @@ type Projectile struct {
 	Direction        Direction `json:"direction"`
 	Remaining        float64   `json:"remaining"`
 	Damage           float64   `json:"damage"`
+	Size             float64   `json:"size"`
 }
 
 func PrepareShot(p *Player, input Direction) bool {
@@ -37,11 +38,12 @@ func (w *World) fire(p *Player, input Direction) {
 		return
 	}
 	length := math.Hypot(input.AimX, input.AimY)
+	size := p.Stats.ShotSize()
 	w.nextProjectile++
 	w.projectiles = append(w.projectiles, Projectile{
 		ID: fmt.Sprintf("shot-%d", w.nextProjectile), Owner: p.ID, originX: p.X, originY: p.Y,
-		X: p.X + (PlayerSize-parameters.ShotSize)/2, Y: p.Y + (PlayerSize-parameters.ShotSize)/2,
-		Direction: Direction{X: input.AimX / length, Y: input.AimY / length}, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage,
+		X: p.X + (PlayerSize-size)/2, Y: p.Y + (PlayerSize-size)/2,
+		Direction: Direction{X: input.AimX / length, Y: input.AimY / length}, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage, Size: size,
 	})
 }
 
@@ -57,8 +59,8 @@ func (w *World) advanceProjectiles(actors []eater) {
 		for step := range steps {
 			start := position{shot.X, shot.Y}
 			end := position{shot.X + shot.Direction.X*parameters.ShotSpeed*StepSeconds/float64(steps), shot.Y + shot.Direction.Y*parameters.ShotSpeed*StepSeconds/float64(steps)}
-			wallFraction, wallBlocked := worldmap.Default().WithSecrets(w.openSecrets).MovementLimit(start.x, start.y, end.x-start.x, end.y-start.y, parameters.ShotSize, parameters.ShotSize)
-			if worldmap.Default().PrivateGateCrossed(start.x, start.y, end.x, end.y, parameters.ShotSize) {
+			wallFraction, wallBlocked := worldmap.Default().WithSecrets(w.openSecrets).MovementLimit(start.x, start.y, end.x-start.x, end.y-start.y, shot.Size, shot.Size)
+			if worldmap.Default().PrivateGateCrossed(start.x, start.y, end.x, end.y, shot.Size) {
 				alive = false
 				break
 			}
@@ -67,13 +69,13 @@ func (w *World) advanceProjectiles(actors []eater) {
 				if actor.id == shot.Owner || actor.dead() || actor.protectedAt(1, w.safeZones) {
 					continue
 				}
-				if t, hit := eatingContact(start, end, parameters.ShotSize, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step)/float64(steps)}, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step+1)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step+1)/float64(steps)}, actor.size); hit && (t < first || t == first && (winner < 0 || actor.id < actors[winner].id)) {
+				if t, hit := eatingContact(start, end, shot.Size, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step)/float64(steps)}, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step+1)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step+1)/float64(steps)}, actor.size); hit && (t < first || t == first && (winner < 0 || actor.id < actors[winner].id)) {
 					winner, first = i, t
 				}
 			}
 			if wallBlocked && (winner < 0 || wallFraction <= first) {
 				if w.players[shot.Owner] != nil {
-					w.revealSecret(start.x, start.y, end.x-start.x, end.y-start.y, parameters.ShotSize)
+					w.revealSecret(start.x, start.y, end.x-start.x, end.y-start.y, shot.Size)
 				}
 				alive = false
 				break
@@ -133,7 +135,7 @@ func (w *World) dropKillLoot(target eater, hp, mp float64) {
 		if !worldmap.Default().Walkable(x, y, size, size) {
 			x, y, size = target.end.x, target.end.y, FruitSize
 		}
-		food := Fruit{X: x, Y: y, Source: target.id, Ejected: true, VelocityX: math.Cos(angle) * 180, VelocityY: math.Sin(angle) * 180, AvailableTick: w.tick + TickRate/3, ExpiresTick: w.tick + parameters.MassDropLifetimeTicks}
+		food := Fruit{X: x, Y: y, Size: size, Source: target.id, Ejected: true, VelocityX: math.Cos(angle) * 180, VelocityY: math.Sin(angle) * 180, AvailableTick: w.tick + TickRate/3, ExpiresTick: w.tick + parameters.MassDropLifetimeTicks}
 		if i < hpCount {
 			food.HP = hp / float64(hpCount)
 		} else {

@@ -295,12 +295,12 @@ func validateProjectiles(shots []simulation.Projectile) error {
 			return errors.New("server sent invalid projectile")
 		}
 		ids[shot.ID] = true
-		for _, value := range []float64{shot.X, shot.Y, shot.Remaining, shot.Damage} {
+		for _, value := range []float64{shot.X, shot.Y, shot.Remaining, shot.Damage, shot.Size} {
 			if math.IsNaN(value) || math.IsInf(value, 0) {
 				return errors.New("server sent invalid projectile coordinates")
 			}
 		}
-		if shot.Damage <= 0 || shot.Damage > 100 || shot.Remaining <= 0 || shot.Remaining > parameters.ShotLifetime || !worldmap.Default().Walkable(shot.X, shot.Y, parameters.ShotSize, parameters.ShotSize) {
+		if shot.Size < parameters.ShotSize || shot.Size > parameters.ShotSize*(1+simulation.PerkBonus(simulation.ShotSizePerk, simulation.MaxPerkRank)) || shot.Damage <= 0 || shot.Damage > 100 || shot.Remaining <= 0 || shot.Remaining > parameters.ShotLifetime || !worldmap.Default().Walkable(shot.X, shot.Y, shot.Size, shot.Size) {
 			return errors.New("server sent invalid projectile position or lifetime")
 		}
 	}

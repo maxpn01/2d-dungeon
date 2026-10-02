@@ -20,6 +20,7 @@ type feedbackActor struct {
 	tint               color.RGBA
 	ai, dead, hidden   bool
 	escaped            bool
+	recovery           float64
 }
 
 type feedbackEffect struct {
@@ -30,12 +31,13 @@ type feedbackEffect struct {
 }
 
 type Feedback struct {
-	secrets map[string]bool
-	walls   []wallBreak
-	spawns  map[string]time.Time
-	actors  map[string]feedbackActor
-	drops   map[string]bool
-	effects []feedbackEffect
+	observed time.Time
+	secrets  map[string]bool
+	walls    []wallBreak
+	spawns   map[string]time.Time
+	actors   map[string]feedbackActor
+	drops    map[string]bool
+	effects  []feedbackEffect
 }
 
 func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruits []protocol.Fruit) {
@@ -79,7 +81,7 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 			if existed && !old.dead && !actor.dead && actor.hp < old.hp {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, rl.RayWhite, "mass")
 			}
-			if existed && !old.dead && !actor.dead && (actor.hp > old.hp || actor.level > old.level || actor.xp > old.xp) {
+			if existed && !old.dead && !actor.dead && (actor.hp > old.hp+actor.recovery*(max(0, now.Sub(f.observed).Seconds())+simulation.StepSeconds)+1e-6 || actor.level > old.level || actor.xp > old.xp) {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, float64(actorRenderSize(actor.size, actor.hp)), actor.tint, "eat")
 			}
 		}
@@ -98,7 +100,7 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 			emit(fruit.X+fruit.Size/2, fruit.Y+fruit.Size/2, fruit.Size, MassColor(fruit.Source, playerColors), "mass")
 		}
 	}
-	f.actors, f.drops = actors, drops
+	f.actors, f.drops, f.observed = actors, drops, now
 	if len(f.effects) > 128 {
 		f.effects = f.effects[len(f.effects)-128:]
 	}
@@ -107,10 +109,10 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 func (f *Feedback) Observe(now time.Time, snapshot protocol.Snapshot, localID string) {
 	actors := make(map[string]feedbackActor)
 	for _, p := range snapshot.Players {
-		actors[p.ID] = feedbackActor{p.X, p.Y, p.Size, p.Stats.HP, p.Stats.XP, p.Stats.Level, primitives.CharacterColor(p.Character), false, p.Dead, p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, p.Size)), p.Escaped}
+		actors[p.ID] = feedbackActor{p.X, p.Y, p.Size, p.Stats.HP, p.Stats.XP, p.Stats.Level, primitives.CharacterColor(p.Character), false, p.Dead, p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, p.Size)), p.Escaped, p.Stats.HPRecoveryPerSecond()}
 	}
 	for _, a := range snapshot.AIs {
-		actors[a.ID] = feedbackActor{a.X, a.Y, a.Size, a.Stats.HP, a.Stats.XP, a.Stats.Level, rl.Green, true, false, false, false}
+		actors[a.ID] = feedbackActor{a.X, a.Y, a.Size, a.Stats.HP, a.Stats.XP, a.Stats.Level, rl.Green, true, false, false, false, 0}
 	}
 	f.observeWalls(now, snapshot.OpenSecrets)
 	f.observe(now, actors, snapshot.Fruits)

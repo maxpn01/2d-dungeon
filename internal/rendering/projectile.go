@@ -20,20 +20,20 @@ func DrawProjectiles(previous, shots []simulation.Projectile, alpha float64, exp
 		start, exists := starts[shot.ID]
 		if !exists {
 			start = shot
-			start.X, start.Y = worldmap.Default().Move(shot.X, shot.Y, -shot.Direction.X*parameters.ShotSpeed*simulation.StepSeconds, -shot.Direction.Y*parameters.ShotSpeed*simulation.StepSeconds, parameters.ShotSize, parameters.ShotSize)
+			start.X, start.Y = worldmap.Default().Move(shot.X, shot.Y, -shot.Direction.X*parameters.ShotSpeed*simulation.StepSeconds, -shot.Direction.Y*parameters.ShotSpeed*simulation.StepSeconds, shot.Size, shot.Size)
 		}
 		shot.X = start.X + (shot.X-start.X)*alpha
 		shot.Y = start.Y + (shot.Y-start.Y)*alpha
-		if !exploration.EntityVisible(shot.X, shot.Y, parameters.ShotSize) {
+		if !exploration.EntityVisible(shot.X, shot.Y, shot.Size) {
 			continue
 		}
-		center := rl.NewVector2(float32(shot.X+parameters.ShotSize/2), float32(shot.Y+parameters.ShotSize/2))
+		center := rl.NewVector2(float32(shot.X+shot.Size/2), float32(shot.Y+shot.Size/2))
 		drawMagicBall(center, shot)
 	}
 }
 
 func drawMagicBall(center rl.Vector2, shot simulation.Projectile) {
-	const radius float32 = parameters.ShotSize * .65
+	radius := float32(shot.Size * .65)
 	age := max(0, parameters.ShotLifetime-shot.Remaining)
 	tailLength := float32(min(64, age*parameters.ShotSpeed))
 	direction := rl.NewVector2(float32(shot.Direction.X), float32(shot.Direction.Y))

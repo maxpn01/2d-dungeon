@@ -18,6 +18,9 @@ const (
 	BoostPerk
 	HeavyPerk
 	OverdrivePerk
+	ManaRecoveryPerk
+	HealthRecoveryPerk
+	ShotSizePerk
 	PerkFamilyCount
 )
 
@@ -40,7 +43,7 @@ func (c PerkCard) Valid() bool {
 }
 
 func PerkName(family PerkFamily) string {
-	names := [...]string{"FORCE", "HASTE", "INSIGHT", "VITALITY", "STRIDE", "SURGE", "HEAVY HAND", "OVERDRIVE"}
+	names := [...]string{"FORCE", "HASTE", "INSIGHT", "VITALITY", "STRIDE", "SURGE", "HEAVY HAND", "OVERDRIVE", "CHANNELING", "RENEWAL", "MAGNIFY"}
 	if family < 0 || family >= PerkFamilyCount {
 		return "UNKNOWN"
 	}
@@ -80,6 +83,12 @@ func (c PerkCard) Description() string {
 		return fmt.Sprintf("+%.0f%% damage / -%.0f%% speed", b*100, PerkPenalty(c.Family, c.Rank)*100)
 	case OverdrivePerk:
 		return fmt.Sprintf("+%.0f%% boost / +%.0f%% MP cost", b*100, PerkPenalty(c.Family, c.Rank)*100)
+	case ManaRecoveryPerk:
+		return fmt.Sprintf("+%.2f MP recovered per second", b)
+	case HealthRecoveryPerk:
+		return fmt.Sprintf("Recover %.2f HP per second", b)
+	case ShotSizePerk:
+		return fmt.Sprintf("+%.0f%% projectile diameter", b*100)
 	}
 	return ""
 }

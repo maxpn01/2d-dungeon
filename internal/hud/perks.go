@@ -116,6 +116,12 @@ func perkPreview(stats simulation.Stats, card simulation.PerkCard) string {
 		return fmt.Sprintf("Shift multiplier %.2f -> %.2f", stats.BoostMultiplier, next.BoostMultiplier)
 	case simulation.HeavyPerk:
 		return fmt.Sprintf("Damage %.2f -> %.2f. Speed %.2f -> %.2f.", stats.Damage, next.Damage, stats.Speed, next.Speed)
+	case simulation.ManaRecoveryPerk:
+		return fmt.Sprintf("MP/sec %.2f -> %.2f", stats.MPRecoveryPerSecond(), next.MPRecoveryPerSecond())
+	case simulation.HealthRecoveryPerk:
+		return fmt.Sprintf("HP/sec %.2f -> %.2f", stats.HPRecoveryPerSecond(), next.HPRecoveryPerSecond())
+	case simulation.ShotSizePerk:
+		return fmt.Sprintf("Shot diameter %.1f -> %.1f", stats.ShotSize(), next.ShotSize())
 	case simulation.OverdrivePerk:
 		return fmt.Sprintf("Boost %.2f -> %.2f. MP/sec %.2f -> %.2f.", stats.BoostMultiplier, next.BoostMultiplier, stats.BoostCost, next.BoostCost)
 	}

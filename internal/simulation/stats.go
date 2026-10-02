@@ -125,3 +125,15 @@ func PlayerMovementSpeed(character Character, base, hp float64, cells SplitCells
 func (p Player) MovementSpeed() float64 {
 	return PlayerMovementSpeed(p.Character, p.Stats.Speed, p.Stats.HP, p.Split)
 }
+
+func (s Stats) MPRecoveryPerSecond() float64 {
+	return parameters.MPRecoveryPerSecond + PerkBonus(ManaRecoveryPerk, s.Perks[ManaRecoveryPerk])
+}
+
+func (s Stats) HPRecoveryPerSecond() float64 {
+	return PerkBonus(HealthRecoveryPerk, s.Perks[HealthRecoveryPerk])
+}
+
+func (s Stats) ShotSize() float64 {
+	return parameters.ShotSize * (1 + PerkBonus(ShotSizePerk, s.Perks[ShotSizePerk]))
+}
