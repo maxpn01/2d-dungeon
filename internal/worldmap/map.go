@@ -46,6 +46,7 @@ type PortalPoint struct {
 func (p PortalPoint) Position() physics.Vector { return p.At.World() }
 
 type Map struct {
+	dungeonLayout  string
 	secretVariants sync.Map
 	layout         Layout
 	floors         map[[2]int]int
@@ -65,14 +66,24 @@ var defaultMap = mustBuild(DefaultLayout())
 
 var multiplayerMap = mustBuild(MultiplayerLayout())
 var multiplayerActive atomic.Bool
+var soloDungeonMap atomic.Pointer[Map]
+var multiplayerDungeonMap atomic.Pointer[Map]
 
 func SetMultiplayer(enabled bool) { multiplayerActive.Store(enabled) }
+func Multiplayer() bool           { return multiplayerActive.Load() }
 func Default() *Map {
-	if multiplayerActive.Load() {
+	if Multiplayer() {
+		if m := multiplayerDungeonMap.Load(); m != nil {
+			return m
+		}
 		return multiplayerMap
+	}
+	if m := soloDungeonMap.Load(); m != nil {
+		return m
 	}
 	return defaultMap
 }
+func (m *Map) LayoutID() string { return m.dungeonLayout }
 func mustBuild(layout Layout) *Map {
 	m, err := New(layout)
 	if err != nil {

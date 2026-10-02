@@ -3,6 +3,7 @@ package protocol
 import "raylib-2d-sandbox/internal/simulation"
 
 type Snapshot struct {
+	DungeonLayout     string              `json:"dungeon_layout"`
 	WingDoorOpen      float64             `json:"wing_door_open"`
 	NorthWingDoorOpen float64             `json:"north_wing_door_open"`
 	WinnerID          string              `json:"winner_id,omitempty"`
@@ -20,6 +21,7 @@ type Snapshot struct {
 
 func SnapshotFromSimulation(state simulation.Snapshot, names map[string]string) Snapshot {
 	snapshot := Snapshot{
+		DungeonLayout:     state.DungeonLayout,
 		NorthWingDoorOpen: state.NorthWingDoorOpen, WingDoorOpen: state.WingDoorOpen, WinnerID: state.WinnerID, OpenSecrets: state.OpenSecrets, Orb: state.Orb, Statues: state.Statues, Projectiles: state.Projectiles, SafeZones: state.SafeZones,
 		Boss: state.Boss, Tick: state.Tick,
 		Players: make([]Player, 0, len(state.Players)),
@@ -49,13 +51,14 @@ func SnapshotFromSimulation(state simulation.Snapshot, names map[string]string) 
 
 func (s Snapshot) Message() Message {
 	return Message{
+		DungeonLayout:     s.DungeonLayout,
 		NorthWingDoorOpen: s.NorthWingDoorOpen, WingDoorOpen: s.WingDoorOpen, WinnerID: s.WinnerID, OpenSecrets: s.OpenSecrets, Orb: s.Orb, Statues: s.Statues, Projectiles: s.Projectiles, SafeZones: s.SafeZones, Boss: s.Boss,
 		Type: TypeSnapshot, Tick: s.Tick, Players: &s.Players, Fruits: &s.Fruits, AIs: &s.AIs,
 	}
 }
 
 func (m Message) Snapshot() Snapshot {
-	snapshot := Snapshot{NorthWingDoorOpen: m.NorthWingDoorOpen, WingDoorOpen: m.WingDoorOpen, WinnerID: m.WinnerID, OpenSecrets: m.OpenSecrets, Orb: m.Orb, Statues: m.Statues, Projectiles: m.Projectiles, SafeZones: m.SafeZones, Boss: m.Boss, Tick: m.Tick}
+	snapshot := Snapshot{DungeonLayout: m.DungeonLayout, NorthWingDoorOpen: m.NorthWingDoorOpen, WingDoorOpen: m.WingDoorOpen, WinnerID: m.WinnerID, OpenSecrets: m.OpenSecrets, Orb: m.Orb, Statues: m.Statues, Projectiles: m.Projectiles, SafeZones: m.SafeZones, Boss: m.Boss, Tick: m.Tick}
 	if m.Players != nil {
 		snapshot.Players = *m.Players
 	}

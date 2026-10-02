@@ -84,6 +84,7 @@ type playerState struct {
 }
 
 type World struct {
+	dungeonLayout     string
 	wingDoorOpen      float64
 	northWingDoorOpen float64
 	winnerID          string
@@ -108,7 +109,7 @@ type World struct {
 }
 
 func NewWorld() *World {
-	w := &World{secretWallHits: make(map[string]int), bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState)}
+	w := &World{dungeonLayout: worldmap.RandomizeDungeon(), secretWallHits: make(map[string]int), bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState)}
 	for _, statue := range worldmap.Default().Statues() {
 		at := statue.Position()
 		w.statues = append(w.statues, StatueState{ID: statue.ID, X: at.X, Y: at.Y, Cycle: 1})
@@ -300,6 +301,7 @@ func (w *World) Step(now time.Time) {
 }
 
 type Snapshot struct {
+	DungeonLayout     string
 	WingDoorOpen      float64
 	NorthWingDoorOpen float64
 	WinnerID          string
@@ -345,7 +347,7 @@ func (w *World) Snapshot() Snapshot {
 			statues[i].Cards = append([]PerkCard{}, statues[i].Cards...)
 		}
 	}
-	return Snapshot{NorthWingDoorOpen: w.northWingDoorOpen, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	return Snapshot{DungeonLayout: w.dungeonLayout, NorthWingDoorOpen: w.northWingDoorOpen, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }

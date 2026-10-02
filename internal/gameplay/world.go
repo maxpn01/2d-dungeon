@@ -134,6 +134,9 @@ func (w *World) Center() rl.Vector2              { return playerCenter(w.player)
 
 func (w *World) Start(name string) {
 	worldmap.SetMultiplayer(false)
+	if err := worldmap.SetDungeonLayout(w.snapshot.DungeonLayout); err != nil {
+		panic(err)
+	}
 	w.CloseStats()
 	if w.Dead() {
 		w.Respawn()

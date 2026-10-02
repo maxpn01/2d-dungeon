@@ -11,6 +11,9 @@ import (
 )
 
 func ValidateSnapshot(snapshot Snapshot, localID string) error {
+	if snapshot.DungeonLayout != worldmap.Default().LayoutID() || snapshot.DungeonLayout == "" {
+		return errors.New("server sent a different dungeon layout")
+	}
 	if err := validateObjective(snapshot); err != nil {
 		return err
 	}

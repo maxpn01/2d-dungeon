@@ -247,6 +247,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 	defer func() { stop(); <-writerDone }()
 
 	var lastTick, lastAck uint64
+	var dungeonLayout string
 	for {
 		message, err := read(ioCtx)
 		if err != nil {
@@ -271,6 +272,16 @@ func (s *Session) run(ctx context.Context, url string) error {
 		if message.Tick < lastTick {
 			return errors.New("server tick moved backwards")
 		}
+		if dungeonLayout != "" && message.DungeonLayout != dungeonLayout {
+			return errors.New("server changed the dungeon layout during play")
+		}
+		s.inputMu.Lock()
+		err = worldmap.SetDungeonLayout(message.DungeonLayout)
+		s.inputMu.Unlock()
+		if err != nil {
+			return err
+		}
+		dungeonLayout = message.DungeonLayout
 		if err := protocol.ValidateSnapshot(message.Snapshot(), welcome.PlayerID); err != nil {
 			return err
 		}

@@ -3,6 +3,7 @@ package protocol
 import "raylib-2d-sandbox/internal/simulation"
 
 type Message struct {
+	DungeonLayout     string                   `json:"dungeon_layout,omitempty"`
 	WingDoorOpen      float64                  `json:"wing_door_open"`
 	NorthWingDoorOpen float64                  `json:"north_wing_door_open"`
 	WinnerID          string                   `json:"winner_id,omitempty"`

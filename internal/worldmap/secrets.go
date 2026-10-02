@@ -17,7 +17,7 @@ func (m *Map) WithSecrets(open []string) *Map {
 	if cached, ok := m.secretVariants.Load(mask); ok {
 		return cached.(*Map)
 	}
-	variant := &Map{layout: m.layout, floors: make(map[[2]int]int, len(m.floors)), flightCells: m.flightCells, cover: m.cover, passages: m.passages, pools: m.pools, patches: m.patches, dens: m.dens, gates: m.gates, portals: m.portals, statues: m.statues}
+	variant := &Map{dungeonLayout: m.dungeonLayout, layout: m.layout, floors: make(map[[2]int]int, len(m.floors)), flightCells: m.flightCells, cover: m.cover, passages: m.passages, pools: m.pools, patches: m.patches, dens: m.dens, gates: m.gates, portals: m.portals, statues: m.statues}
 	for cell, id := range m.floors {
 		variant.floors[cell] = id
 	}

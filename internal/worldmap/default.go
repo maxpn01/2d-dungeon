@@ -206,7 +206,7 @@ func feastHall() Room {
 }
 
 func sideRoom(id, name string, area CellRect, statue string) Room {
-	r := Room{ID: id, Name: name, Area: area, Floor: FirstFloor,
+	r := Room{ID: id, Name: name, Area: area, Floor: FirstFloor, Roles: []RoomRole{ExplorationRoom},
 		Props:        []Prop{Cover("west-veil", Cells(3, 8, 2, 3)), Cover("east-veil", Cells(15, 8, 2, 3))},
 		FeedingAreas: []FeedingArea{dungeonEncounter(id+"-north", At(10, 4), 2, 4), dungeonEncounter(id+"-south", At(10, 15), 2, 4)}}
 	switch id {
