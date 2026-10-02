@@ -28,6 +28,8 @@ type feedbackEffect struct {
 }
 
 type Feedback struct {
+	secrets map[string]bool
+	walls   []wallBreak
 	spawns  map[string]time.Time
 	actors  map[string]feedbackActor
 	drops   map[string]bool
@@ -108,6 +110,7 @@ func (f *Feedback) Observe(now time.Time, snapshot protocol.Snapshot, localID st
 	for _, a := range snapshot.AIs {
 		actors[a.ID] = feedbackActor{a.X, a.Y, a.Size, a.Stats.HP, a.Stats.XP, a.Stats.Level, rl.Green, true, false, false, false}
 	}
+	f.observeWalls(now, snapshot.OpenSecrets)
 	f.observe(now, actors, snapshot.Fruits)
 }
 

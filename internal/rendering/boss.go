@@ -85,13 +85,3 @@ func DrawEncounter(b simulation.Boss, local protocol.Player, e Visibility) {
 	rl.DrawCircleV(rl.NewVector2(center.X-8, center.Y-5), 4, rl.RayWhite)
 	rl.DrawCircleV(rl.NewVector2(center.X+8, center.Y-5), 4, rl.RayWhite)
 }
-
-func DrawTeleportCharge(x, y, charge float64) {
-	if charge <= 0 {
-		return
-	}
-	center := rl.NewVector2(float32(x+simulation.PlayerSize/2), float32(y+simulation.PlayerSize/2))
-	progress := float32(min(1, charge/simulation.PortalSeconds))
-	rl.DrawCircleGradient(center, 80, rl.Fade(primitives.RuneColor, progress*.65), rl.Blank)
-	rl.DrawRing(center, 35, 40, -90, -90+360*progress, 48, rl.RayWhite)
-}

@@ -163,7 +163,7 @@ const (
 	BossCountdown              = 3.0
 	BossFirstSpawnSeconds      = 300
 	BossRespawnIncreaseSeconds = 300
-	PortalSeconds              = 0.8
+	PortalSeconds              = 1.8
 	BossHuntTicks              = 24
 	BossWindupTicks            = 12
 	BossRushTicks              = 27

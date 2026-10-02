@@ -27,6 +27,7 @@ type Scene struct {
 func DrawScene(ctx primitives.Context, scene Scene) {
 	rl.BeginMode2D(ctx.Camera)
 	scene.Map.Draw(ctx, scene.Snapshot, scene.Local)
+	scene.Feedback.DrawWallDebris(time.Now(), &scene.Map.Exploration)
 	playerColors := make(map[string]color.RGBA, len(scene.Players))
 	for _, player := range scene.Players {
 		playerColors[player.ID] = primitives.CharacterColor(player.Character)

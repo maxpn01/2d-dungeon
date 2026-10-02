@@ -1,0 +1,95 @@
+package rendering
+
+import (
+	"math"
+	"time"
+
+	"raylib-2d-sandbox/internal/physics"
+	"raylib-2d-sandbox/internal/worldmap"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
+)
+
+type wallBreak struct {
+	started time.Time
+	area    worldmap.CellRect
+}
+
+func (f *Feedback) observeWalls(now time.Time, open []string) {
+	current := make(map[string]bool, len(open))
+	for _, id := range open {
+		current[id] = true
+	}
+	if f.secrets != nil {
+		for _, door := range worldmap.Default().SecretDoors() {
+			if !door.Interactable && current[door.ID] && !f.secrets[door.ID] {
+				f.walls = append(f.walls, wallBreak{started: now, area: door.Area})
+			}
+		}
+	}
+	f.secrets = current
+}
+
+func (f *Feedback) DrawWallDebris(now time.Time, visibility Visibility) {
+	if f == nil || len(f.walls) == 0 {
+		return
+	}
+	active := f.walls[:0]
+	open := make([]string, 0, len(f.secrets))
+	for id := range f.secrets {
+		open = append(open, id)
+	}
+	geometry := worldmap.Default().WithSecrets(open)
+	for _, wall := range f.walls {
+		age := max(0, now.Sub(wall.started).Seconds())
+		if age >= 10 {
+			continue
+		}
+		active = append(active, wall)
+		fade := float32(min(1, (10-age)/3))
+		for y := wall.area.Y; y < wall.area.Bottom(); y++ {
+			for x := wall.area.X; x < wall.area.Right(); x++ {
+				center := worldmap.At(x, y).Center()
+				if !visibility.EntityVisible(center.X, center.Y, 0) {
+					continue
+				}
+				seed := uint32(x*73856093) ^ uint32(y*19349663)
+				random := func() float32 {
+					seed = seed*1664525 + 1013904223
+					return float32(seed>>8) / 16777216
+				}
+				for i := 0; i < 14; i++ {
+					start := rl.NewVector2(float32(center.X)+(random()-.5)*30, float32(center.Y)+(random()-.5)*28)
+					angle := float64(random()) * math.Pi * 2
+					distance := 18 + random()*55
+					end := rl.NewVector2(start.X+float32(math.Cos(angle))*distance, start.Y+float32(math.Sin(angle))*distance)
+					size := 3 + random()*6
+					duration := .5 + float64(random())*.45
+					height := 12 + random()*26
+					rotation := random() * 360
+					spin := (random() - .5) * 500
+					tone := uint8(48 + random()*35)
+					if !geometry.CanOccupy(physics.Square(float64(end.X-size/2), float64(end.Y-size/2), float64(size))) {
+						end = rl.NewVector2(float32(center.X)+(random()-.5)*24, float32(center.Y)+(random()-.5)*26)
+					}
+					progress := float32(min(1, age/duration))
+					travel := 1 - (1-progress)*(1-progress)
+					ground := rl.NewVector2(start.X+(end.X-start.X)*travel, start.Y+(end.Y-start.Y)*travel)
+					lift := 4 * height * progress * (1 - progress)
+					if age > duration && age < duration+.22 {
+						lift = float32(math.Sin((age-duration)/.22*math.Pi)) * height * .15
+					}
+					rl.DrawEllipse(int32(ground.X), int32(ground.Y+3), size*.7, size*.35, rl.Fade(rl.Black, .45*fade))
+					piece := rl.NewVector2(ground.X, ground.Y-lift)
+					rl.DrawPoly(piece, 5, size*.65, rotation+spin*progress, rl.Fade(rl.NewColor(tone, tone+7, tone+14, 255), fade))
+					rl.DrawLineEx(rl.NewVector2(piece.X-size*.4, piece.Y-size*.2), rl.NewVector2(piece.X+size*.2, piece.Y-size*.4), 1, rl.Fade(rl.NewColor(105, 117, 124, 255), .7*fade))
+				}
+				if age < .7 {
+					p := float32(age / .7)
+					rl.DrawCircleGradient(rl.NewVector2(float32(center.X), float32(center.Y)), 18+p*46, rl.Fade(rl.NewColor(118, 126, 131, 255), .25*(1-p)), rl.Blank)
+				}
+			}
+		}
+	}
+	f.walls = active
+}
