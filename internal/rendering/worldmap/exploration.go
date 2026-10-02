@@ -56,5 +56,5 @@ func (e *Exploration) EntityVisible(x, y, size float64) bool {
 }
 
 func (e *Exploration) PlayerVisible(x, y, size float64) bool {
-	return e.EntityVisible(x, y, size)
+	return !mapdata.Default().OverlapsCover(physics.Square(x, y, size)) && e.EntityVisible(x, y, size)
 }

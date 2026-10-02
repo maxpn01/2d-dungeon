@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/worldmap"
 )
 
@@ -22,7 +23,7 @@ type Projectile struct {
 
 func PrepareShot(p *Player, input Direction) bool {
 	defer func() { p.ShotCooldown = max(0, p.ShotCooldown) }()
-	if p.Dead || !worldmap.Default().WithSecrets(p.OpenSecrets).Walkable(p.X, p.Y, PlayerSize, PlayerSize) || !input.Valid() || !input.Shoot || p.ShotCooldown > 1e-9 || p.Stats.MP < parameters.ShotMPCost || math.Hypot(input.AimX, input.AimY) == 0 {
+	if p.Dead || !worldmap.Default().WithSecrets(p.OpenSecrets).Walkable(p.X, p.Y, PlayerSize, PlayerSize) || worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, PlayerSize)) || !input.Valid() || !input.Shoot || p.ShotCooldown > 1e-9 || p.Stats.MP < parameters.ShotMPCost || math.Hypot(input.AimX, input.AimY) == 0 {
 		return false
 	}
 	p.Stats.MP -= parameters.ShotMPCost
@@ -146,7 +147,7 @@ func (w *World) rangedTarget(ai *aiState) *playerState {
 	best := AIDetectionRadius
 	for _, p := range w.players {
 		distance := math.Hypot(p.X-ai.X, p.Y-ai.Y)
-		if p.Dead || distance > best || !ai.sees(p.X, p.Y) || InSafeZone(p.X, p.Y, PlayerSize, p.Stats.HP, w.safeZones) || worldmap.Default().PrivateGateCrossed(ai.X, ai.Y, p.X, p.Y, PlayerSize) {
+		if p.Dead || worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, PlayerSize)) || distance > best || !ai.sees(p.X, p.Y) || InSafeZone(p.X, p.Y, PlayerSize, p.Stats.HP, w.safeZones) || worldmap.Default().PrivateGateCrossed(ai.X, ai.Y, p.X, p.Y, PlayerSize) {
 			continue
 		}
 		if target == nil || distance < best || p.ID < target.ID {

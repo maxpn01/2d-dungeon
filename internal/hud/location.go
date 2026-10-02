@@ -24,7 +24,7 @@ func DrawLocation(x, y float32, width, height int32) {
 					hint = "The statues guard the north gate. Press E nearby to open it."
 				}
 				if r.HasRole(worldmap.Refuge) {
-					hint = "Arcane veils confuse creatures. They do not stop attacks."
+					hint = "Runes conceal you from players and mobs and prevent shooting. Shots still pass through."
 				}
 				if len(r.Portals) > 0 {
 					hint = "Press E inside the circle to interact."

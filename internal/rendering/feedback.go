@@ -5,9 +5,11 @@ import (
 	"math"
 	"time"
 
+	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
+	"raylib-2d-sandbox/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -105,7 +107,7 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 func (f *Feedback) Observe(now time.Time, snapshot protocol.Snapshot, localID string) {
 	actors := make(map[string]feedbackActor)
 	for _, p := range snapshot.Players {
-		actors[p.ID] = feedbackActor{p.X, p.Y, p.Size, p.Stats.HP, p.Stats.XP, p.Stats.Level, primitives.CharacterColor(p.Character), false, p.Dead, false, p.Escaped}
+		actors[p.ID] = feedbackActor{p.X, p.Y, p.Size, p.Stats.HP, p.Stats.XP, p.Stats.Level, primitives.CharacterColor(p.Character), false, p.Dead, p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, p.Size)), p.Escaped}
 	}
 	for _, a := range snapshot.AIs {
 		actors[a.ID] = feedbackActor{a.X, a.Y, a.Size, a.Stats.HP, a.Stats.XP, a.Stats.Level, rl.Green, true, false, false, false}

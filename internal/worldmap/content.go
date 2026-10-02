@@ -2,11 +2,27 @@ package worldmap
 
 import (
 	"fmt"
+	"math"
 	"raylib-2d-sandbox/internal/physics"
 )
 
 func (m *Map) Cover(x, y int) bool { return m.cover[[2]int{x, y}] }
 
+func (m *Map) OverlapsCover(body physics.Rect) bool {
+	if !body.Valid() {
+		return false
+	}
+	first := WorldCell(body.X, body.Y)
+	last := WorldCell(math.Nextafter(body.X+body.W, math.Inf(-1)), math.Nextafter(body.Y+body.H, math.Inf(-1)))
+	for y := first[1]; y <= last[1]; y++ {
+		for x := first[0]; x <= last[0]; x++ {
+			if m.Cover(x, y) {
+				return true
+			}
+		}
+	}
+	return false
+}
 func (m *Map) Opaque(x, y int) bool { return (y < 0 && m.Cell(x, y) == 0) || m.Cover(x, y) }
 func CellPosition(x, y int, size float64) (float64, float64) {
 	return float64(x*Tile) + (Tile-size)/2, float64(y*Tile) + (Tile-size)/2
