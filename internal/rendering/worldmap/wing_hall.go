@@ -10,23 +10,35 @@ import (
 
 func drawWingHall(room mapdata.Room) {
 	bounds := room.Bounds()
-	centerY := float32(bounds.Y + bounds.H/2)
 	tint := rl.NewColor(158, 115, 225, 255)
-	rl.DrawRectangleRec(rl.NewRectangle(float32(bounds.X+48), centerY-34, float32(bounds.W-48), 68), rl.Fade(rl.NewColor(52, 42, 73, 255), .22))
+	vertical := bounds.H > bounds.W
+	centerX, centerY := float32(bounds.X+bounds.W/2), float32(bounds.Y+bounds.H/2)
+	carpet := rl.NewRectangle(float32(bounds.X+48), centerY-34, float32(bounds.W-96), 68)
+	if vertical {
+		carpet = rl.NewRectangle(centerX-34, float32(bounds.Y+48), 68, float32(bounds.H-96))
+	}
+	rl.DrawRectangleRec(carpet, rl.Fade(rl.NewColor(52, 42, 73, 255), .22))
 	for _, offset := range []float32{-34, 34} {
-		rl.DrawLineEx(rl.NewVector2(float32(bounds.X+48), centerY+offset), rl.NewVector2(float32(bounds.X+bounds.W), centerY+offset), 1, rl.Fade(tint, .15))
-	}
-	for _, col := range []int{3, 6, 9, 12} {
-		x := float32((room.Area.X+col)*mapdata.Tile + mapdata.Tile/2)
-		for i, y := range []float32{float32(bounds.Y - 17), float32(bounds.Y + bounds.H + 19)} {
-			drawMagicTorch(rl.NewVector2(x, y), float64(col+i*7))
+		from, to := rl.NewVector2(float32(bounds.X+48), centerY+offset), rl.NewVector2(float32(bounds.X+bounds.W-48), centerY+offset)
+		if vertical {
+			from, to = rl.NewVector2(centerX+offset, float32(bounds.Y+48)), rl.NewVector2(centerX+offset, float32(bounds.Y+bounds.H-48))
 		}
-		rl.DrawPolyLines(rl.NewVector2(x, centerY), 4, 4, 45, rl.Fade(tint, .18))
+		rl.DrawLineEx(from, to, 1, rl.Fade(tint, .15))
 	}
-	statue := room.WorldCell(room.Statues[0].At).Center()
-	at := rl.NewVector2(float32(statue.X), float32(statue.Y))
-	rl.DrawCircleGradient(at, 120, rl.Fade(tint, .08), rl.Blank)
-	rl.DrawPolyLines(at, 8, 64, 22.5, rl.Fade(tint, .24))
+	for _, tile := range []int{3, 6, 9, 12} {
+		along := float32((room.Area.X+tile)*mapdata.Tile + mapdata.Tile/2)
+		positions := []rl.Vector2{rl.NewVector2(along, float32(bounds.Y-17)), rl.NewVector2(along, float32(bounds.Y+bounds.H+19))}
+		mark := rl.NewVector2(along, centerY)
+		if vertical {
+			along = float32((room.Area.Y+tile)*mapdata.Tile + mapdata.Tile/2)
+			positions = []rl.Vector2{rl.NewVector2(float32(bounds.X-20), along), rl.NewVector2(float32(bounds.X+bounds.W+20), along)}
+			mark = rl.NewVector2(centerX, along)
+		}
+		for i, at := range positions {
+			drawMagicTorch(at, float64(tile+i*7))
+		}
+		rl.DrawPolyLines(mark, 4, 4, 45, rl.Fade(tint, .18))
+	}
 }
 
 func drawMagicTorch(at rl.Vector2, phase float64) {

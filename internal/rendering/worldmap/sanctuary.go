@@ -45,14 +45,15 @@ func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int, north bool) {
 			dungeonRect(x, y, 1, 40, sanctuarySeam)
 		}
 	}
-	var wingDoor mapdata.CellRect
+	var wingBorder rl.Rectangle
 	doorID := mapdata.WingDoor
 	if north {
 		doorID = mapdata.NorthID(doorID)
 	}
 	for _, door := range m.world.SecretDoors() {
 		if door.ID == doorID {
-			wingDoor = door.Area
+			border := door.SanctuaryBorder()
+			wingBorder = rl.NewRectangle(float32(border.X), float32(border.Y), float32(border.W), float32(border.H))
 		}
 	}
 	for col := left; col < right; col++ {
@@ -69,7 +70,9 @@ func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int, north bool) {
 		if !connected {
 			drawSanctuaryBorder(col*40, entranceY, 40, 10, col)
 		}
-		drawSanctuaryBorder(col*40, closedY, 40, 10, col)
+		if float32(closedY) != wingBorder.Y || float32(col*40) < wingBorder.X || float32(col*40) >= wingBorder.X+wingBorder.Width {
+			drawSanctuaryBorder(col*40, closedY, 40, 10, col)
+		}
 	}
 	for row := top; row < bottom; row++ {
 		y := originY + row*40
@@ -77,10 +80,12 @@ func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int, north bool) {
 		if north {
 			index = mapdata.SurfaceCells - 1 - row
 		}
-		if y/mapdata.Tile < wingDoor.Y || y/mapdata.Tile >= wingDoor.Bottom() {
+		if wingBorder.X != 0 || float32(y) < wingBorder.Y || float32(y) >= wingBorder.Y+wingBorder.Height {
 			drawSanctuaryBorder(0, y, 10, 40, index)
 		}
-		drawSanctuaryBorder(w-10, y, 10, 40, index)
+		if wingBorder.X != float32(w-10) || float32(y) < wingBorder.Y || float32(y) >= wingBorder.Y+wingBorder.Height {
+			drawSanctuaryBorder(w-10, y, 10, 40, index)
+		}
 	}
 	for _, p := range []rl.Vector2{{X: 22, Y: float32(originY + 22)}, {X: float32(w - 22), Y: float32(originY + 22)}, {X: 22, Y: float32(originY + h - 22)}, {X: float32(w - 22), Y: float32(originY + h - 22)}} {
 		rl.DrawRectangle(int32(p.X-10), int32(p.Y-8), 20, 24, rl.NewColor(8, 17, 22, 255))

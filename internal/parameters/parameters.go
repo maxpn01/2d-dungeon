@@ -10,6 +10,7 @@ const (
 	MaxCellX     = 100
 	MinCellY     = -358
 	SurfaceCells = 36
+	MaxCellY     = SurfaceCells
 	SurfaceMin   = 10
 	SurfaceMax   = SurfaceCells*Tile - 10
 	North        = MinCellY * Tile

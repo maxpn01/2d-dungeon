@@ -60,11 +60,11 @@ func constrainWingDoor(p *Player, oldX, oldY float64) {
 	}
 	for _, door := range worldmap.Default().SecretDoors() {
 		bounds := door.Area.Bounds()
-		if door.Area.Bottom() == 0 {
-			bounds.H += worldmap.SurfaceMin
-		}
-		if door.Area.Right() == 0 {
-			bounds.W += worldmap.SurfaceMin
+		if door.Interactable {
+			border := door.SanctuaryBorder()
+			right, bottom := max(bounds.X+bounds.W, border.X+border.W), max(bounds.Y+bounds.H, border.Y+border.H)
+			bounds.X, bounds.Y = min(bounds.X, border.X), min(bounds.Y, border.Y)
+			bounds.W, bounds.H = right-bounds.X, bottom-bounds.Y
 		}
 		if door.Interactable && WingDoorProgress(p.WingDoorOpen, p.NorthWingDoorOpen, door.ID) < 1 && physics.Square(p.X, p.Y, PlayerSize).Overlaps(bounds) {
 			p.X, p.Y = oldX, oldY

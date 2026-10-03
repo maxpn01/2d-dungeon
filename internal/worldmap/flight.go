@@ -7,7 +7,7 @@ import (
 )
 
 func (m *Map) CanFly(body physics.Rect) bool {
-	if !body.Valid() || body.X < MinCellX*Tile || (body.X+body.W) > MaxCellX*Tile || body.Y < North || (body.Y+body.H) > SurfaceMax {
+	if !body.Valid() || body.X < MinCellX*Tile || (body.X+body.W) > MaxCellX*Tile || body.Y < North || (body.Y+body.H) > MaxCellY*Tile {
 		return false
 	}
 	if room, ok := m.Room(NorthSanctuary); ok && body.Overlaps(room.Bounds()) {
@@ -18,8 +18,13 @@ func (m *Map) CanFly(body physics.Rect) bool {
 			return 0
 		}, false)
 	}
-	if body.Y >= SurfaceMin && body.X >= SurfaceMin && body.X+body.W <= SurfaceMax {
-		return true
+	if body.Overlaps(physics.Rect{X: 0, Y: 0, W: SurfaceCells * Tile, H: SurfaceCells * Tile}) {
+		return walkableSanctuary(body.X, body.Y, body.W, body.H, func(x, y int) int {
+			if m.flightCell(x, y) {
+				return 1
+			}
+			return 0
+		}, false)
 	}
 	for y := int(math.Floor(body.Y / Tile)); y <= int(math.Floor(math.Nextafter((body.Y+body.H)/Tile, math.Inf(-1)))); y++ {
 		for x := int(math.Floor(body.X / Tile)); x <= int(math.Floor(math.Nextafter((body.X+body.W)/Tile, math.Inf(-1)))); x++ {
@@ -41,7 +46,7 @@ func (m *Map) buildFlightCells() map[[2]int]bool {
 	floor := func(x, y int) bool {
 		return (x >= 0 && x < SurfaceCells && y >= 0 && y < SurfaceCells) || m.Cell(x, y) != 0
 	}
-	left, top, right, bottom := MinCellX-1, MinCellY-1, MaxCellX, SurfaceCells
+	left, top, right, bottom := MinCellX-1, MinCellY-1, MaxCellX, MaxCellY
 	for y := top; y <= bottom; y++ {
 		for x := left; x <= right; x++ {
 			if floor(x, y) || m.Pool(x, y) || (floor(x-1, y) && floor(x+1, y)) || (floor(x, y-1) && floor(x, y+1)) {

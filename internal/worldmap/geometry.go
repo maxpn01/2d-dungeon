@@ -12,6 +12,7 @@ const (
 	MinCellX     = parameters.MinCellX
 	MaxCellX     = parameters.MaxCellX
 	MinCellY     = parameters.MinCellY
+	MaxCellY     = parameters.MaxCellY
 	SurfaceCells = parameters.SurfaceCells
 	SurfaceMin   = parameters.SurfaceMin
 	SurfaceMax   = parameters.SurfaceMax
@@ -72,12 +73,13 @@ func (m *Map) build() map[[2]int]int {
 
 func (m *Map) Cell(x, y int) int { return m.floors[[2]int{x, y}] }
 func (m *Map) Bounds() (left, top, right, bottom int) {
-	left, right = 0, SurfaceCells
+	left, right, bottom = 0, SurfaceCells, SurfaceCells
 	for c := range m.floors {
 		left, top = min(left, c[0]-1), min(top, c[1]-1)
 		right = max(right, c[0]+2)
+		bottom = max(bottom, c[1]+2)
 	}
-	return left * Tile, top * Tile, right * Tile, SurfaceCells * Tile
+	return left * Tile, top * Tile, right * Tile, bottom * Tile
 }
 
 func (m *Map) Walkable(x, y, w, h float64) bool {
@@ -85,7 +87,7 @@ func (m *Map) Walkable(x, y, w, h float64) bool {
 }
 
 func (m *Map) walkableLayout(x, y, w, h float64) bool {
-	if !(physics.Rect{X: x, Y: y, W: w, H: h}).Valid() || x < MinCellX*Tile || x+w > MaxCellX*Tile || y < North || y+h > SurfaceMax {
+	if !(physics.Rect{X: x, Y: y, W: w, H: h}).Valid() || x < MinCellX*Tile || x+w > MaxCellX*Tile || y < North || y+h > MaxCellY*Tile {
 		return false
 	}
 	body := physics.Rect{X: x, Y: y, W: w, H: h}
@@ -106,16 +108,16 @@ func (m *Map) walkableLayout(x, y, w, h float64) bool {
 }
 
 func walkableSanctuary(x, y, w, h float64, cell func(int, int) int, altar bool) bool {
-	if y+h > SurfaceMax || altar && overlapsSpawnAltar(x, y, w, h) {
+	if altar && overlapsSpawnAltar(x, y, w, h) {
 		return false
 	}
-	if y >= SurfaceMin && x >= SurfaceMin && x+w <= SurfaceMax {
+	if y >= SurfaceMin && y+h <= SurfaceMax && x >= SurfaceMin && x+w <= SurfaceMax {
 		return true
 	}
 	for cy := int(math.Floor(y / Tile)); cy <= int(math.Floor(math.Nextafter((y+h)/Tile, math.Inf(-1)))); cy++ {
 		for cx := int(math.Floor(x / Tile)); cx <= int(math.Floor(math.Nextafter((x+w)/Tile, math.Inf(-1)))); cx++ {
 			if cy >= 0 && cy < SurfaceCells && cx >= 0 && cx < SurfaceCells {
-				if y < SurfaceMin && cy == 0 && cell(cx, -1) == 0 || x < SurfaceMin && cx == 0 && cell(-1, cy) == 0 || x+w > SurfaceMax && cx == SurfaceCells-1 && cell(SurfaceCells, cy) == 0 {
+				if y < SurfaceMin && cy == 0 && cell(cx, -1) == 0 || x < SurfaceMin && cx == 0 && cell(-1, cy) == 0 || x+w > SurfaceMax && cx == SurfaceCells-1 && cell(SurfaceCells, cy) == 0 || y+h > SurfaceMax && cy == SurfaceCells-1 && cell(cx, SurfaceCells) == 0 {
 					return false
 				}
 			} else if cell(cx, cy) == 0 {

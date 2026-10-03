@@ -1,14 +1,12 @@
 package worldmap
 
 import (
+	rl "github.com/gen2brain/raylib-go/raylib"
 	"math"
-	"slices"
-
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
 	mapdata "raylib-2d-sandbox/internal/worldmap"
-
-	rl "github.com/gen2brain/raylib-go/raylib"
+	"slices"
 )
 
 func (m *Map) drawWingDoor(snapshot protocol.Snapshot) {
@@ -16,8 +14,9 @@ func (m *Map) drawWingDoor(snapshot protocol.Snapshot) {
 		if !door.Interactable {
 			continue
 		}
-		bounds := door.Area.Bounds()
-		center := rl.NewVector2(5, float32(bounds.Y+bounds.H/2))
+		bounds := door.SanctuaryBorder()
+		horizontal := bounds.W > bounds.H
+		center := rl.NewVector2(float32(bounds.X+bounds.W/2), float32(bounds.Y+bounds.H/2))
 		opened := slices.Contains(snapshot.OpenSecrets, door.ID)
 		tint := rl.NewColor(158, 115, 225, 255)
 		pulse := float32(.75 + .1*math.Sin(rl.GetTime()*1.4))
@@ -27,20 +26,25 @@ func (m *Map) drawWingDoor(snapshot protocol.Snapshot) {
 		progress := float32(simulation.WingDoorProgress(snapshot.WingDoorOpen, snapshot.NorthWingDoorOpen, door.ID))
 		progress = progress * progress * (3 - 2*progress)
 		for i := 0; i < 2; i++ {
-			y := float32(bounds.Y) + float32(i*mapdata.Tile)
 			direction := float32(-1)
 			if i == 1 {
 				direction = 1
 			}
-			y += direction * progress * mapdata.Tile
-			drawSanctuaryBorder(0, int(y), mapdata.SurfaceMin, mapdata.Tile, door.Area.Y+i)
+			shift := float32(i*mapdata.Tile) + direction*progress*mapdata.Tile
+			x, y, w, h, index := int(bounds.X), int(bounds.Y+float64(shift)), mapdata.SurfaceMin, mapdata.Tile, door.Area.Y+i
+			if horizontal {
+				x, y, w, h, index = int(bounds.X+float64(shift)), int(bounds.Y), mapdata.Tile, mapdata.SurfaceMin, door.Area.X+i
+			}
+			drawSanctuaryBorder(x, y, w, h, index)
+			at := rl.NewVector2(float32(x+w/2), float32(y+h/2))
 			if !opened {
-				rl.DrawCircleGradient(rl.NewVector2(5, y+20), 26, rl.Fade(tint, .13*pulse), rl.Blank)
+				rl.DrawCircleGradient(at, 26, rl.Fade(tint, .13*pulse), rl.Blank)
 			}
-			rl.DrawLine(5, int32(y+19), 5, int32(y+22), rl.Fade(tint, .2*pulse))
-			if opened && progress < 1 {
-				rl.DrawLineEx(rl.NewVector2(10, y+20), rl.NewVector2(10, y+20-direction*10), 1, rl.Fade(tint, .25))
+			from, to := rl.NewVector2(at.X, at.Y-1.5), rl.NewVector2(at.X, at.Y+1.5)
+			if horizontal {
+				from, to = rl.NewVector2(at.X-1.5, at.Y), rl.NewVector2(at.X+1.5, at.Y)
 			}
+			rl.DrawLineV(from, to, rl.Fade(tint, .2*pulse))
 		}
 	}
 }

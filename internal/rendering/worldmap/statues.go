@@ -45,8 +45,13 @@ func drawStatues(statues []simulation.StatueState, active string, px, py float64
 		for i := int32(0); i < 3; i++ {
 			rl.DrawLine(x-12, y-16+i*6, x+12-i*4, y-16+i*6, tint)
 		}
+		if winged {
+			drawStatueWisps(x, y)
+		}
 		if s.ClaimedBy == "" {
-			rl.DrawCircleLines(x, y-9, 37, rl.Fade(tint, .3))
+			if !winged {
+				rl.DrawCircleLines(x, y-9, 37, rl.Fade(tint, .3))
+			}
 			if !dead && active == "" && s.Near(px, py) {
 				label := "[E] READ INSCRIPTION"
 				if winged {
@@ -66,8 +71,7 @@ func drawStatues(statues []simulation.StatueState, active string, px, py float64
 func drawStatueWings(x, y int32, tint color.RGBA) {
 	center := rl.NewVector2(float32(x), float32(y-16))
 	pulse := float32(.65 + .15*math.Sin(rl.GetTime()*1.8))
-	rl.DrawCircleGradient(center, 88, rl.Fade(tint, .14*pulse), rl.Blank)
-	rl.DrawCircleLinesV(center, 53, rl.Fade(tint, .22*pulse))
+	rl.DrawCircleGradient(center, 88, rl.Fade(rl.NewColor(158, 115, 225, 255), .1*pulse), rl.Blank)
 	for _, side := range []int32{-1, 1} {
 		for i := int32(0); i < 5; i++ {
 			root := rl.NewVector2(float32(x+side*12), float32(y-18+i*3))
@@ -81,7 +85,44 @@ func drawStatueWings(x, y int32, tint color.RGBA) {
 			rl.DrawLineEx(root, tip, 1, rl.Fade(tint, .6*pulse))
 		}
 	}
-	rl.DrawPolyLines(rl.NewVector2(float32(x), float32(y-52)), 4, 7, 45, rl.Fade(tint, pulse))
+}
+
+func statueWispPosition(center rl.Vector2, time, phase, speed float64) rl.Vector2 {
+	angle := time*speed + phase
+	radius := 43 + 11*math.Sin(time*.6+phase)
+	return rl.NewVector2(
+		center.X+float32(math.Cos(angle)*radius+8*math.Sin(time*.9+phase)),
+		center.Y+float32(math.Sin(angle)*radius*.65+12*math.Sin(time*.75+phase*1.6)),
+	)
+}
+
+func drawStatueWisps(x, y int32) {
+	center := rl.NewVector2(float32(x), float32(y-18))
+	time := rl.GetTime()
+	for i := 0; i < 4; i++ {
+		phase := float64(i)*2.37 + float64(x)*.007 + float64(y)*.003
+		speed := .3 + float64(i)*.04
+		at := statueWispPosition(center, time, phase, speed)
+		tint := rl.NewColor(176, 132, 241, 255)
+		if i%2 == 1 {
+			tint = rl.NewColor(178, 213, 249, 255)
+		}
+		brightness := float32(.7 + .15*math.Sin(time*2+phase))
+		for trail := 1; trail <= 4; trail++ {
+			previous := statueWispPosition(center, time-float64(trail)*.1, phase, speed)
+			rl.DrawCircleV(previous, .7, rl.Fade(tint, brightness*float32(5-trail)*.065))
+		}
+		rl.DrawCircleGradient(at, 13, rl.Fade(tint, .2*brightness), rl.Blank)
+		span := float32(1.2 + 3.8*math.Abs(math.Sin(time*9+phase)))
+		bob := float32(math.Sin(time*3 + phase))
+		left := rl.NewVector2(at.X-span, at.Y-3+bob)
+		right := rl.NewVector2(at.X+span, at.Y-3-bob)
+		leftLower := rl.NewVector2(at.X-span*.7, at.Y+2)
+		rightLower := rl.NewVector2(at.X+span*.7, at.Y+2)
+		rl.DrawTriangle(at, left, leftLower, rl.Fade(tint, brightness))
+		rl.DrawTriangle(at, rightLower, right, rl.Fade(tint, brightness))
+		rl.DrawLineV(rl.NewVector2(at.X, at.Y-1.5), rl.NewVector2(at.X, at.Y+1.5), rl.Fade(rl.RayWhite, brightness))
+	}
 }
 
 func drawStatueCharge(s simulation.StatueState, tint color.RGBA) {

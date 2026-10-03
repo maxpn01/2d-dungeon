@@ -19,6 +19,10 @@ func secretBase(multiplayer bool) Layout {
 	if multiplayer {
 		layout = MultiplayerLayout()
 	}
+	layout.RemoveRoom(WingChamber)
+	layout.RemoveRoom(NorthID(WingChamber))
+	layout.RemovePassage("aerie-entrance")
+	layout.RemovePassage(NorthID("aerie-entrance"))
 	layout.RemoveRoom(OrbVault)
 	layout.RemoveRoom(SecretLibrary)
 	layout.RemoveRoom(NorthID(SecretLibrary))
@@ -26,7 +30,7 @@ func secretBase(multiplayer bool) Layout {
 	layout.RemovePassage("library-secret")
 	layout.RemovePassage(NorthID("library-secret"))
 	layout.SecretDoors = slices.DeleteFunc(layout.SecretDoors, func(door SecretDoor) bool {
-		return door.RoomID == OrbVault || door.RoomID == SecretLibrary || door.RoomID == NorthID(SecretLibrary)
+		return door.RoomID == WingChamber || door.RoomID == NorthID(WingChamber) || door.RoomID == OrbVault || door.RoomID == SecretLibrary || door.RoomID == NorthID(SecretLibrary)
 	})
 	return layout
 }
@@ -49,7 +53,7 @@ func secretPlacements(layout Layout, room Room, span int, side string) []secretP
 	}
 	reserve(Cells(0, 0, SurfaceCells, SurfaceCells))
 	var placements []secretPlacement
-	world := Cells(MinCellX+1, MinCellY+1, MaxCellX-MinCellX-2, SurfaceCells-MinCellY-2)
+	world := Cells(MinCellX+1, MinCellY+1, MaxCellX-MinCellX-2, MaxCellY-MinCellY-2)
 	for _, host := range layout.Rooms {
 		if !host.HasRole(ExplorationRoom) || host.HasRole(Private) || host.Floor != FirstFloor {
 			continue
@@ -166,15 +170,27 @@ func secretRoom(layout Layout, roomID, doorID, passageID, side, id string, span 
 }
 
 func dungeonLayout(multiplayer bool, id string) (Layout, string, error) {
-	parts := []string{"", "", ""}
+	parts := []string{"", "", "", "", ""}
 	if id != "" {
 		parts = strings.Split(id, "|")
-		if len(parts) != 3 || parts[0] == "" || parts[2] == "" || multiplayer && (parts[1] == "" || parts[1] == "-") || !multiplayer && parts[1] != "-" {
+		if len(parts) != 5 || parts[0] == "" || parts[2] == "" || parts[3] == "" || parts[4] == "" || multiplayer && (parts[1] == "" || parts[1] == "-" || parts[4] == "-") || !multiplayer && (parts[1] != "-" || parts[4] != "-") {
 			return Layout{}, "", fmt.Errorf("invalid dungeon layout %q", id)
 		}
 	}
 	layout := secretBase(multiplayer)
 	var err error
+	layout, parts[3], err = wingRoom(layout, false, parts[3])
+	if err != nil {
+		return Layout{}, "", err
+	}
+	if multiplayer {
+		layout, parts[4], err = wingRoom(layout, true, parts[4])
+		if err != nil {
+			return Layout{}, "", err
+		}
+	} else {
+		parts[4] = "-"
+	}
 	layout, parts[0], err = secretRoom(layout, SecretLibrary, "library-wall", "library-secret", "south", parts[0], 2)
 	if err != nil {
 		return Layout{}, "", err

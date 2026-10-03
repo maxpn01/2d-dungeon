@@ -76,10 +76,10 @@ func (v *radarView) begin(m *Map) {
 	left := max(mapdata.MinCellX, int(math.Floor(float64((v.focus.X-v.bounds.Width/(2*v.scale))/mapdata.Tile))))
 	right := min(mapdata.MaxCellX, int(math.Ceil(float64((v.focus.X+v.bounds.Width/(2*v.scale))/mapdata.Tile))))
 	top := max(mapdata.North/mapdata.Tile, int(math.Floor(float64((v.focus.Y-v.bounds.Height/(2*v.scale))/mapdata.Tile))))
-	bottom := min(mapdata.SurfaceCells, int(math.Ceil(float64((v.focus.Y+v.bounds.Height/(2*v.scale))/mapdata.Tile))))
+	bottom := min(mapdata.MaxCellY, int(math.Ceil(float64((v.focus.Y+v.bounds.Height/(2*v.scale))/mapdata.Tile))))
 	for y := top; y < bottom; y++ {
 		for x := left; x < right; x++ {
-			if m.world.CellFloor(x, y) != m.floor || y >= 0 && x >= 0 && x < mapdata.SurfaceCells {
+			if m.world.CellFloor(x, y) != m.floor || y >= 0 && y < mapdata.SurfaceCells && x >= 0 && x < mapdata.SurfaceCells {
 				continue
 			}
 			if m.world.Cover(x, y) && m.world.Cell(x, y) != 0 {
@@ -97,7 +97,7 @@ func (v radarView) fog() {
 	left := max(mapdata.MinCellX, int(math.Floor(float64(v.focus.X-v.bounds.Width/(2*v.scale))/mapdata.Tile)))
 	right := min(mapdata.MaxCellX, int(math.Ceil(float64(v.focus.X+v.bounds.Width/(2*v.scale))/mapdata.Tile)))
 	top := max(mapdata.North/mapdata.Tile, int(math.Floor(float64(v.focus.Y-v.bounds.Height/(2*v.scale))/mapdata.Tile)))
-	bottom := min(mapdata.SurfaceCells, int(math.Ceil(float64(v.focus.Y+v.bounds.Height/(2*v.scale))/mapdata.Tile)))
+	bottom := min(mapdata.MaxCellY, int(math.Ceil(float64(v.focus.Y+v.bounds.Height/(2*v.scale))/mapdata.Tile)))
 	state := func(x, y int) int {
 		cell := [2]int{x, y}
 		if v.Exploration.Visible(cell) {

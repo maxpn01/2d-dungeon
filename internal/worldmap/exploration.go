@@ -13,7 +13,7 @@ type Exploration struct {
 func (m *Map) NewExploration(radius float64) *Exploration {
 	cells := 0
 	if radius > 0 {
-		cells = int(min(radius/Tile, float64(MaxCellX-MinCellX+SurfaceCells-MinCellY)))
+		cells = int(min(radius/Tile, float64(MaxCellX-MinCellX+MaxCellY-MinCellY)))
 	}
 	return &Exploration{world: m, radius: cells, explored: make(map[[2]int]bool)}
 }
@@ -35,7 +35,7 @@ func (e *Exploration) Reveal(position physics.Vector) {
 	}
 	e.origin = origin
 	e.visible = make(map[[2]int]bool)
-	for y := max(MinCellY, origin[1]-e.radius); y <= min(SurfaceCells-1, origin[1]+e.radius); y++ {
+	for y := max(MinCellY, origin[1]-e.radius); y <= min(MaxCellY-1, origin[1]+e.radius); y++ {
 		for x := max(MinCellX, origin[0]-e.radius); x <= min(MaxCellX-1, origin[0]+e.radius); x++ {
 			dx, dy := x-origin[0], y-origin[1]
 			if dx*dx+dy*dy > e.radius*e.radius {

@@ -116,7 +116,7 @@ func ClampSurfaceBody(x, y *float64, size, hp float64) {
 	if *y < MapMin {
 		return // the dungeon is governed by its own passages
 	}
-	if (*x < MapMin || *x+size > MapMax) && worldmap.Default().CanFly(physics.Square(*x, *y, size)) {
+	if (*x < MapMin || *x+size > MapMax || *y+size > MapMax) && worldmap.Default().CanFly(physics.Square(*x, *y, size)) {
 		return
 	}
 	radius := min(BodySize(size, hp)/2, (MapMax-MapMin)/2)
