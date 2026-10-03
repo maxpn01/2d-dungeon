@@ -3,6 +3,8 @@ package protocol
 import "raylib-2d-sandbox/internal/simulation"
 
 type Snapshot struct {
+	MatchStarted      bool                `json:"match_started"`
+	StartCountdown    int                 `json:"start_countdown"`
 	DungeonLayout     string              `json:"dungeon_layout"`
 	WingDoorOpen      float64             `json:"wing_door_open"`
 	NorthWingDoorOpen float64             `json:"north_wing_door_open"`
@@ -51,6 +53,7 @@ func SnapshotFromSimulation(state simulation.Snapshot, names map[string]string) 
 
 func (s Snapshot) Message() Message {
 	return Message{
+		MatchStarted: s.MatchStarted, StartCountdown: s.StartCountdown,
 		DungeonLayout:     s.DungeonLayout,
 		NorthWingDoorOpen: s.NorthWingDoorOpen, WingDoorOpen: s.WingDoorOpen, WinnerID: s.WinnerID, OpenSecrets: s.OpenSecrets, Orb: s.Orb, Statues: s.Statues, Projectiles: s.Projectiles, SafeZones: s.SafeZones, Boss: s.Boss,
 		Type: TypeSnapshot, Tick: s.Tick, Players: &s.Players, Fruits: &s.Fruits, AIs: &s.AIs,
@@ -58,7 +61,7 @@ func (s Snapshot) Message() Message {
 }
 
 func (m Message) Snapshot() Snapshot {
-	snapshot := Snapshot{DungeonLayout: m.DungeonLayout, NorthWingDoorOpen: m.NorthWingDoorOpen, WingDoorOpen: m.WingDoorOpen, WinnerID: m.WinnerID, OpenSecrets: m.OpenSecrets, Orb: m.Orb, Statues: m.Statues, Projectiles: m.Projectiles, SafeZones: m.SafeZones, Boss: m.Boss, Tick: m.Tick}
+	snapshot := Snapshot{MatchStarted: m.MatchStarted, StartCountdown: m.StartCountdown, DungeonLayout: m.DungeonLayout, NorthWingDoorOpen: m.NorthWingDoorOpen, WingDoorOpen: m.WingDoorOpen, WinnerID: m.WinnerID, OpenSecrets: m.OpenSecrets, Orb: m.Orb, Statues: m.Statues, Projectiles: m.Projectiles, SafeZones: m.SafeZones, Boss: m.Boss, Tick: m.Tick}
 	if m.Players != nil {
 		snapshot.Players = *m.Players
 	}

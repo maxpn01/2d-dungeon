@@ -34,6 +34,7 @@ type Session struct {
 	outgoingControls []protocol.ClientMessage
 	safeZones        []simulation.SafeZone
 	dead             bool
+	matchStarted     bool
 	predicted        protocol.Player
 	predictionReady  bool
 	sequence         uint64
@@ -110,6 +111,7 @@ func (s *Session) ChoosePerk(statueID string, cycle uint64, card int) {
 }
 
 func (s *Session) CloseOffer() { s.sendControl(protocol.ClientMessage{Type: protocol.TypeCloseOffer}) }
+func (s *Session) StartGame()  { s.sendControl(protocol.ClientMessage{Type: protocol.TypeStartGame}) }
 func (s *Session) Respawn()    { s.sendControl(protocol.ClientMessage{Type: protocol.TypeRespawn}) }
 
 func (s *Session) input() protocol.Direction {
@@ -306,13 +308,14 @@ func (s *Session) run(ctx context.Context, url string) error {
 		s.pending = s.pending[first:]
 		s.safeZones = message.SafeZones
 		s.dead = local.Dead
-		if s.dead {
+		s.matchStarted = message.MatchStarted
+		if s.dead || !s.matchStarted {
 			s.pending = nil
 		}
 		for _, input := range s.pending {
 			predictPlayer(&local, input.direction, message.SafeZones)
 		}
-		s.predicted, s.predictionReady = local, !s.dead
+		s.predicted, s.predictionReady = local, !s.dead && s.matchStarted
 		s.predicted.Split = local.Split.Clone()
 		s.inputMu.Unlock()
 		s.publish(Update{Snapshot: message.Snapshot(), PlayerID: welcome.PlayerID, Ready: true, Local: local, ReceivedAt: time.Now()})

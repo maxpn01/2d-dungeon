@@ -10,6 +10,7 @@ import (
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/rendering"
 	"raylib-2d-sandbox/internal/rendering/primitives"
+	"raylib-2d-sandbox/internal/screens"
 	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/worldmap"
 
@@ -18,6 +19,7 @@ import (
 
 type Multiplayer struct {
 	presentation
+	lobbyStart          *screens.MenuButton
 	controls            controls
 	previousProjectiles []simulation.Projectile
 	projectileInterval  float64
@@ -32,6 +34,7 @@ type Multiplayer struct {
 
 func NewMultiplayer(url, name string, character simulation.Character) *Multiplayer {
 	return &Multiplayer{
+		lobbyStart:   screens.NewMenuButton("Start game", screens.ActionStartGame),
 		controls:     controls{suppressShootUntilRelease: true},
 		session:      client.ConnectWithCharacter(url, name, character),
 		presentation: newPresentation(),
@@ -94,7 +97,7 @@ func (m *Multiplayer) ReadInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 		m.controls.suppressShootUntilRelease = true
 	}
 	direction := protocol.Direction{}
-	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.Open && !mapOpen && !m.StatsOpen() && s == nil {
+	if m.view.Ready && m.view.MatchStarted && !m.view.Local.Dead && m.errorText == "" && rl.IsWindowFocused() && !m.chat.Open && !mapOpen && !m.StatsOpen() && s == nil {
 
 		center := rl.NewVector2(float32(m.view.Local.X+m.view.Local.Size/2), float32(m.view.Local.Y+m.view.Local.Size/2))
 		for _, p := range m.rendered {

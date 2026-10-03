@@ -137,7 +137,7 @@ func (g *Game) run() {
 				}
 			case screenMultiplayer:
 				m := g.multiplayer
-				if m.Ready() && !m.Dead() && m.Error() == "" && !m.ChatOpen() && !m.PerksOpen() {
+				if m.Ready() && m.Started() && !m.Dead() && m.Error() == "" && !m.ChatOpen() && !m.PerksOpen() {
 					m.ToggleStats()
 				}
 			}
@@ -206,6 +206,8 @@ func (g *Game) run() {
 			case !m.Ready():
 				primitives.DrawCenteredText("Connecting...", g.window.height/2-30, 30, rl.RayWhite)
 				primitives.DrawCenteredText("Esc to cancel", g.window.height/2+20, 20, rl.LightGray)
+			case !m.Started():
+				action = m.DrawLobby(g.window.width, g.window.height)
 			case mapOpen:
 				g.drawFullMap(true)
 			default:
@@ -220,6 +222,8 @@ func (g *Game) run() {
 
 		// Screen transitions happen after drawing, on the same thread as raylib.
 		switch action {
+		case screens.ActionStartGame:
+			g.multiplayer.StartGame()
 		case screens.ActionSettings:
 			g.settings.Open()
 			current = screenSettings

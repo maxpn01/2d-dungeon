@@ -6,6 +6,8 @@ import (
 )
 
 func (m *Multiplayer) Close()          { m.session.Close() }
+func (m *Multiplayer) Started() bool   { return m.view.MatchStarted }
+func (m *Multiplayer) StartGame()      { m.session.StartGame() }
 func (m *Multiplayer) Ready() bool     { return m.view.Ready }
 func (m *Multiplayer) Dead() bool      { return m.view.Local.Dead }
 func (m *Multiplayer) Error() string   { return m.errorText }
@@ -13,7 +15,7 @@ func (m *Multiplayer) PerksOpen() bool { return m.view.Local.ActiveStatue != "" 
 func (m *Multiplayer) ChatOpen() bool  { return m.chat.Open }
 func (m *Multiplayer) CloseChat()      { m.chat.Close() }
 func (m *Multiplayer) CanOpenMap() bool {
-	return m.Ready() && !m.Dead() && m.Error() == "" && !m.ChatOpen() && !m.StatsOpen() && m.view.Local.ActiveStatue == ""
+	return m.Ready() && m.view.MatchStarted && !m.Dead() && m.Error() == "" && !m.ChatOpen() && !m.StatsOpen() && m.view.Local.ActiveStatue == ""
 }
 func (m *Multiplayer) ChatHistory() []protocol.ChatEntry        { return m.session.Chat() }
 func (m *Multiplayer) RestoreChat(history []protocol.ChatEntry) { m.session.RestoreChat(history) }

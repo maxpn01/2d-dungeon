@@ -179,6 +179,14 @@ func (w *World) Command(id string, direction Direction, sequence uint64, now tim
 	return true
 }
 
+func (w *World) DiscardInputs() {
+	for _, player := range w.players {
+		player.direction = Direction{}
+		player.commands = nil
+		player.InputSeq = player.lastSequence
+	}
+}
+
 func Move(x, y float64, d Direction, seconds, speed float64) (float64, float64) {
 	if seconds <= 0 {
 		return x, y

@@ -9,4 +9,5 @@ const (
 	TypePerkChoice = "perk_choice"
 	TypeCloseOffer = "close_offer"
 	TypeRespawn    = "respawn"
+	TypeStartGame  = "start_game"
 )

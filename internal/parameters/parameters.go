@@ -206,4 +206,5 @@ const (
 	MaxChatEntries                = 50
 	ChatCooldown                  = 500 * time.Millisecond
 	MessagesPerSecond             = 120.0
+	MatchCountdownSeconds         = 3
 )

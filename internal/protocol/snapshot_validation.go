@@ -11,6 +11,9 @@ import (
 )
 
 func ValidateSnapshot(snapshot Snapshot, localID string) error {
+	if snapshot.StartCountdown < 0 || snapshot.StartCountdown > parameters.MatchCountdownSeconds || snapshot.MatchStarted && snapshot.StartCountdown != 0 || snapshot.StartCountdown > 0 && len(snapshot.Players) != simulation.MaxPlayers {
+		return errors.New("server sent invalid match countdown")
+	}
 	if snapshot.DungeonLayout != worldmap.Default().LayoutID() || snapshot.DungeonLayout == "" {
 		return errors.New("server sent a different dungeon layout")
 	}

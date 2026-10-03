@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"raylib-2d-sandbox/internal/parameters"
@@ -13,6 +14,7 @@ import (
 
 type client struct {
 	joined    chan bool
+	ready     bool
 	character simulation.Character
 	name      string
 	id        string
@@ -48,6 +50,8 @@ func (h *Hub) Run(ctx context.Context) {
 	clients := make(map[*client]struct{})
 	names := make(map[string]string)
 	world := simulation.NewWorld()
+	matchStarted := false
+	var startAt time.Time
 	ticker := time.NewTicker(time.Second / simulation.TickRate)
 	defer ticker.Stop()
 	nextID := 0
@@ -55,7 +59,15 @@ func (h *Hub) Run(ctx context.Context) {
 		delete(clients, c)
 		delete(names, c.id)
 		world.Leave(c.id)
+		if !matchStarted {
+			startAt = time.Time{}
+			for remaining := range clients {
+				remaining.ready = false
+			}
+		}
 		if len(clients) == 0 {
+			matchStarted = false
+			startAt = time.Time{}
 			world = simulation.NewWorld()
 		}
 		c.cancel()
@@ -68,7 +80,19 @@ func (h *Hub) Run(ctx context.Context) {
 
 	broadcast := func() {
 		for {
-			message := protocol.SnapshotFromSimulation(world.Snapshot(), names).Message()
+			snapshot := protocol.SnapshotFromSimulation(world.Snapshot(), names)
+			snapshot.MatchStarted = matchStarted
+			for i := range snapshot.Players {
+				for c := range clients {
+					if c.id == snapshot.Players[i].ID {
+						snapshot.Players[i].LobbyReady = c.ready
+					}
+				}
+			}
+			if !startAt.IsZero() && !matchStarted {
+				snapshot.StartCountdown = max(1, int(math.Ceil(time.Until(startAt).Seconds())))
+			}
+			message := snapshot.Message()
 			dropped := false
 			for c := range clients {
 				select {
@@ -89,7 +113,14 @@ func (h *Hub) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			world.Step(time.Now())
+			now := time.Now()
+			if !matchStarted && !startAt.IsZero() && !now.Before(startAt) {
+				world.DiscardInputs()
+				matchStarted = true
+			}
+			if matchStarted {
+				world.Step(now)
+			}
 			broadcast()
 		case c := <-h.join:
 			nextID++
@@ -113,7 +144,23 @@ func (h *Hub) Run(ctx context.Context) {
 			if _, exists := clients[event.client]; !exists {
 				continue
 			}
+			if !matchStarted && (event.message.Type == protocol.TypePerkChoice || event.message.Type == protocol.TypeCloseOffer || event.message.Type == protocol.TypeRespawn) {
+				continue
+			}
 			switch event.message.Type {
+			case protocol.TypeStartGame:
+				if !matchStarted && startAt.IsZero() {
+					event.client.ready = true
+					allReady := len(clients) == simulation.MaxPlayers
+					for c := range clients {
+						allReady = allReady && c.ready
+					}
+					if allReady {
+						startAt = time.Now().Add(parameters.MatchCountdownSeconds * time.Second)
+					}
+					broadcast()
+				}
+				continue
 			case protocol.TypePerkChoice:
 				choice := event.message.Perk
 				world.ChoosePerk(event.client.id, choice.StatueID, choice.Cycle, choice.Card)
@@ -133,6 +180,9 @@ func (h *Hub) Run(ctx context.Context) {
 				if !world.Command(event.client.id, d.Simulation(), event.message.Sequence, time.Now()) {
 					remove(event.client)
 					broadcast()
+				}
+				if !matchStarted {
+					world.DiscardInputs()
 				}
 				continue
 			}
