@@ -60,12 +60,28 @@ nil to remove the guard; set food capacity to zero to disable its food.
 Simulation compiles these definitions into world-coordinate patches and dens,
 with spawning and patrol constraints supplied by their owning room.
 
-Guards also accept `Damage` and `AttackRate` (shots per second). Zero uses the
-default mob value: 1 damage and 2 shots per second. The first-floor dungeon has
-four additional level-2 Square guards and nearby replenishing food patches.
-HP and MP are derived from level with the same +5 capacity growth as players.
-Guards spawn and respawn with full HP/MP: level 1 has 10/10, level 2 has 15/15.
-Entrance guards are level 1; dungeon guards past the gate are level 2.
+Players start with 2 shot damage, 4 shots per second, and 550 world units per
+second movement speed. Guards start with 70% of those combat and movement stats:
+1.4 damage, 2.8 shots per second, and 385 world units per second. Both gain 5
+maximum HP, 5 maximum MP, and 0.25 shots per second per level. The mob multiplier
+applies only to the initial combat and movement values, not level growth or HP/MP.
+Damage and movement speed stay constant before perks. Guards spawn and respawn
+with full HP/MP. Entrance guards are level 1 (10/10 HP/MP, 2.8 shots/sec); dungeon
+guards are level 2 (15/15, 3.05 shots/sec); vault sentinels are level 5 (30/30,
+3.8 shots/sec). Frenzied guards use the same mob level-5 scaling while preserving
+their current HP/MP percentages, then restore their original level when the hunt ends.
+
+Mob shots have a random angular spread of up to 4.5 degrees with the default
+`MobAimAccuracy` of 0.95; this is an aim-spread setting, not a guaranteed hit rate.
+Player shots remain exact. Killing a mob drops HP pickups totaling 50% of its
+maximum HP at spawn (5, 7.5, or 15 for levels 1, 2, or 5), subject to the shared
+loot limit. Temporary frenzy levels do not increase this reward. MP loot still
+uses 50% of the mob's remaining MP.
+
+Player respawn immediately refills their private provision court food patches
+and resets that court's guards to fresh level-1 stats and positions. Loot and
+shots belonging to those replaced guards are cleared. The opponent's private
+route and the shared dungeon keep their existing state.
 
 ## Inscription statues
 
@@ -165,3 +181,27 @@ Tile size, surface bounds, the spawn altar, and general combat tuning remain
 outside the editable dungeon layout. The game supports one boss arena and one
 interactive entrance gate. Their visual styles and encounter behavior remain in
 `game` and `simulation`.
+
+Dungeon guards respawn after 60 seconds. The base Shift boost multiplier is
+1.40625 (25% below its previous 1.875 value), giving a starting player about
+773.4 world units per second while boosting.
+
+Inscription choices are cached per player and statue cycle. Reopening a statue
+refreshes an offer if it contains perks already owned at the same or higher rank.
+Only unowned perks or higher ranks are offered; fully upgraded builds receive no
+cards. Recharged statues generate choices when the next player interacts.
+
+Normal guards keep their 400-unit detection radius after being hit. A hit starts
+a 10-second investigation toward the shot's recorded origin; seeing the shooter
+does not move that destination or extend the timer. Fresh hits can start a new
+investigation while the guard is active. Investigations are limited to 900 units
+from the guard's home, and private guards remain inside their own court. Reaching
+the boundary or exhausting the investigation timer sends the guard home without
+reacquiring targets or accepting new alerts until it arrives. Orb-carrier hunts
+retain their broader pursuit rules; returning guards may travel back from beyond
+the normal leash after such a hunt ends.
+
+Guards aim for 0.4 seconds before their first shot, showing an amber ring. Losing
+line of sight cancels an unfinished aim. Once aiming completes, brief cover does
+not restart the delay; one second without a visible target resets it. Switching
+targets requires a fresh aim. Sustained fire keeps the normal attack rate.

@@ -243,6 +243,7 @@ func (e eater) gain(hp, xp float64, mana ...float64) {
 	for i := range *split {
 		if (*split)[i].Active {
 			(*split)[i].Stats.Level, (*split)[i].Stats.XP = stats.Level, stats.XP
+			(*split)[i].Stats.rebuildPerks()
 		}
 	}
 	room := max(0, stats.MaxHP()-stats.HP-split.Mass())

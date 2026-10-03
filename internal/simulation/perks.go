@@ -107,9 +107,10 @@ func (s *Stats) ApplyPerk(card PerkCard) bool {
 
 func (s *Stats) rebuildPerks() {
 	b := func(f PerkFamily) float64 { return PerkBonus(f, s.Perks[f]) }
-	s.Damage = parameters.ShotDamage * (1 + b(DamagePerk) + b(HeavyPerk))
-	s.AttackRate = parameters.PlayerAttackRate * (1 + b(AttackRatePerk))
-	s.Speed = PlayerSpeed * (1 + b(SpeedPerk) - PerkPenalty(HeavyPerk, s.Perks[HeavyPerk]))
+	multiplier := s.baseMultiplier()
+	s.Damage = parameters.ShotDamage * multiplier * (1 + b(DamagePerk) + b(HeavyPerk))
+	s.AttackRate = attackRateForLevel(s.Level, multiplier) * (1 + b(AttackRatePerk))
+	s.Speed = BaseSpeed * multiplier * (1 + b(SpeedPerk) - PerkPenalty(HeavyPerk, s.Perks[HeavyPerk]))
 	s.BoostMultiplier = BoostMultiplier * (1 + b(BoostPerk) + b(OverdrivePerk))
 	s.BoostCost = BoostMPPerSecond * (1 + PerkPenalty(OverdrivePerk, s.Perks[OverdrivePerk]))
 }

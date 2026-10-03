@@ -8,14 +8,13 @@ import (
 )
 
 func (w *World) alertAI(ai *aiState, shot Projectile) {
-	if w.players[shot.Owner] == nil {
+	if w.players[shot.Owner] == nil || ai.returning {
 		return
 	}
 	ai.aggressorID = shot.Owner
 	ai.alertX, ai.alertY = shot.originX, shot.originY
 	ai.alertUntil = w.tick + parameters.AIAlertSeconds*TickRate
 	ai.patrolPause, ai.patrolTicks = 0, 0
-	ai.returning = true
 	ai.Behavior = "investigating"
 }
 
@@ -39,14 +38,14 @@ func (w *World) aiWithinTerritory(ai *aiState) bool {
 	}
 	if w.tick < ai.alertUntil || ai.returning {
 		x, y := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, AISize)
-		return ai.Y < 0 && geometry.FloorAt(ai.X+AISize/2, ai.Y+AISize/2) == geometry.FloorAt(x, y) && (ai.returning || math.Hypot(ai.X-x, ai.Y-y) <= parameters.AIChaseLeash)
+		return ai.Y < 0 && geometry.FloorAt(ai.X+AISize/2, ai.Y+AISize/2) == geometry.FloorAt(x, y) && ((ai.returning && ai.Behavior == "returning") || math.Hypot(ai.X-x, ai.Y-y) <= parameters.AIChaseLeash)
 	}
 	return geometry.RoomContains(ai.den.RoomID, body)
 }
 
 func (w *World) investigateAI(ai *aiState) (Direction, bool) {
 	geometry := worldmap.Default().WithSecrets(w.openSecrets)
-	if ai.aggressorID != "" && w.tick < ai.alertUntil {
+	if !ai.returning && ai.aggressorID != "" && w.tick < ai.alertUntil {
 		ai.Behavior = "investigating"
 		if math.Hypot(ai.X-ai.alertX, ai.Y-ai.alertY) > 24 {
 			return ai.navigateMap(geometry, ai.alertX, ai.alertY), true
@@ -54,7 +53,11 @@ func (w *World) investigateAI(ai *aiState) (Direction, bool) {
 		ai.Behavior = "searching"
 		return Direction{}, true
 	}
+	if ai.aggressorID != "" {
+		ai.returning = ai.den.ID != ""
+	}
 	ai.aggressorID = ""
+	ai.alertUntil = 0
 	if ai.returning && ai.den.ID != "" {
 		x, y := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, AISize)
 		if math.Hypot(ai.X-x, ai.Y-y) > 24 {

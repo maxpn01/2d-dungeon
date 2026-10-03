@@ -91,7 +91,7 @@ func (w *World) moveBoss(targets []bossTarget, previous map[string]position) {
 	}
 	switch b.Behavior {
 	case "winding":
-		b.speed = PlayerSpeed * .75
+		b.speed = BaseSpeed * .75
 		b.heading = math.Atan2(b.AttackTarget.Y-b.Y, b.AttackTarget.X-b.X)
 		return
 	case "recovering":
@@ -102,15 +102,15 @@ func (w *World) moveBoss(targets []bossTarget, previous map[string]position) {
 	}
 	dx, dy := tx-b.X, ty-b.Y
 	distance := math.Hypot(dx, dy)
-	desiredSpeed := PlayerSpeed * 1.05
+	desiredSpeed := BaseSpeed * 1.05
 	if b.Behavior == "rushing" {
-		desiredSpeed = PlayerSpeed * 2.0
+		desiredSpeed = BaseSpeed * 2.0
 		if b.Enraged {
-			desiredSpeed = PlayerSpeed * 2.35
+			desiredSpeed = BaseSpeed * 2.35
 		}
 	}
 	if b.Behavior == "feeding" {
-		desiredSpeed = PlayerSpeed * .95
+		desiredSpeed = BaseSpeed * .95
 	}
 	b.speed += max(-.9, min(.9, desiredSpeed-b.speed))
 	if distance > 0 {
@@ -136,9 +136,9 @@ func (w *World) prepareBossRush(target bossTarget, previous map[string]position)
 		vy = (target.Y - before.y) / StepSeconds
 	}
 	speed := math.Hypot(vx, vy)
-	if speed > PlayerSpeed*SpeedScale {
-		vx *= PlayerSpeed * SpeedScale / speed
-		vy *= PlayerSpeed * SpeedScale / speed
+	if speed > BaseSpeed*SpeedScale {
+		vx *= BaseSpeed * SpeedScale / speed
+		vy *= BaseSpeed * SpeedScale / speed
 	}
 	tx := target.X + (PlayerSize-BossSize)/2 + vx*.28
 	ty := target.Y + (PlayerSize-BossSize)/2 + vy*.28

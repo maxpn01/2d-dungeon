@@ -170,7 +170,7 @@ func crownArena() Room {
 func dungeonEncounter(id string, at Cell, radius, food int) FeedingArea {
 	return FeedingArea{ID: id, At: at, Radius: max(1, radius), Style: TealGarden,
 		Food:  FoodSource{Capacity: food, Respawn: 30 * time.Second},
-		Guard: &Guard{PatrolRadius: radius, Level: 2, Damage: 1, AttackRate: 2, Respawn: 45 * time.Second},
+		Guard: &Guard{PatrolRadius: radius, Level: 2, Respawn: time.Minute},
 	}
 }
 
@@ -228,8 +228,6 @@ func orbVault() Room {
 	for i, at := range []Cell{At(5, 10), At(12, 4), At(12, 15)} {
 		encounter := dungeonEncounter([]string{"vault-sentinel-west", "vault-sentinel-north", "vault-sentinel-south"}[i], at, 2, 0)
 		encounter.Guard.Level = 5
-		encounter.Guard.Damage = 2
-		encounter.Guard.AttackRate = 2.5
 		r.FeedingAreas = append(r.FeedingAreas, encounter)
 	}
 	return r

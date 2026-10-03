@@ -33,6 +33,7 @@ func (w *World) huntOrb(ai *aiState, carrier *playerState) Direction {
 	distance := math.Hypot(dx, dy)
 	d := Direction{}
 	if target := w.orbShotTarget(ai, carrier); target != nil {
+		ai.shotTargetID = target.ID
 		sx, sy := target.X-ai.X, target.Y-ai.Y
 		length := math.Hypot(sx, sy)
 		d.AimX, d.AimY, d.Shoot = sx/max(1, length), sy/max(1, length), true
@@ -80,11 +81,11 @@ func (ai *aiState) setFrenzy(active bool) {
 			ai.frenzyBase = ai.Stats
 		}
 		ai.Stats.Level, ai.Stats.XP = parameters.AIFrenzyLevel, 0
-		ai.Stats.AttackRate = max(parameters.AIFrenzyMinimumAttackRate, ai.frenzyBase.AttackRate*parameters.AIFrenzyAttackMultiplier)
 	} else {
-		ai.Stats.Level, ai.Stats.XP, ai.Stats.AttackRate = ai.frenzyBase.Level, ai.frenzyBase.XP, ai.frenzyBase.AttackRate
+		ai.Stats.Level, ai.Stats.XP = ai.frenzyBase.Level, ai.frenzyBase.XP
 		ai.Combat.Boosting = false
 	}
+	ai.Stats.rebuildPerks()
 	ai.Stats.HP, ai.Stats.MP = hpFraction*ai.Stats.MaxHP(), mpFraction*ai.Stats.MaxMP()
 	ai.shotCooldown = min(ai.shotCooldown, 1/ai.Stats.AttackRate)
 	ai.Frenzied = active

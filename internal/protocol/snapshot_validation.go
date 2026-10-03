@@ -64,7 +64,7 @@ func validatePlayers(players []Player, localID string) error {
 			return errors.New("server sent invalid player IDs")
 		}
 		ids[player.ID] = true
-		if !validStats(player.Stats, simulation.PlayerSpeed) {
+		if !validStats(player.Stats, simulation.BaseSpeed) {
 			return errors.New("server sent invalid player stats")
 		}
 		for _, value := range []float64{player.X, player.Y, player.Size} {
@@ -82,7 +82,7 @@ func validatePlayers(players []Player, localID string) error {
 			if !cell.Active {
 				continue
 			}
-			if player.Character != simulation.Circle || !validStats(cell.Stats, simulation.PlayerSpeed) || cell.Stats.HP <= 0 || cell.Stats.Level != player.Stats.Level || cell.Stats.XP != player.Stats.XP {
+			if player.Character != simulation.Circle || !validStats(cell.Stats, simulation.BaseSpeed) || cell.Stats.HP <= 0 || cell.Stats.Level != player.Stats.Level || cell.Stats.XP != player.Stats.XP {
 				return errors.New("server sent invalid split stats")
 			}
 			for _, v := range []float64{cell.X, cell.Y, cell.Remaining, cell.Launch} {
@@ -174,7 +174,7 @@ func validStats(stats PlayerStats, baseSpeed float64) bool {
 	if stats.MP < 0 || stats.MP > stats.MaxMP() {
 		return false
 	}
-	if stats.Level < 1 || stats.Level > simulation.MaxLevel || stats.XP < 0 || stats.HP < 0 || stats.HP > stats.MaxHP() || stats.Speed <= 0 || stats.Speed > baseSpeed*2 || stats.Damage <= 0 || stats.Damage > max(100, parameters.ShotDamage*(1+simulation.PerkBonus(simulation.DamagePerk, simulation.MaxPerkRank)+simulation.PerkBonus(simulation.HeavyPerk, simulation.MaxPerkRank))) || stats.AttackRate <= 0 || stats.AttackRate > max(simulation.TickRate, parameters.PlayerAttackRate*(1+simulation.PerkBonus(simulation.AttackRatePerk, simulation.MaxPerkRank))) || stats.BoostMultiplier < 1 || stats.BoostMultiplier > 10 || stats.BoostCost <= 0 || stats.BoostCost > 10 {
+	if stats.Level < 1 || stats.Level > simulation.MaxLevel || stats.XP < 0 || stats.HP < 0 || stats.HP > stats.MaxHP() || stats.Speed <= 0 || stats.Speed > baseSpeed*2 || stats.Damage <= 0 || stats.Damage > max(100, parameters.ShotDamage*(1+simulation.PerkBonus(simulation.DamagePerk, simulation.MaxPerkRank)+simulation.PerkBonus(simulation.HeavyPerk, simulation.MaxPerkRank))) || stats.AttackRate <= 0 || stats.AttackRate > max(simulation.TickRate, simulation.AttackRateForLevel(stats.Level)*(1+simulation.PerkBonus(simulation.AttackRatePerk, simulation.MaxPerkRank))) || stats.BoostMultiplier < 1 || stats.BoostMultiplier > 10 || stats.BoostCost <= 0 || stats.BoostCost > 10 {
 		return false
 	}
 	if stats.Level == simulation.MaxLevel {

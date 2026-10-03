@@ -134,19 +134,23 @@ func (w *World) replenishEntranceFood() {
 		if w.tick < w.patchNext[patch.ID] {
 			continue
 		}
-		count := 0
-		for _, fruit := range w.fruits {
-			if fruit.Patch == patch.ID {
-				count++
-			}
-		}
-		for ; count < patch.Capacity; count++ {
-			if !w.spawnPatchFruit(patch) {
-				break
-			}
-		}
-		w.patchNext[patch.ID] = w.tick + uint64(math.Ceil(patch.Respawn.Seconds()*TickRate))
+		w.refillPatch(patch)
 	}
+}
+
+func (w *World) refillPatch(patch worldmap.FeedingPatch) {
+	count := 0
+	for _, fruit := range w.fruits {
+		if fruit.Patch == patch.ID {
+			count++
+		}
+	}
+	for ; count < patch.Capacity; count++ {
+		if !w.spawnPatchFruit(patch) {
+			break
+		}
+	}
+	w.patchNext[patch.ID] = w.tick + uint64(math.Ceil(patch.Respawn.Seconds()*TickRate))
 }
 
 func (w *World) spawnPatchFruit(patch worldmap.FeedingPatch) bool {

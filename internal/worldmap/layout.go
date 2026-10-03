@@ -76,8 +76,6 @@ type FoodSource struct {
 type Guard struct {
 	PatrolRadius int
 	Level        int
-	Damage       float64
-	AttackRate   float64
 	Respawn      time.Duration
 }
 

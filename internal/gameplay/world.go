@@ -108,6 +108,7 @@ func (w *World) Respawn() {
 
 func (w *World) syncSimulation() {
 	snapshot := protocol.SnapshotFromSimulation(w.simulation.Snapshot(), map[string]string{localPlayerID: w.name})
+	snapshot.Statues = w.simulation.StatuesForPlayer(localPlayerID)
 	w.feedback.Observe(time.Now(), snapshot, localPlayerID)
 	w.previousSnapshot, w.snapshot = w.snapshot, snapshot
 	w.player = snapshot.Players[0]

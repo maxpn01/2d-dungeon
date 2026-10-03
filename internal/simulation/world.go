@@ -16,7 +16,7 @@ const (
 	StepSeconds  = parameters.StepSeconds
 	PlayerSize   = parameters.PlayerSize
 	SpeedScale   = parameters.SpeedScale
-	PlayerSpeed  = parameters.PlayerSpeed
+	BaseSpeed    = parameters.BaseSpeed
 	MapMin       = parameters.MapMin
 	MapMax       = parameters.MapMax
 	MinPosition  = parameters.MinPosition
@@ -349,12 +349,7 @@ func (w *World) Snapshot() Snapshot {
 	}
 	boss := w.boss
 	boss.Tail = append([]Point(nil), boss.Tail...)
-	statues := append([]StatueState(nil), w.statues...)
-	for i := range statues {
-		if statues[i].Cards != nil {
-			statues[i].Cards = append([]PerkCard{}, statues[i].Cards...)
-		}
-	}
+	statues := w.StatuesForPlayer("")
 	return Snapshot{DungeonLayout: w.dungeonLayout, NorthWingDoorOpen: w.northWingDoorOpen, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 

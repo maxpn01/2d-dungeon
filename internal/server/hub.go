@@ -92,9 +92,11 @@ func (h *Hub) Run(ctx context.Context) {
 			if !startAt.IsZero() && !matchStarted {
 				snapshot.StartCountdown = max(1, int(math.Ceil(time.Until(startAt).Seconds())))
 			}
-			message := snapshot.Message()
 			dropped := false
 			for c := range clients {
+				personalized := snapshot
+				personalized.Statues = world.StatuesForPlayer(c.id)
+				message := personalized.Message()
 				select {
 				case c.send <- message:
 				default:

@@ -10,6 +10,7 @@ import (
 )
 
 type Actor struct {
+	Aiming         bool
 	Frenzied       bool
 	ID, Label      string
 	X, Y, Size, HP float64
@@ -46,6 +47,11 @@ func DrawAIActor(ai Actor, exploration Visibility) {
 			drawPossession(ai)
 		}
 		bounds := DrawActor(ai.X, ai.Y, ai.Size, ai.HP, ai.Combat, ai.Tint, ai.Character)
+		if ai.Aiming {
+			center := rl.NewVector2(bounds.X+bounds.Width/2, bounds.Y+bounds.Height/2)
+			radius := max(bounds.Width, bounds.Height)*.75 + 4
+			rl.DrawRing(center, radius, radius+2, 0, 360, 32, rl.Orange)
+		}
 		if ai.Frenzied {
 			drawPossessedEyes(bounds)
 		}

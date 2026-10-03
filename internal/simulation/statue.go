@@ -11,6 +11,7 @@ const StatueInteractionRadius = 100.0
 
 type StatueState struct {
 	rechargeUntil     uint64
+	offers            map[string][]PerkCard
 	RechargeRemaining float64    `json:"recharge_remaining,omitempty"`
 	ID                string     `json:"id"`
 	X                 float64    `json:"x"`
@@ -47,13 +48,22 @@ func (w *World) interactStatue(p *playerState) bool {
 		return false
 	}
 	s := &w.statues[nearest]
-	if !worldmap.IsWingStatue(s.ID) && s.Cards == nil {
-		s.Cards = perkOffer(p.Stats)
-		if len(s.Cards) == 0 {
-			s.Cards = perkOffer(NewStats())
+	if !worldmap.IsWingStatue(s.ID) {
+		if s.offers == nil {
+			s.offers = make(map[string][]PerkCard)
 		}
-		if s.Cards == nil {
-			s.Cards = []PerkCard{}
+		refresh := s.offers[p.ID] == nil
+		for _, card := range s.offers[p.ID] {
+			if card.Rank <= p.Stats.Perks[card.Family] {
+				refresh = true
+				break
+			}
+		}
+		if refresh {
+			s.offers[p.ID] = perkOffer(p.Stats)
+			if s.offers[p.ID] == nil {
+				s.offers[p.ID] = []PerkCard{}
+			}
 		}
 	}
 	p.ActiveStatue = s.ID
@@ -76,7 +86,7 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 		if s.ID != statueID {
 			continue
 		}
-		if s.ClaimedBy != "" || s.Cycle != cycle || !s.Near(p.X, p.Y, w.openSecrets) || card < 0 || (!worldmap.IsWingStatue(s.ID) && card >= len(s.Cards)) {
+		if s.ClaimedBy != "" || s.Cycle != cycle || !s.Near(p.X, p.Y, w.openSecrets) || card < 0 || (!worldmap.IsWingStatue(s.ID) && card >= len(s.offers[id])) {
 			return false
 		}
 		if worldmap.IsWingStatue(s.ID) {
@@ -84,7 +94,7 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 				return false
 			}
 			p.HasWings = true
-		} else if !p.Stats.ApplyPerk(s.Cards[card]) {
+		} else if !p.Stats.ApplyPerk(s.offers[id][card]) {
 			return false
 		}
 		s.ClaimedBy = id
@@ -92,6 +102,7 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 			s.rechargeUntil = w.tick + parameters.StatueRechargeSeconds*TickRate
 			s.RechargeRemaining = parameters.StatueRechargeSeconds
 			s.Cards = nil
+			s.offers = nil
 		}
 		for _, viewer := range w.players {
 			if viewer.ActiveStatue == statueID {
@@ -106,6 +117,7 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 func (w *World) releaseStatues(id string) {
 	for i := range w.statues {
 		s := &w.statues[i]
+		delete(s.offers, id)
 		if s.ClaimedBy == id && worldmap.IsWingStatue(s.ID) {
 			s.ClaimedBy, s.Cards = "", nil
 			s.Cycle++
@@ -123,14 +135,7 @@ func (w *World) updateStatues() {
 			s.RechargeRemaining = float64(s.rechargeUntil-w.tick) / TickRate
 			continue
 		}
-		stats := NewStats()
-		if p := w.players[s.ClaimedBy]; p != nil && !p.Dead {
-			stats = p.Stats
-		}
-		s.Cards = perkOffer(stats)
-		if len(s.Cards) == 0 {
-			s.Cards = perkOffer(NewStats())
-		}
+		s.Cards, s.offers = nil, nil
 		s.ClaimedBy, s.RechargeRemaining, s.rechargeUntil = "", 0, 0
 		s.Cycle++
 	}
@@ -171,8 +176,20 @@ func (w *World) Respawn(id string) bool {
 		return false
 	}
 	w.releaseStatues(id)
+	w.replenishPrivateRoute(p.EntranceID)
 	x, y := w.spawnPosition(p.spawnSlot)
 	p.Player = Player{EntranceID: p.EntranceID, EntranceGate: EntranceGateState{ID: p.EntranceID}, ID: id, X: x, Y: y, Character: p.Character, Stats: NewStats(), InputSeq: p.lastSequence}
 	p.direction, p.commands, p.progressionReset = Direction{}, nil, false
 	return true
+}
+
+func (w *World) StatuesForPlayer(id string) []StatueState {
+	statues := append([]StatueState(nil), w.statues...)
+	for i := range statues {
+		statues[i].offers = nil
+		if cards, ok := w.statues[i].offers[id]; ok {
+			statues[i].Cards = append([]PerkCard{}, cards...)
+		}
+	}
+	return statues
 }

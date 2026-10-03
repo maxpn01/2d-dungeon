@@ -25,6 +25,7 @@ const (
 )
 
 type AI struct {
+	Aiming    bool
 	Frenzied  bool
 	Combat    CombatState
 	Behavior  string
@@ -36,6 +37,12 @@ type AI struct {
 }
 
 type aiState struct {
+	shotTargetID       string
+	aimTargetID        string
+	aimSince           uint64
+	aimLastSeen        uint64
+	aimReady           bool
+	spawnMaxHP         float64
 	frenzyBase         Stats
 	orbTargetID        string
 	orbPathFound       bool
@@ -70,16 +77,8 @@ type aiState struct {
 func (w *World) newDenAI(den worldmap.Den) aiState {
 	w.nextAI++
 	x, y := worldmap.CellPosition(den.At.X, den.At.Y, AISize)
-	stats := NewStatsAtLevel(den.Level)
-	stats.Speed = AISpeed * .65
-	stats.Damage, stats.AttackRate = parameters.MobDamage, parameters.MobAttackRate
-	if den.Damage > 0 {
-		stats.Damage = den.Damage
-	}
-	if den.AttackRate > 0 {
-		stats.AttackRate = den.AttackRate
-	}
-	return aiState{den: den, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "patrolling", Character: Square}}
+	stats := NewMobStatsAtLevel(den.Level)
+	return aiState{spawnMaxHP: stats.MaxHP(), den: den, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "patrolling", Character: Square}}
 }
 
 func (w *World) spawnEntranceGuards() {
@@ -100,10 +99,8 @@ func (w *World) spawnAIs() {
 
 func (w *World) newSurfaceAI(slot int) aiState {
 	w.nextAI++
-	stats := NewStats()
-	stats.Speed = AISpeed
-	stats.Damage, stats.AttackRate = parameters.MobDamage, parameters.MobAttackRate
-	return aiState{settleTicks: AISettleTicks, AI: AI{
+	stats := NewMobStatsAtLevel(1)
+	return aiState{spawnMaxHP: stats.MaxHP(), settleTicks: AISettleTicks, AI: AI{
 		ID: fmt.Sprintf("ai-%d", w.nextAI), X: 600 + float64(slot%3)*450,
 		Y: 400 + float64(slot/3)*650, Stats: stats, Behavior: "emerging", Character: Square,
 	}}
@@ -129,32 +126,46 @@ func (w *World) updateAIs() {
 		ai.X, ai.Y, ai.Stats, ai.Combat, ai.Split = actor.X, actor.Y, actor.Stats, actor.Combat, actor.Split
 		if worldmap.Default().PrivateGateCrossed(oldX, oldY, ai.X, ai.Y, AISize) || ai.den.ID != "" && !w.aiWithinTerritory(ai) {
 			ai.X, ai.Y = oldX, oldY
+			if ai.aggressorID != "" {
+				ai.aggressorID, ai.alertUntil = "", 0
+				ai.returning = true
+				ai.Behavior = "returning"
+			}
 		}
 	}
 }
 
-func (w *World) aiInput(ai *aiState) Direction {
+func (w *World) aiIntent(ai *aiState) Direction {
 	if carrier := w.orbTarget(ai); carrier != nil {
 		d := w.huntOrb(ai, carrier)
 		offset := uint64(math.Abs(float64(ai.den.At.X*17 + ai.den.At.Y*31)))
 		d.Boost = ai.Frenzied && (d.X != 0 || d.Y != 0) && (w.tick+offset)%parameters.AIFrenzyBoostCycleTicks < parameters.AIFrenzyBoostTicks
 		return d
 	}
+	if ai.orbTargetID != "" {
+		ai.returning = true
+		ai.aggressorID, ai.alertUntil = "", 0
+	}
 	ai.orbTargetID = ""
 	ai.orbPathUntil = 0
 	ai.orbPathFound = false
+	if ai.returning || ai.aggressorID != "" && w.tick >= ai.alertUntil {
+		if d, returning := w.investigateAI(ai); returning {
+			return d
+		}
+	}
 	if target := w.rangedTarget(ai); target != nil {
+		ai.shotTargetID = target.ID
 		dx, dy := target.X-ai.X, target.Y-ai.Y
 		length := math.Hypot(dx, dy)
 		d := Direction{AimX: dx / max(1, length), AimY: dy / max(1, length), Shoot: true}
 		ai.Behavior = "attacking"
-		if target.ID == ai.aggressorID && w.tick < ai.alertUntil {
-			ai.alertX, ai.alertY = target.X, target.Y
-			ai.alertUntil = w.tick + parameters.AIAlertSeconds*TickRate
-		}
-		if (ai.den.ID == "" || w.tick < ai.alertUntil) && length > parameters.AIFiringDistance {
+		if ai.den.ID == "" && length > parameters.AIFiringDistance {
 			ai.Behavior = "pursuing"
 			movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets), target.X, target.Y)
+			d.X, d.Y = movement.X, movement.Y
+		} else if ai.aggressorID != "" && w.tick < ai.alertUntil {
+			movement, _ := w.investigateAI(ai)
 			d.X, d.Y = movement.X, movement.Y
 		}
 		return d

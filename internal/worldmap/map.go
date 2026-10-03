@@ -21,8 +21,6 @@ type Den struct {
 	At         Cell
 	Patrol     CellRect
 	Level      int
-	Damage     float64
-	AttackRate float64
 	Respawn    time.Duration
 }
 
@@ -117,7 +115,7 @@ func New(layout Layout) (*Map, error) {
 			}
 			if area.Guard != nil {
 				guard := area.Guard
-				m.dens = append(m.dens, Den{ID: area.ID, RoomID: room.ID, At: at, Patrol: Around(at, guard.PatrolRadius), Level: guard.Level, Damage: guard.Damage, AttackRate: guard.AttackRate, Respawn: guard.Respawn})
+				m.dens = append(m.dens, Den{ID: area.ID, RoomID: room.ID, At: at, Patrol: Around(at, guard.PatrolRadius), Level: guard.Level, Respawn: guard.Respawn})
 			}
 		}
 		for _, gate := range room.Gates {

@@ -19,6 +19,7 @@ const (
 )
 
 type Stats struct {
+	Mob             bool                 `json:"mob,omitempty"`
 	Level           int                  `json:"level"`
 	XP              float64              `json:"xp"`
 	HP              float64              `json:"hp"`
@@ -32,14 +33,28 @@ type Stats struct {
 }
 
 func NewStats() Stats {
-	return Stats{Level: 1, HP: StartingHP, MP: StartingMP, Speed: PlayerSpeed, Damage: parameters.ShotDamage, AttackRate: parameters.PlayerAttackRate, BoostMultiplier: BoostMultiplier, BoostCost: BoostMPPerSecond}
+	return NewStatsAtLevel(1)
 }
 
 func NewStatsAtLevel(level int) Stats {
-	stats := NewStats()
-	stats.Level = max(1, min(MaxLevel, level))
+	stats := Stats{Level: max(1, min(MaxLevel, level))}
+	stats.rebuildPerks()
 	stats.HP, stats.MP = stats.MaxHP(), stats.MaxMP()
 	return stats
+}
+
+func NewMobStatsAtLevel(level int) Stats {
+	stats := NewStatsAtLevel(level)
+	stats.Mob = true
+	stats.rebuildPerks()
+	return stats
+}
+
+func (s Stats) baseMultiplier() float64 {
+	if s.Mob {
+		return parameters.MobBaseStatMultiplier
+	}
+	return 1
 }
 
 func (s Stats) MaxHP() float64 {
@@ -61,6 +76,7 @@ func (s *Stats) GainXP(amount float64) {
 	if amount <= 0 || math.IsNaN(amount) || math.IsInf(amount, 0) || s.Level >= MaxLevel {
 		return
 	}
+	previousLevel := s.Level
 	s.XP += amount
 	for s.Level < MaxLevel && s.XP >= XPForNextLevel(s.Level) {
 		s.XP -= XPForNextLevel(s.Level)
@@ -69,6 +85,18 @@ func (s *Stats) GainXP(amount float64) {
 	if s.Level == MaxLevel {
 		s.XP = 0
 	}
+	if s.Level != previousLevel {
+		s.rebuildPerks()
+	}
+}
+
+func AttackRateForLevel(level int) float64 {
+	return attackRateForLevel(level, 1)
+}
+
+func attackRateForLevel(level int, baseMultiplier float64) float64 {
+	level = max(1, min(MaxLevel, level))
+	return parameters.BaseAttackRate*baseMultiplier + parameters.AttackRatePerLevelIncrease*float64(level-1)
 }
 
 func MaxHPForLevel(level int) float64 {

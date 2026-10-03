@@ -38,7 +38,7 @@ func (w *World) updateBossLife() {
 	b.Accelerating = false
 	dx, dy := b.AttackTarget.X-b.X, b.AttackTarget.Y-b.Y
 	distance := math.Hypot(dx, dy)
-	b.speed += max(-.3, min(.3, PlayerSpeed*.65-b.speed))
+	b.speed += max(-.3, min(.3, BaseSpeed*.65-b.speed))
 	if distance > 0 {
 		b.heading = math.Atan2(dy, dx)
 		travel := min(distance, b.speed*SpeedScale*StepSeconds)
@@ -69,7 +69,7 @@ func (w *World) fleeBoss(threat bossTarget) {
 	b.tactic("fleeing", 0)
 	b.Chain = 0
 	b.targetID = ""
-	b.speed += max(-.3, min(.3, PlayerSpeed*.9-b.speed))
+	b.speed += max(-.3, min(.3, BaseSpeed*.9-b.speed))
 	travel := b.speed * SpeedScale * StepSeconds
 	best := -1.0
 	bestX, bestY := b.X, b.Y

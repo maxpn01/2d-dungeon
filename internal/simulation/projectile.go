@@ -38,12 +38,18 @@ func (w *World) fire(p *Player, input Direction) {
 		return
 	}
 	length := math.Hypot(input.AimX, input.AimY)
+	direction := Direction{X: input.AimX / length, Y: input.AimY / length}
+	if p.Stats.Mob {
+		spread := (1 - parameters.MobAimAccuracy) * math.Pi / 2
+		angle := math.Atan2(direction.Y, direction.X) + (rand.Float64()*2-1)*spread
+		direction.X, direction.Y = math.Cos(angle), math.Sin(angle)
+	}
 	size := p.Stats.ShotSize()
 	w.nextProjectile++
 	w.projectiles = append(w.projectiles, Projectile{
 		ID: fmt.Sprintf("shot-%d", w.nextProjectile), Owner: p.ID, originX: p.X, originY: p.Y,
 		X: p.X + (PlayerSize-size)/2, Y: p.Y + (PlayerSize-size)/2,
-		Direction: Direction{X: input.AimX / length, Y: input.AimY / length}, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage, Size: size,
+		Direction: direction, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage, Size: size,
 	})
 }
 
@@ -110,6 +116,9 @@ func (w *World) advanceProjectiles(actors []eater) {
 }
 
 func (w *World) dropKillLoot(target eater, hp, mp float64) {
+	if target.ai != nil && target.cell == nil {
+		hp = target.ai.spawnMaxHP
+	}
 	drops := 0
 	for _, fruit := range w.fruits {
 		if fruit.Source != "" {
@@ -128,6 +137,8 @@ func (w *World) dropKillLoot(target eater, hp, mp float64) {
 		hpCount--
 		mpCount = 1
 	}
+	hp = min(hp, float64(hpCount))
+	mp = min(mp, float64(mpCount)*parameters.FruitMP)
 	for i := 0; i < hpCount+mpCount; i++ {
 		size, _ := naturalFoodType()
 		angle := rand.Float64() * 2 * math.Pi
@@ -153,11 +164,7 @@ func (w *World) rangedTarget(ai *aiState) *playerState {
 	for _, p := range w.players {
 		distance := math.Hypot(p.X-ai.X, p.Y-ai.Y)
 		alerted := p.ID == ai.aggressorID && w.tick < ai.alertUntil
-		radius := AIDetectionRadius
-		if alerted {
-			radius = parameters.ShotSpeed * parameters.ShotLifetime
-		}
-		if !w.aiCanSeePlayer(ai, p, radius) {
+		if !w.aiCanSeePlayer(ai, p, AIDetectionRadius) {
 			continue
 		}
 		if alerted {
