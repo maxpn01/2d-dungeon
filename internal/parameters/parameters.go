@@ -208,4 +208,5 @@ const (
 	ChatCooldown                  = 500 * time.Millisecond
 	MessagesPerSecond             = 120.0
 	MatchCountdownSeconds         = 3
+	ResultsDelaySeconds           = 3
 )

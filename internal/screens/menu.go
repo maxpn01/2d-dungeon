@@ -17,6 +17,9 @@ const (
 	ActionSettings
 	ActionSaveSettings
 	ActionStartGame
+	ActionRematch
+	ActionContinueExploring
+	ActionShowResults
 )
 
 type MenuButton struct {

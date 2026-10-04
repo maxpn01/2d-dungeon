@@ -111,6 +111,7 @@ func (s *Session) ChoosePerk(statueID string, cycle uint64, card int) {
 }
 
 func (s *Session) CloseOffer() { s.sendControl(protocol.ClientMessage{Type: protocol.TypeCloseOffer}) }
+func (s *Session) Rematch()    { s.sendControl(protocol.ClientMessage{Type: protocol.TypeRematch}) }
 func (s *Session) StartGame()  { s.sendControl(protocol.ClientMessage{Type: protocol.TypeStartGame}) }
 func (s *Session) Respawn()    { s.sendControl(protocol.ClientMessage{Type: protocol.TypeRespawn}) }
 
@@ -248,7 +249,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 	}()
 	defer func() { stop(); <-writerDone }()
 
-	var lastTick, lastAck uint64
+	var lastTick, lastAck, roundID uint64
 	var dungeonLayout string
 	for {
 		message, err := read(ioCtx)
@@ -271,10 +272,14 @@ func (s *Session) run(ctx context.Context, url string) error {
 		if message.Type != protocol.TypeSnapshot || message.Players == nil || message.Fruits == nil || message.AIs == nil {
 			return errors.New("server sent an unexpected message")
 		}
-		if message.Tick < lastTick {
+		newRound := message.RoundID != roundID
+		if message.RoundID == 0 || message.RoundID < roundID {
+			return errors.New("server sent an invalid round")
+		}
+		if !newRound && message.Tick < lastTick {
 			return errors.New("server tick moved backwards")
 		}
-		if dungeonLayout != "" && message.DungeonLayout != dungeonLayout {
+		if !newRound && dungeonLayout != "" && message.DungeonLayout != dungeonLayout {
 			return errors.New("server changed the dungeon layout during play")
 		}
 		s.inputMu.Lock()
@@ -287,7 +292,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 		if err := protocol.ValidateSnapshot(message.Snapshot(), welcome.PlayerID); err != nil {
 			return err
 		}
-		lastTick = message.Tick
+		lastTick, roundID = message.Tick, message.RoundID
 		var local protocol.Player
 		for _, player := range *message.Players {
 			if player.ID == welcome.PlayerID {
@@ -309,7 +314,10 @@ func (s *Session) run(ctx context.Context, url string) error {
 		s.safeZones = message.SafeZones
 		s.dead = local.Dead
 		s.matchStarted = message.MatchStarted
-		if s.dead || !s.matchStarted {
+		if newRound {
+			s.direction = protocol.Direction{}
+		}
+		if newRound || s.dead || !s.matchStarted {
 			s.pending = nil
 		}
 		for _, input := range s.pending {

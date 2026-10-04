@@ -205,3 +205,12 @@ Guards aim for 0.4 seconds before their first shot, showing an amber ring. Losin
 line of sight cancels an unfinished aim. Once aiming completes, brief cover does
 not restart the delay; one second without a visible target resets it. Switching
 targets requires a fresh aim. Sustained fire keeps the normal attack rate.
+
+A round finishes when the first player reaches the next floor. The winner and
+round time stay fixed while exploration continues. After three seconds, a results
+popup appears over the game. Continue exploring dismisses it; Round results
+reopens it later. Both players must request a rematch before the three-second countdown.
+A rematch creates a fresh randomized dungeon, resets progression and objectives,
+and clears client exploration, effects, and interpolation while preserving player
+identities, characters, chat, and input sequence continuity. Leaving during the
+countdown cancels it and clears readiness. Solo results offer Play again.

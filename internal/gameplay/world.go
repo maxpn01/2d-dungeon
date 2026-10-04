@@ -41,7 +41,7 @@ func NewWorld() *World {
 
 func (w *World) Update(dt float32) {
 	w.accumulator += float64(min(dt, 0.25))
-	for w.accumulator >= simulation.StepSeconds && !w.Dead() {
+	for w.accumulator >= simulation.StepSeconds && !w.Dead() && !w.ResultsOpen() {
 		now := time.Now()
 		w.simulation.Input(localPlayerID, w.direction.Simulation(), now)
 		w.direction.Shoot, w.direction.Dash, w.direction.Interact = false, false, false

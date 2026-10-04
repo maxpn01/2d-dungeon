@@ -5,18 +5,26 @@ import (
 	"raylib-2d-sandbox/internal/rendering"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	maprender "raylib-2d-sandbox/internal/rendering/worldmap"
+	"raylib-2d-sandbox/internal/screens"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type presentation struct {
-	gameMap   *maprender.Map
-	feedback  rendering.Feedback
-	perks     hud.PerkPanel
-	statsOpen bool
+	gameMap           *maprender.Map
+	feedback          rendering.Feedback
+	perks             hud.PerkPanel
+	statsOpen         bool
+	rematch           *screens.MenuButton
+	resultsMenu       *screens.MenuButton
+	continueExploring *screens.MenuButton
+	showResults       *screens.MenuButton
+	resultsDismissed  bool
 }
 
-func newPresentation() presentation { return presentation{gameMap: maprender.NewMap()} }
+func newPresentation() presentation {
+	return presentation{gameMap: maprender.NewMap(), rematch: screens.NewMenuButton("Rematch", screens.ActionRematch), resultsMenu: screens.NewMenuButton("Back to menu", screens.ActionMenu), continueExploring: screens.NewMenuButton("Continue exploring", screens.ActionContinueExploring), showResults: screens.NewMenuButton("Round results", screens.ActionShowResults)}
+}
 
 func (p *presentation) draw(ctx primitives.Context, scene rendering.Scene, multiplayer bool) {
 	scene.Map, scene.Feedback = p.gameMap, &p.feedback

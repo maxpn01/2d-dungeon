@@ -51,6 +51,7 @@ func (h *Hub) Run(ctx context.Context) {
 	names := make(map[string]string)
 	world := simulation.NewWorld()
 	matchStarted := false
+	roundID := uint64(1)
 	var startAt time.Time
 	ticker := time.NewTicker(time.Second / simulation.TickRate)
 	defer ticker.Stop()
@@ -59,8 +60,11 @@ func (h *Hub) Run(ctx context.Context) {
 		delete(clients, c)
 		delete(names, c.id)
 		world.Leave(c.id)
-		if !matchStarted {
+		if !matchStarted || world.Finished() {
 			startAt = time.Time{}
+			if world.Finished() && len(clients) > 0 {
+				matchStarted = true
+			}
 			for remaining := range clients {
 				remaining.ready = false
 			}
@@ -69,6 +73,7 @@ func (h *Hub) Run(ctx context.Context) {
 			matchStarted = false
 			startAt = time.Time{}
 			world = simulation.NewWorld()
+			roundID++
 		}
 		c.cancel()
 	}
@@ -81,6 +86,7 @@ func (h *Hub) Run(ctx context.Context) {
 	broadcast := func() {
 		for {
 			snapshot := protocol.SnapshotFromSimulation(world.Snapshot(), names)
+			snapshot.RoundID = roundID
 			snapshot.MatchStarted = matchStarted
 			for i := range snapshot.Players {
 				for c := range clients {
@@ -117,11 +123,22 @@ func (h *Hub) Run(ctx context.Context) {
 		case <-ticker.C:
 			now := time.Now()
 			if !matchStarted && !startAt.IsZero() && !now.Before(startAt) {
+				if world.Finished() {
+					world.RestartRound()
+					roundID++
+				}
 				world.DiscardInputs()
+				startAt = time.Time{}
 				matchStarted = true
 			}
 			if matchStarted {
+				wasFinished := world.Finished()
 				world.Step(now)
+				if !wasFinished && world.Finished() {
+					for c := range clients {
+						c.ready = false
+					}
+				}
 			}
 			broadcast()
 		case c := <-h.join:
@@ -150,14 +167,16 @@ func (h *Hub) Run(ctx context.Context) {
 				continue
 			}
 			switch event.message.Type {
-			case protocol.TypeStartGame:
-				if !matchStarted && startAt.IsZero() {
+			case protocol.TypeStartGame, protocol.TypeRematch:
+				rematch := event.message.Type == protocol.TypeRematch
+				if startAt.IsZero() && (rematch && world.Finished() || !rematch && !matchStarted && !world.Finished()) {
 					event.client.ready = true
 					allReady := len(clients) == simulation.MaxPlayers
 					for c := range clients {
 						allReady = allReady && c.ready
 					}
 					if allReady {
+						matchStarted = false
 						startAt = time.Now().Add(parameters.MatchCountdownSeconds * time.Second)
 					}
 					broadcast()

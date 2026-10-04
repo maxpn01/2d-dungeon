@@ -88,6 +88,7 @@ type World struct {
 	wingDoorOpen      float64
 	northWingDoorOpen float64
 	winnerID          string
+	finishedTick      uint64
 	secretWallHits    map[string]int
 	openSecrets       []string
 	orb               OrbState
@@ -313,6 +314,7 @@ type Snapshot struct {
 	WingDoorOpen      float64
 	NorthWingDoorOpen float64
 	WinnerID          string
+	FinishedTick      uint64
 	OpenSecrets       []string
 	Orb               OrbState
 	Statues           []StatueState
@@ -350,7 +352,7 @@ func (w *World) Snapshot() Snapshot {
 	boss := w.boss
 	boss.Tail = append([]Point(nil), boss.Tail...)
 	statues := w.StatuesForPlayer("")
-	return Snapshot{DungeonLayout: w.dungeonLayout, NorthWingDoorOpen: w.northWingDoorOpen, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	return Snapshot{DungeonLayout: w.dungeonLayout, NorthWingDoorOpen: w.northWingDoorOpen, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, FinishedTick: w.finishedTick, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }

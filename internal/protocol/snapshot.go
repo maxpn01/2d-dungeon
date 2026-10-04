@@ -3,11 +3,13 @@ package protocol
 import "raylib-2d-sandbox/internal/simulation"
 
 type Snapshot struct {
+	RoundID           uint64              `json:"round_id"`
 	MatchStarted      bool                `json:"match_started"`
 	StartCountdown    int                 `json:"start_countdown"`
 	DungeonLayout     string              `json:"dungeon_layout"`
 	WingDoorOpen      float64             `json:"wing_door_open"`
 	NorthWingDoorOpen float64             `json:"north_wing_door_open"`
+	FinishedTick      uint64              `json:"finished_tick"`
 	WinnerID          string              `json:"winner_id,omitempty"`
 	OpenSecrets       []string            `json:"open_secrets"`
 	Orb               simulation.OrbState `json:"orb"`
@@ -24,7 +26,7 @@ type Snapshot struct {
 func SnapshotFromSimulation(state simulation.Snapshot, names map[string]string) Snapshot {
 	snapshot := Snapshot{
 		DungeonLayout:     state.DungeonLayout,
-		NorthWingDoorOpen: state.NorthWingDoorOpen, WingDoorOpen: state.WingDoorOpen, WinnerID: state.WinnerID, OpenSecrets: state.OpenSecrets, Orb: state.Orb, Statues: state.Statues, Projectiles: state.Projectiles, SafeZones: state.SafeZones,
+		NorthWingDoorOpen: state.NorthWingDoorOpen, WingDoorOpen: state.WingDoorOpen, WinnerID: state.WinnerID, FinishedTick: state.FinishedTick, OpenSecrets: state.OpenSecrets, Orb: state.Orb, Statues: state.Statues, Projectiles: state.Projectiles, SafeZones: state.SafeZones,
 		Boss: state.Boss, Tick: state.Tick,
 		Players: make([]Player, 0, len(state.Players)),
 		AIs:     make([]AI, 0, len(state.AIs)), Fruits: make([]Fruit, 0, len(state.Fruits)),
@@ -53,15 +55,15 @@ func SnapshotFromSimulation(state simulation.Snapshot, names map[string]string) 
 
 func (s Snapshot) Message() Message {
 	return Message{
-		MatchStarted: s.MatchStarted, StartCountdown: s.StartCountdown,
+		RoundID: s.RoundID, MatchStarted: s.MatchStarted, StartCountdown: s.StartCountdown,
 		DungeonLayout:     s.DungeonLayout,
-		NorthWingDoorOpen: s.NorthWingDoorOpen, WingDoorOpen: s.WingDoorOpen, WinnerID: s.WinnerID, OpenSecrets: s.OpenSecrets, Orb: s.Orb, Statues: s.Statues, Projectiles: s.Projectiles, SafeZones: s.SafeZones, Boss: s.Boss,
+		NorthWingDoorOpen: s.NorthWingDoorOpen, WingDoorOpen: s.WingDoorOpen, WinnerID: s.WinnerID, FinishedTick: s.FinishedTick, OpenSecrets: s.OpenSecrets, Orb: s.Orb, Statues: s.Statues, Projectiles: s.Projectiles, SafeZones: s.SafeZones, Boss: s.Boss,
 		Type: TypeSnapshot, Tick: s.Tick, Players: &s.Players, Fruits: &s.Fruits, AIs: &s.AIs,
 	}
 }
 
 func (m Message) Snapshot() Snapshot {
-	snapshot := Snapshot{MatchStarted: m.MatchStarted, StartCountdown: m.StartCountdown, DungeonLayout: m.DungeonLayout, NorthWingDoorOpen: m.NorthWingDoorOpen, WingDoorOpen: m.WingDoorOpen, WinnerID: m.WinnerID, OpenSecrets: m.OpenSecrets, Orb: m.Orb, Statues: m.Statues, Projectiles: m.Projectiles, SafeZones: m.SafeZones, Boss: m.Boss, Tick: m.Tick}
+	snapshot := Snapshot{RoundID: m.RoundID, MatchStarted: m.MatchStarted, StartCountdown: m.StartCountdown, DungeonLayout: m.DungeonLayout, NorthWingDoorOpen: m.NorthWingDoorOpen, WingDoorOpen: m.WingDoorOpen, WinnerID: m.WinnerID, FinishedTick: m.FinishedTick, OpenSecrets: m.OpenSecrets, Orb: m.Orb, Statues: m.Statues, Projectiles: m.Projectiles, SafeZones: m.SafeZones, Boss: m.Boss, Tick: m.Tick}
 	if m.Players != nil {
 		snapshot.Players = *m.Players
 	}

@@ -63,8 +63,16 @@ func (m *Multiplayer) Poll() {
 			}
 			return
 		}
+		if m.view.Ready && update.RoundID != m.view.RoundID {
+			m.presentation = newPresentation()
+			m.motion = client.Motion{}
+			m.previousProjectiles = nil
+			m.controls = controls{suppressShootUntilRelease: true}
+		}
 		m.feedback.Observe(time.Now(), update.Snapshot, update.PlayerID)
-		m.previousProjectiles = m.view.Projectiles
+		if update.RoundID == m.view.RoundID {
+			m.previousProjectiles = m.view.Projectiles
+		}
 		m.projectileInterval = simulation.StepSeconds
 		if update.Tick > m.view.Tick && m.view.Ready {
 			m.projectileInterval = float64(update.Tick-m.view.Tick) / simulation.TickRate
@@ -77,6 +85,14 @@ func (m *Multiplayer) Poll() {
 
 func (m *Multiplayer) ReadInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 	m.controls.releaseShoot()
+	if m.ResultsOpen() {
+		m.CloseStats()
+		m.perks = hud.PerkPanel{}
+		m.controls.suppressShootUntilRelease = true
+		m.session.SetInput(protocol.Direction{})
+		m.chat.Update(m.view.Ready, false, m.errorText, m.session.SendChat)
+		return
+	}
 	s := m.perks.Sync(m.view.Local.ActiveStatue, m.view.Statues)
 	if !mapOpen && !m.StatsOpen() && s == nil {
 		m.chat.Update(m.view.Ready, m.view.Local.Dead, m.errorText, m.session.SendChat)

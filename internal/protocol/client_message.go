@@ -52,7 +52,7 @@ func DecodeClientMessage(data []byte) (ClientMessage, error) {
 		if message.Perk == nil || message.Direction != nil || message.Message != "" || message.Sequence != 0 || message.Perk.StatueID == "" || len(message.Perk.StatueID) > 96 || message.Perk.Cycle == 0 || message.Perk.Card < 0 || message.Perk.Card > 2 {
 			return ClientMessage{}, errors.New("invalid perk selection")
 		}
-	case TypeCloseOffer, TypeRespawn, TypeStartGame:
+	case TypeCloseOffer, TypeRespawn, TypeStartGame, TypeRematch:
 		if message.Perk != nil || message.Direction != nil || message.Message != "" || message.Sequence != 0 {
 			return ClientMessage{}, errors.New("invalid control message")
 		}

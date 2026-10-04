@@ -132,7 +132,7 @@ func (g *Game) run() {
 		if rl.IsKeyPressed(rl.KeyP) && !rl.IsKeyPressed(rl.KeyEscape) && rl.IsWindowFocused() && !mapOpen {
 			switch current {
 			case screenSinglePlayer:
-				if !g.world.Dead() && !g.world.PerksOpen() {
+				if !g.world.Dead() && !g.world.ResultsOpen() && !g.world.PerksOpen() {
 					g.world.ToggleStats()
 				}
 			case screenMultiplayer:
@@ -145,7 +145,7 @@ func (g *Game) run() {
 		if rl.IsKeyPressed(rl.KeyM) && !rl.IsKeyPressed(rl.KeyEscape) && rl.IsWindowFocused() {
 			switch current {
 			case screenSinglePlayer:
-				if !g.world.Dead() && !g.world.PerksOpen() && !g.world.StatsOpen() {
+				if !g.world.Dead() && !g.world.ResultsOpen() && !g.world.PerksOpen() && !g.world.StatsOpen() {
 					mapOpen = !mapOpen
 				}
 			case screenMultiplayer:
@@ -157,14 +157,14 @@ func (g *Game) run() {
 		}
 		switch current {
 		case screenSinglePlayer:
-			if !g.world.Dead() && !mapOpen {
+			if !g.world.Dead() && !g.world.ResultsOpen() && !mapOpen {
 				g.world.ReadInput(g.camera, g.window.width, g.window.height)
 				g.world.Update(dt)
 				g.cameraFollowPlayer()
 			}
 		case screenMultiplayer:
 			g.multiplayer.Poll()
-			if g.multiplayer.Dead() || g.multiplayer.Error() != "" {
+			if g.multiplayer.Dead() || g.multiplayer.ResultsOpen() || g.multiplayer.Error() != "" {
 				mapOpen = false
 				g.multiplayer.CloseStats()
 			}
@@ -183,18 +183,22 @@ func (g *Game) run() {
 		case screenMenu:
 			action = g.menu.Draw()
 		case screenSinglePlayer:
-			if g.world.Dead() {
+			if g.world.ResultsOpen() {
+				g.world.Draw(g.camera, g.window.width, g.window.height)
+				action = g.world.DrawResults(g.window.width, g.window.height)
+			} else if g.world.Dead() {
 				action = g.gameOver.Draw()
 			} else if mapOpen {
 				g.drawFullMap(false)
 			} else {
 				g.world.Draw(g.camera, g.window.width, g.window.height)
+				if g.world.Finished() {
+					action = g.world.DrawResultsButton(g.window.width)
+				}
 			}
 		case screenMultiplayer:
 			m := g.multiplayer
 			switch {
-			case m.Dead():
-				action = g.multiplayerGameOver.Draw()
 			case m.Error() != "":
 				action = g.connectionMenu.Draw()
 				title := "Unable to connect"
@@ -206,12 +210,20 @@ func (g *Game) run() {
 			case !m.Ready():
 				primitives.DrawCenteredText("Connecting...", g.window.height/2-30, 30, rl.RayWhite)
 				primitives.DrawCenteredText("Esc to cancel", g.window.height/2+20, 20, rl.LightGray)
+			case m.ResultsOpen():
+				m.Draw(g.camera, g.window.width, g.window.height)
+				action = m.DrawResults(g.window.width, g.window.height)
+			case m.Dead():
+				action = g.multiplayerGameOver.Draw()
 			case !m.Started():
 				action = m.DrawLobby(g.window.width, g.window.height)
 			case mapOpen:
 				g.drawFullMap(true)
 			default:
 				m.Draw(g.camera, g.window.width, g.window.height)
+				if m.Finished() {
+					action = m.DrawResultsButton(g.window.width)
+				}
 			}
 		}
 		rl.EndDrawing()
@@ -222,6 +234,24 @@ func (g *Game) run() {
 
 		// Screen transitions happen after drawing, on the same thread as raylib.
 		switch action {
+		case screens.ActionContinueExploring:
+			if current == screenMultiplayer {
+				g.multiplayer.ContinueExploring()
+			} else {
+				g.world.ContinueExploring()
+			}
+		case screens.ActionShowResults:
+			if current == screenMultiplayer {
+				g.multiplayer.ShowResults()
+			} else {
+				g.world.ShowResults()
+			}
+		case screens.ActionRematch:
+			if current == screenMultiplayer {
+				g.multiplayer.Rematch()
+			} else {
+				g.startSinglePlayer()
+			}
 		case screens.ActionStartGame:
 			g.multiplayer.StartGame()
 		case screens.ActionSettings:
@@ -258,7 +288,7 @@ func (g *Game) run() {
 }
 
 func (g *Game) startSinglePlayer() {
-	if g.world.Character() != g.settings.Character {
+	if g.world.Finished() || g.world.Character() != g.settings.Character {
 		g.world = gameplay.NewWorld()
 		g.world.Configure(g.settings.PlayerName, g.settings.Character)
 	}

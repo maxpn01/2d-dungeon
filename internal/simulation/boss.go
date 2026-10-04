@@ -392,6 +392,7 @@ func (w *World) updatePortals() {
 				p.Escaped = true
 				if w.winnerID == "" {
 					w.winnerID = p.ID
+					w.finishedTick = w.tick
 				}
 			}
 			if p.Split.Count() > 0 {

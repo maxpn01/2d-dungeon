@@ -10,4 +10,5 @@ const (
 	TypeCloseOffer = "close_offer"
 	TypeRespawn    = "respawn"
 	TypeStartGame  = "start_game"
+	TypeRematch    = "rematch"
 )

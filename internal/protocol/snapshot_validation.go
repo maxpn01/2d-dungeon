@@ -11,6 +11,9 @@ import (
 )
 
 func ValidateSnapshot(snapshot Snapshot, localID string) error {
+	if snapshot.FinishedTick > snapshot.Tick || snapshot.WinnerID == "" && snapshot.FinishedTick != 0 {
+		return errors.New("server sent invalid round finish time")
+	}
 	if snapshot.StartCountdown < 0 || snapshot.StartCountdown > parameters.MatchCountdownSeconds || snapshot.MatchStarted && snapshot.StartCountdown != 0 || snapshot.StartCountdown > 0 && len(snapshot.Players) != simulation.MaxPlayers {
 		return errors.New("server sent invalid match countdown")
 	}
