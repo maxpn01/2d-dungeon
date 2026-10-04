@@ -277,6 +277,7 @@ func (w *World) Step(now time.Time) {
 	w.advanceFood()
 	eaters := w.eaters(previous)
 	w.advanceProjectiles(eaters)
+	w.advanceSentinelSwords(eaters)
 	for id, p := range w.players {
 		old := previous[id]
 		ConstrainArena(&p.Player, old.x, old.y)

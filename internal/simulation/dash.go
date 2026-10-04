@@ -40,16 +40,18 @@ const (
 )
 
 type CombatState struct {
-	Boosting  bool      `json:"boosting,omitempty"`
-	RecoilX   float64   `json:"recoil_x,omitempty"`
-	RecoilY   float64   `json:"recoil_y,omitempty"`
-	HitGrace  float64   `json:"hit_grace,omitempty"`
-	Phase     DashPhase `json:"phase,omitempty"`
-	Remaining float64   `json:"remaining,omitempty"`
-	Facing    Direction `json:"facing"`
-	Direction Direction `json:"direction"`
-	Held      bool      `json:"held,omitempty"`
-	Attack    bool      `json:"attack,omitempty"`
+	SwordRemaining float64   `json:"sword_remaining,omitempty"`
+	SwordDirection Direction `json:"sword_direction"`
+	Boosting       bool      `json:"boosting,omitempty"`
+	RecoilX        float64   `json:"recoil_x,omitempty"`
+	RecoilY        float64   `json:"recoil_y,omitempty"`
+	HitGrace       float64   `json:"hit_grace,omitempty"`
+	Phase          DashPhase `json:"phase,omitempty"`
+	Remaining      float64   `json:"remaining,omitempty"`
+	Facing         Direction `json:"facing"`
+	Direction      Direction `json:"direction"`
+	Held           bool      `json:"held,omitempty"`
+	Attack         bool      `json:"attack,omitempty"`
 }
 
 func AdvanceDashPlayer(p *Player, input Direction, dt float64) {

@@ -67,8 +67,12 @@ maximum HP, 5 maximum MP, and 0.25 shots per second per level. The mob multiplie
 applies only to the initial combat and movement values, not level growth or HP/MP.
 Damage and movement speed stay constant before perks. Guards spawn and respawn
 with full HP/MP. Entrance guards are level 1 (10/10 HP/MP, 2.8 shots/sec); dungeon
-guards are level 2 (15/15, 3.05 shots/sec); vault sentinels are level 5 (30/30,
-3.8 shots/sec). Frenzied guards use the same mob level-5 scaling while preserving
+guards are level 2 (15/15, 3.05 shots/sec); vault sentinels are level-5 Triangles
+with 30 HP/MP. They approach players, dash across clear ground, and attack with
+magical swords instead of shooting. Sword strikes have a 0.3-second windup,
+a short forward arc, and recovery between attacks. Their only ability is dash;
+they do not boost or split. Defeating all three unlocks the orb, and they stay
+defeated for the match. Frenzied guards use the same mob level-5 scaling while preserving
 their current HP/MP percentages, then restore their original level when the hunt ends.
 
 Mob shots have a random angular spread of up to 4.5 degrees with the default

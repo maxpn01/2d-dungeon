@@ -92,7 +92,11 @@ func AdvancePlayer(p *Player, input Direction, dt float64, zones ...[]SafeZone) 
 		advanceWingPlayer(p, input, dt)
 		return
 	}
-	switch NormalizeCharacter(p.Character) {
+	character := NormalizeCharacter(p.Character)
+	if p.Stats.Mob && p.Character == Triangle {
+		character = Triangle
+	}
+	switch character {
 	case Triangle:
 		AdvanceDashPlayer(p, input, dt)
 	case Circle:

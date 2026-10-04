@@ -199,7 +199,7 @@ func validateAIs(ais []AI) error {
 			return errors.New("server sent invalid AI IDs")
 		}
 		ids[ai.ID] = true
-		if simulation.NormalizeCharacter(ai.Character) != ai.Character {
+		if simulation.NormalizeCharacter(ai.Character) != ai.Character && ai.Character != simulation.Triangle {
 			return errors.New("server sent an invalid AI character")
 		}
 		if !validCombat(ai.Combat) {
@@ -240,6 +240,9 @@ func validateAIs(ais []AI) error {
 }
 
 func validCombat(c simulation.CombatState) bool {
+	if math.IsNaN(c.SwordRemaining) || math.IsInf(c.SwordRemaining, 0) || c.SwordRemaining < 0 || c.SwordRemaining > simulation.SentinelSwordDuration || !c.SwordDirection.Valid() || c.SwordDirection.Dash {
+		return false
+	}
 	for _, v := range []float64{c.RecoilX, c.RecoilY} {
 		if math.IsNaN(v) || math.IsInf(v, 0) || math.Abs(v) > simulation.BossRecoilDistance+.001 {
 			return false

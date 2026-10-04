@@ -88,6 +88,9 @@ func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 		rl.DrawRing(center, bounds.Width*.75+4, bounds.Width*.75+7, 0, 360, 40, rl.Fade(rl.SkyBlue, pulse))
 	}
 	drawCombat(center, bounds.Width, c)
+	if character == simulation.Triangle {
+		drawSentinelSword(center, bounds.Width, c)
+	}
 	return bounds
 }
 

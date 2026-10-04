@@ -78,7 +78,11 @@ func (w *World) newDenAI(den worldmap.Den) aiState {
 	w.nextAI++
 	x, y := worldmap.CellPosition(den.At.X, den.At.Y, AISize)
 	stats := NewMobStatsAtLevel(den.Level)
-	return aiState{spawnMaxHP: stats.MaxHP(), den: den, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "patrolling", Character: Square}}
+	character := Square
+	if den.RoomID == worldmap.OrbVault {
+		character = Triangle
+	}
+	return aiState{spawnMaxHP: stats.MaxHP(), den: den, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "patrolling", Character: character}}
 }
 
 func (w *World) spawnEntranceGuards() {
@@ -136,6 +140,9 @@ func (w *World) updateAIs() {
 }
 
 func (w *World) aiIntent(ai *aiState) Direction {
+	if ai.Character == Triangle {
+		return w.sentinelInput(ai)
+	}
 	if carrier := w.orbTarget(ai); carrier != nil {
 		d := w.huntOrb(ai, carrier)
 		offset := uint64(math.Abs(float64(ai.den.At.X*17 + ai.den.At.Y*31)))
