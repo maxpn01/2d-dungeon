@@ -113,7 +113,10 @@ func (s *Session) ChoosePerk(statueID string, cycle uint64, card int) {
 func (s *Session) CloseOffer() { s.sendControl(protocol.ClientMessage{Type: protocol.TypeCloseOffer}) }
 func (s *Session) Rematch()    { s.sendControl(protocol.ClientMessage{Type: protocol.TypeRematch}) }
 func (s *Session) StartGame()  { s.sendControl(protocol.ClientMessage{Type: protocol.TypeStartGame}) }
-func (s *Session) Respawn()    { s.sendControl(protocol.ClientMessage{Type: protocol.TypeRespawn}) }
+func (s *Session) BriefingDone() {
+	s.sendControl(protocol.ClientMessage{Type: protocol.TypeBriefingDone})
+}
+func (s *Session) Respawn() { s.sendControl(protocol.ClientMessage{Type: protocol.TypeRespawn}) }
 
 func (s *Session) input() protocol.Direction {
 	s.inputMu.Lock()

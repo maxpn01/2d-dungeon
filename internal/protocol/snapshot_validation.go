@@ -11,6 +11,9 @@ import (
 )
 
 func ValidateSnapshot(snapshot Snapshot, localID string) error {
+	if snapshot.BriefingActive && (snapshot.MatchStarted || snapshot.StartCountdown != 0 || len(snapshot.Players) != simulation.MaxPlayers) {
+		return errors.New("server sent invalid briefing state")
+	}
 	if snapshot.FinishedTick > snapshot.Tick || snapshot.WinnerID == "" && snapshot.FinishedTick != 0 {
 		return errors.New("server sent invalid round finish time")
 	}

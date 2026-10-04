@@ -5,6 +5,7 @@ import "raylib-2d-sandbox/internal/simulation"
 type Snapshot struct {
 	RoundID           uint64              `json:"round_id"`
 	MatchStarted      bool                `json:"match_started"`
+	BriefingActive    bool                `json:"briefing_active"`
 	StartCountdown    int                 `json:"start_countdown"`
 	DungeonLayout     string              `json:"dungeon_layout"`
 	WingDoorOpen      float64             `json:"wing_door_open"`
@@ -55,7 +56,7 @@ func SnapshotFromSimulation(state simulation.Snapshot, names map[string]string) 
 
 func (s Snapshot) Message() Message {
 	return Message{
-		RoundID: s.RoundID, MatchStarted: s.MatchStarted, StartCountdown: s.StartCountdown,
+		RoundID: s.RoundID, MatchStarted: s.MatchStarted, BriefingActive: s.BriefingActive, StartCountdown: s.StartCountdown,
 		DungeonLayout:     s.DungeonLayout,
 		NorthWingDoorOpen: s.NorthWingDoorOpen, WingDoorOpen: s.WingDoorOpen, WinnerID: s.WinnerID, FinishedTick: s.FinishedTick, OpenSecrets: s.OpenSecrets, Orb: s.Orb, Statues: s.Statues, Projectiles: s.Projectiles, SafeZones: s.SafeZones, Boss: s.Boss,
 		Type: TypeSnapshot, Tick: s.Tick, Players: &s.Players, Fruits: &s.Fruits, AIs: &s.AIs,
@@ -64,6 +65,7 @@ func (s Snapshot) Message() Message {
 
 func (m Message) Snapshot() Snapshot {
 	snapshot := Snapshot{RoundID: m.RoundID, MatchStarted: m.MatchStarted, StartCountdown: m.StartCountdown, DungeonLayout: m.DungeonLayout, NorthWingDoorOpen: m.NorthWingDoorOpen, WingDoorOpen: m.WingDoorOpen, WinnerID: m.WinnerID, FinishedTick: m.FinishedTick, OpenSecrets: m.OpenSecrets, Orb: m.Orb, Statues: m.Statues, Projectiles: m.Projectiles, SafeZones: m.SafeZones, Boss: m.Boss, Tick: m.Tick}
+	snapshot.BriefingActive = m.BriefingActive
 	if m.Players != nil {
 		snapshot.Players = *m.Players
 	}

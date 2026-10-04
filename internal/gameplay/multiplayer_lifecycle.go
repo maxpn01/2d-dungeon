@@ -5,12 +5,15 @@ import (
 	"raylib-2d-sandbox/internal/protocol"
 )
 
-func (m *Multiplayer) Close()        { m.session.Close() }
-func (m *Multiplayer) Started() bool { return m.view.MatchStarted }
-func (m *Multiplayer) StartGame()    { m.session.StartGame() }
-func (m *Multiplayer) Ready() bool   { return m.view.Ready }
-func (m *Multiplayer) Dead() bool    { return m.view.Local.Dead }
-func (m *Multiplayer) Error() string { return m.errorText }
+func (m *Multiplayer) Close()               { m.session.Close() }
+func (m *Multiplayer) Started() bool        { return m.view.MatchStarted }
+func (m *Multiplayer) StartGame()           { m.session.StartGame() }
+func (m *Multiplayer) BriefingActive() bool { return m.view.BriefingActive }
+func (m *Multiplayer) BriefingDone()        { m.session.BriefingDone() }
+func (m *Multiplayer) StartCountdown() int  { return m.view.StartCountdown }
+func (m *Multiplayer) Ready() bool          { return m.view.Ready }
+func (m *Multiplayer) Dead() bool           { return m.view.Local.Dead }
+func (m *Multiplayer) Error() string        { return m.errorText }
 func (m *Multiplayer) PerksOpen() bool {
 	return !m.ResultsOpen() && m.view.Local.ActiveStatue != "" && !m.perks.Closing
 }

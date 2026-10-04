@@ -21,6 +21,8 @@ type Game struct {
 	serverURL           string
 	multiplayer         *gameplay.Multiplayer
 	connectionMenu      *screens.Menu
+	briefing            *screens.Briefing
+	soloBriefed         bool
 }
 
 func NewGame() *Game {
@@ -75,6 +77,7 @@ const (
 	screenSinglePlayer
 	screenMultiplayer
 	screenSettings
+	screenBriefing
 )
 
 func (g *Game) leaveMultiplayer() {
@@ -110,6 +113,11 @@ func (g *Game) run() {
 				switch current {
 				case screenSettings:
 					current = screenMenu
+				case screenBriefing:
+					if g.briefing.Multiplayer {
+						g.leaveMultiplayer()
+					}
+					current = screenMenu
 				case screenMultiplayer:
 					if g.multiplayer.ChatOpen() {
 						g.multiplayer.CloseChat()
@@ -123,8 +131,7 @@ func (g *Game) run() {
 					}
 				case screenMenu:
 					if !g.world.Dead() {
-						g.startSinglePlayer()
-						current = screenSinglePlayer
+						current = g.enterSinglePlayer()
 					}
 				}
 			}
@@ -156,6 +163,16 @@ func (g *Game) run() {
 			}
 		}
 		switch current {
+		case screenBriefing:
+			if g.briefing.Multiplayer {
+				m := g.multiplayer
+				m.Poll()
+				m.Follow(&g.camera)
+				g.briefing.Countdown = m.StartCountdown()
+				if m.Error() != "" || m.Started() || !m.BriefingActive() && m.StartCountdown() == 0 {
+					current = screenMultiplayer
+				}
+			}
 		case screenSinglePlayer:
 			if !g.world.Dead() && !g.world.ResultsOpen() && !mapOpen {
 				g.world.ReadInput(g.camera, g.window.width, g.window.height)
@@ -164,6 +181,13 @@ func (g *Game) run() {
 			}
 		case screenMultiplayer:
 			g.multiplayer.Poll()
+			if g.multiplayer.Ready() && g.multiplayer.Error() == "" && g.multiplayer.BriefingActive() {
+				g.briefing = screens.NewBriefing(true)
+				g.multiplayer.CloseChat()
+				g.multiplayer.Follow(&g.camera)
+				current = screenBriefing
+				break
+			}
 			if g.multiplayer.Dead() || g.multiplayer.ResultsOpen() || g.multiplayer.Error() != "" {
 				mapOpen = false
 				g.multiplayer.CloseStats()
@@ -182,6 +206,11 @@ func (g *Game) run() {
 			action = g.settings.Draw()
 		case screenMenu:
 			action = g.menu.Draw()
+		case screenBriefing:
+			if g.briefing.Multiplayer {
+				g.multiplayer.Draw(g.camera, g.window.width, g.window.height)
+			}
+			action = g.briefing.Draw(g.window.width, g.window.height)
 		case screenSinglePlayer:
 			if g.world.ResultsOpen() {
 				g.world.Draw(g.camera, g.window.width, g.window.height)
@@ -234,6 +263,15 @@ func (g *Game) run() {
 
 		// Screen transitions happen after drawing, on the same thread as raylib.
 		switch action {
+		case screens.ActionEnterDungeon:
+			if g.briefing.Multiplayer {
+				g.briefing.Waiting = true
+				g.multiplayer.BriefingDone()
+			} else {
+				g.soloBriefed = true
+				g.startSinglePlayer()
+				current = screenSinglePlayer
+			}
 		case screens.ActionContinueExploring:
 			if current == screenMultiplayer {
 				g.multiplayer.ContinueExploring()
@@ -262,21 +300,14 @@ func (g *Game) run() {
 			current = screenMenu
 		case screens.ActionPlay:
 			g.leaveMultiplayer()
-			g.startSinglePlayer()
-			current = screenSinglePlayer
+			current = g.enterSinglePlayer()
 		case screens.ActionMultiplayer:
 			if g.multiplayer != nil && g.multiplayer.Ready() && g.multiplayer.Dead() && g.multiplayer.Error() == "" {
 				g.multiplayer.Respawn()
 				current = screenMultiplayer
 				break
 			}
-			var history []protocol.ChatEntry
-			if g.multiplayer != nil {
-				history = g.multiplayer.ChatHistory()
-			}
-			g.leaveMultiplayer()
-			g.multiplayer = gameplay.NewMultiplayer(g.serverURL, g.settings.PlayerName, g.settings.Character)
-			g.multiplayer.RestoreChat(history)
+			g.startMultiplayer()
 			current = screenMultiplayer
 		case screens.ActionMenu:
 			g.leaveMultiplayer()
@@ -285,6 +316,25 @@ func (g *Game) run() {
 			exitRequested = true
 		}
 	}
+}
+
+func (g *Game) enterSinglePlayer() screen {
+	if !g.soloBriefed {
+		g.briefing = screens.NewBriefing(false)
+		return screenBriefing
+	}
+	g.startSinglePlayer()
+	return screenSinglePlayer
+}
+
+func (g *Game) startMultiplayer() {
+	var history []protocol.ChatEntry
+	if g.multiplayer != nil {
+		history = g.multiplayer.ChatHistory()
+	}
+	g.leaveMultiplayer()
+	g.multiplayer = gameplay.NewMultiplayer(g.serverURL, g.settings.PlayerName, g.settings.Character)
+	g.multiplayer.RestoreChat(history)
 }
 
 func (g *Game) startSinglePlayer() {

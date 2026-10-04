@@ -13,14 +13,15 @@ import (
 )
 
 type client struct {
-	joined    chan bool
-	ready     bool
-	character simulation.Character
-	name      string
-	id        string
-	send      chan protocol.Message
-	cancel    context.CancelFunc
-	lastChat  time.Time
+	joined       chan bool
+	ready        bool
+	briefingDone bool
+	character    simulation.Character
+	name         string
+	id           string
+	send         chan protocol.Message
+	cancel       context.CancelFunc
+	lastChat     time.Time
 }
 
 const chatCooldown = parameters.ChatCooldown
@@ -51,6 +52,7 @@ func (h *Hub) Run(ctx context.Context) {
 	names := make(map[string]string)
 	world := simulation.NewWorld()
 	matchStarted := false
+	briefingActive := false
 	roundID := uint64(1)
 	var startAt time.Time
 	ticker := time.NewTicker(time.Second / simulation.TickRate)
@@ -61,12 +63,16 @@ func (h *Hub) Run(ctx context.Context) {
 		delete(names, c.id)
 		world.Leave(c.id)
 		if !matchStarted || world.Finished() {
+			briefingActive = false
 			startAt = time.Time{}
 			if world.Finished() && len(clients) > 0 {
 				matchStarted = true
 			}
 			for remaining := range clients {
 				remaining.ready = false
+				if !world.Finished() {
+					remaining.briefingDone = false
+				}
 			}
 		}
 		if len(clients) == 0 {
@@ -88,6 +94,7 @@ func (h *Hub) Run(ctx context.Context) {
 			snapshot := protocol.SnapshotFromSimulation(world.Snapshot(), names)
 			snapshot.RoundID = roundID
 			snapshot.MatchStarted = matchStarted
+			snapshot.BriefingActive = briefingActive
 			for i := range snapshot.Players {
 				for c := range clients {
 					if c.id == snapshot.Players[i].ID {
@@ -169,7 +176,7 @@ func (h *Hub) Run(ctx context.Context) {
 			switch event.message.Type {
 			case protocol.TypeStartGame, protocol.TypeRematch:
 				rematch := event.message.Type == protocol.TypeRematch
-				if startAt.IsZero() && (rematch && world.Finished() || !rematch && !matchStarted && !world.Finished()) {
+				if !briefingActive && startAt.IsZero() && (rematch && world.Finished() || !rematch && !matchStarted && !world.Finished()) {
 					event.client.ready = true
 					allReady := len(clients) == simulation.MaxPlayers
 					for c := range clients {
@@ -177,6 +184,28 @@ func (h *Hub) Run(ctx context.Context) {
 					}
 					if allReady {
 						matchStarted = false
+						allBriefed := true
+						for c := range clients {
+							allBriefed = allBriefed && c.briefingDone
+						}
+						if rematch || allBriefed {
+							startAt = time.Now().Add(parameters.MatchCountdownSeconds * time.Second)
+						} else {
+							briefingActive = true
+						}
+					}
+					broadcast()
+				}
+				continue
+			case protocol.TypeBriefingDone:
+				if briefingActive {
+					event.client.briefingDone = true
+					allBriefed := len(clients) == simulation.MaxPlayers
+					for c := range clients {
+						allBriefed = allBriefed && c.ready && c.briefingDone
+					}
+					if allBriefed {
+						briefingActive = false
 						startAt = time.Now().Add(parameters.MatchCountdownSeconds * time.Second)
 					}
 					broadcast()

@@ -20,6 +20,7 @@ const (
 	ActionRematch
 	ActionContinueExploring
 	ActionShowResults
+	ActionEnterDungeon
 )
 
 type MenuButton struct {
