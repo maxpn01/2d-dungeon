@@ -7,6 +7,7 @@ import (
 
 func main() {
 	serverURL := flag.String("server", "ws://localhost:8080/ws", "multiplayer WebSocket server URL")
+	testing := flag.Bool("testing", false, "start directly in the testing mode game")
 	flag.Parse()
-	game.RunWithServer(*serverURL)
+	game.RunWithOptions(*serverURL, *testing)
 }

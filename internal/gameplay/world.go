@@ -166,5 +166,6 @@ func (w *World) Draw(camera rl.Camera2D, width, height int32) {
 	if w.StatsOpen() {
 		hud.DrawStats(p, width, height)
 	}
+	w.drawTesting(width, height)
 }
 func (w *World) DrawMap(width, height int32) { w.presentation.drawRadar(width, height, w.scene()) }

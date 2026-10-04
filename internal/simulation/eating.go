@@ -101,6 +101,10 @@ func (e eater) dead() bool {
 }
 
 func (e eater) die(killer string, tick uint64) {
+	if e.player != nil && e.player.god {
+		e.stats.HP = e.stats.MaxHP()
+		return
+	}
 	if e.player != nil && e.player.Split.Count() > 0 {
 		e.stats.HP = 0
 		if e.player.Stats.HP > 0 || e.player.Split.Mass() > 0 {

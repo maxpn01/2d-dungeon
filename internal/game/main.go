@@ -19,6 +19,8 @@ type Game struct {
 	gameOver            *screens.GameOver
 	multiplayerGameOver *screens.GameOver
 	world               *gameplay.World
+	normalWorld         *gameplay.World
+	testWorld           *gameplay.World
 	serverURL           string
 	multiplayer         *gameplay.Multiplayer
 	connectionMenu      *screens.Menu
@@ -57,6 +59,7 @@ func NewGame() *Game {
 		gameOver:            screens.NewGameOver(),
 		multiplayerGameOver: screens.NewMultiplayerGameOver(),
 		world:               world,
+		normalWorld:         world,
 		serverURL:           "ws://localhost:8080/ws",
 		connectionMenu:      screens.NewMenu([]*screens.MenuButton{screens.NewMenuButton("retry", screens.ActionMultiplayer), screens.NewMenuButton("back to menu", screens.ActionMenu)}, 20, rl.Black),
 	}
@@ -66,9 +69,13 @@ func NewGame() *Game {
 func Run() { RunWithServer("ws://localhost:8080/ws") }
 
 func RunWithServer(url string) {
+	RunWithOptions(url, false)
+}
+
+func RunWithOptions(url string, testing bool) {
 	g := NewGame()
 	g.serverURL = url
-	g.run()
+	g.run(testing)
 }
 
 type screen int
@@ -88,7 +95,7 @@ func (g *Game) leaveMultiplayer() {
 	}
 }
 
-func (g *Game) run() {
+func (g *Game) run(testing bool) {
 	g.window.initWindow()
 	defer g.window.close()
 	rendering.InitFeedbackAudio()
@@ -97,10 +104,22 @@ func (g *Game) run() {
 	defer g.leaveMultiplayer()
 	g.cameraFollowPlayer()
 	current := screenMenu
+	if testing {
+		g.testWorld = gameplay.NewWorld()
+		g.testWorld.Configure(g.settings.PlayerName, g.settings.Character)
+		g.testWorld.EnableTesting()
+		g.world = g.testWorld
+		g.startSinglePlayer()
+		current = screenSinglePlayer
+	}
 	mapOpen := false
 	exitRequested := false
 	for !rl.WindowShouldClose() && !exitRequested {
 		dt := rl.GetFrameTime()
+		if current == screenSinglePlayer && g.world.ReadTestingInput() {
+			mapOpen = false
+			g.cameraFollowPlayer()
+		}
 		if rl.IsKeyPressed(rl.KeyF8) {
 			rendering.ToggleFeedbackAudio()
 		}
@@ -306,6 +325,7 @@ func (g *Game) run() {
 			current = screenMenu
 		case screens.ActionPlay:
 			g.leaveMultiplayer()
+			g.world = g.normalWorld
 			current = g.enterSinglePlayer()
 		case screens.ActionMultiplayer:
 			if g.multiplayer != nil && g.multiplayer.Ready() && g.multiplayer.Dead() && g.multiplayer.Error() == "" {
@@ -325,6 +345,10 @@ func (g *Game) run() {
 }
 
 func (g *Game) enterSinglePlayer() screen {
+	if g.world.TestingEnabled() {
+		g.world.Start(g.settings.PlayerName)
+		return screenSinglePlayer
+	}
 	if !g.soloBriefed {
 		g.briefing = screens.NewBriefing(false)
 		return screenBriefing
@@ -344,11 +368,19 @@ func (g *Game) startMultiplayer() {
 }
 
 func (g *Game) startSinglePlayer() {
+	testing := g.world.TestingEnabled()
 	if g.world.Finished() || g.world.Character() != g.settings.Character {
 		g.world = gameplay.NewWorld()
 		g.world.Configure(g.settings.PlayerName, g.settings.Character)
+		if testing {
+			g.world.EnableTesting()
+			g.testWorld = g.world
+		}
 	}
 	g.world.Start(g.settings.PlayerName)
+	if !g.world.TestingEnabled() {
+		g.normalWorld = g.world
+	}
 	g.cameraFollowPlayer()
 }
 

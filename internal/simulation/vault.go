@@ -7,7 +7,7 @@ import (
 )
 
 const SentinelAwakeningDuration = 3.0
-const VaultTrapWarningTicks = TickRate / 2
+const VaultTrapWarningTicks = TickRate / 4
 const VaultTrapFireTicks = TickRate
 const VaultTrapCooldownTicks = 5 * TickRate
 

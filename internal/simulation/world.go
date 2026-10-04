@@ -74,6 +74,8 @@ type command struct {
 }
 
 type playerState struct {
+	testing bool
+	god     bool
 	Player
 	spawnSlot        uint64
 	progressionReset bool
@@ -253,6 +255,9 @@ func (w *World) Step(now time.Time) {
 		if player.Dead {
 			continue
 		}
+		if player.god {
+			w.refillTestingPlayer(player)
+		}
 		if now.Sub(player.lastInput) >= InputTimeout {
 			player.direction = Direction{}
 			player.commands = nil
@@ -317,6 +322,11 @@ func (w *World) Step(now time.Time) {
 	w.updateOrb()
 	w.updatePortals()
 	w.updateStatues()
+	for _, p := range w.players {
+		if p.god {
+			w.refillTestingPlayer(p)
+		}
+	}
 	// The surface is only a respawn area while floor one is being redesigned.
 	remaining := w.fruits[:0]
 	for _, fruit := range w.fruits {

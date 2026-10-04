@@ -46,6 +46,9 @@ func InSafeZone(x, y, size, mass float64, zones []SafeZone) bool {
 }
 
 func (e eater) protectedAt(t float64, zones []SafeZone) bool {
+	if e.player != nil && e.player.god {
+		return true
+	}
 	if e.ai != nil && (e.ai.Stone || e.ai.Awakening > 0) {
 		return true
 	}
