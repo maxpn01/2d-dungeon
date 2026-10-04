@@ -38,6 +38,10 @@ func (m *Map) SanctuaryCell(x, y int) bool {
 	if x >= 0 && x < SurfaceCells && y >= 0 && y < SurfaceCells {
 		return true
 	}
-	room, ok := m.Room(NorthSanctuary)
-	return ok && room.Area.Contains(At(x, y))
+	for _, room := range m.layout.Rooms {
+		if room.ID == NorthSanctuary {
+			return room.Area.Contains(At(x, y))
+		}
+	}
+	return false
 }

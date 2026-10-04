@@ -20,6 +20,7 @@ type client struct {
 	name         string
 	id           string
 	send         chan protocol.Message
+	snapshots    chan protocol.Message
 	cancel       context.CancelFunc
 	lastChat     time.Time
 }
@@ -89,37 +90,35 @@ func (h *Hub) Run(ctx context.Context) {
 		}
 	}()
 
+	var lastBroadcast time.Time
 	broadcast := func() {
-		for {
-			snapshot := protocol.SnapshotFromSimulation(world.Snapshot(), names)
-			snapshot.RoundID = roundID
-			snapshot.MatchStarted = matchStarted
-			snapshot.BriefingActive = briefingActive
-			for i := range snapshot.Players {
-				for c := range clients {
-					if c.id == snapshot.Players[i].ID {
-						snapshot.Players[i].LobbyReady = c.ready
-					}
-				}
-			}
-			if !startAt.IsZero() && !matchStarted {
-				snapshot.StartCountdown = max(1, int(math.Ceil(time.Until(startAt).Seconds())))
-			}
-			dropped := false
+		lastBroadcast = time.Now()
+		if len(clients) == 0 {
+			return
+		}
+		snapshot := protocol.SnapshotFromSimulation(world.Snapshot(), names)
+		snapshot.RoundID = roundID
+		snapshot.MatchStarted = matchStarted
+		snapshot.BriefingActive = briefingActive
+		for i := range snapshot.Players {
 			for c := range clients {
-				personalized := snapshot
-				personalized.Statues = world.StatuesForPlayer(c.id)
-				message := personalized.Message()
-				select {
-				case c.send <- message:
-				default:
-					remove(c)
-					dropped = true
+				if c.id == snapshot.Players[i].ID {
+					snapshot.Players[i].LobbyReady = c.ready
 				}
 			}
-			if !dropped {
-				return
+		}
+		if !startAt.IsZero() && !matchStarted {
+			snapshot.StartCountdown = max(1, int(math.Ceil(time.Until(startAt).Seconds())))
+		}
+		for c := range clients {
+			personalized := snapshot
+			personalized.Statues = world.StatuesForPlayer(c.id)
+			message := personalized.Message()
+			select {
+			case <-c.snapshots:
+			default:
 			}
+			c.snapshots <- message
 		}
 	}
 
@@ -147,7 +146,9 @@ func (h *Hub) Run(ctx context.Context) {
 					}
 				}
 			}
-			broadcast()
+			if matchStarted && world.Tick()%(simulation.TickRate/parameters.SnapshotRate) == 0 || !matchStarted && now.Sub(lastBroadcast) >= parameters.LobbySnapshotInterval {
+				broadcast()
+			}
 		case c := <-h.join:
 			nextID++
 			c.id = fmt.Sprintf("p%d", nextID)

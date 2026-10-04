@@ -207,6 +207,8 @@ const (
 	MaxChatEntries                = 50
 	ChatCooldown                  = 500 * time.Millisecond
 	MessagesPerSecond             = 120.0
+	SnapshotRate                  = 15
+	LobbySnapshotInterval         = time.Second
 	MatchCountdownSeconds         = 3
 	ResultsDelaySeconds           = 3
 )

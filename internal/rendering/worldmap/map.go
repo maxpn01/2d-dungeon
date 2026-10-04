@@ -101,17 +101,11 @@ func clampInt(v, lo, hi int) int {
 	return v
 }
 
-func (m *Map) sanctuaryTile(x, y int) bool {
+func (m *Map) sanctuaryTile(x, y int, northBorder mapdata.CellRect) bool {
 	if m.world.SanctuaryCell(x, y) {
 		return true
 	}
-	room, ok := m.world.Room(mapdata.NorthSanctuary)
-	if !ok {
-		return false
-	}
-	area := room.Area
-	border := mapdata.Cells(area.X-1, area.Y-1, area.Width+2, area.Height+2)
-	if !border.Contains(mapdata.At(x, y)) || m.world.Cell(x, y) != 0 {
+	if !northBorder.Contains(mapdata.At(x, y)) || m.world.Cell(x, y) != 0 {
 		return false
 	}
 	for dy := -1; dy <= 1; dy++ {

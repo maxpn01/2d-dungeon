@@ -145,7 +145,7 @@ func (s *Session) publish(update Update) {
 
 func (s *Session) run(ctx context.Context, url string) error {
 	dialCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	conn, _, err := websocket.Dial(dialCtx, url, nil)
+	conn, _, err := websocket.Dial(dialCtx, url, &websocket.DialOptions{CompressionMode: websocket.CompressionContextTakeover})
 	cancel()
 	if err != nil {
 		return fmt.Errorf("connect: %w", err)
@@ -263,6 +263,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 
 	var lastTick, lastAck, roundID uint64
 	var dungeonLayout string
+	var fruits []protocol.Fruit
 	for {
 		message, err := read(ioCtx)
 		if err != nil {
@@ -281,10 +282,16 @@ func (s *Session) run(ctx context.Context, url string) error {
 			}
 			continue
 		}
-		if message.Type != protocol.TypeSnapshot || message.Players == nil || message.Fruits == nil || message.AIs == nil {
+		if message.Type != protocol.TypeSnapshot || message.Players == nil || message.AIs == nil {
 			return errors.New("server sent an unexpected message")
 		}
 		newRound := message.RoundID != roundID
+		if message.Fruits == nil {
+			if newRound {
+				return errors.New("server omitted food at the start of a round")
+			}
+			message.Fruits = &fruits
+		}
 		if message.RoundID == 0 || message.RoundID < roundID {
 			return errors.New("server sent an invalid round")
 		}
@@ -304,6 +311,7 @@ func (s *Session) run(ctx context.Context, url string) error {
 		if err := protocol.ValidateSnapshot(message.Snapshot(), welcome.PlayerID); err != nil {
 			return err
 		}
+		fruits = *message.Fruits
 		lastTick, roundID = message.Tick, message.RoundID
 		var local protocol.Player
 		for _, player := range *message.Players {

@@ -121,6 +121,7 @@ func (e eater) die(killer string, tick uint64) {
 		return
 	}
 	e.player.Dead = true
+	e.player.Flight = FlightState{}
 	e.player.KilledBy = killer
 	e.player.direction = Direction{}
 	e.player.commands = nil

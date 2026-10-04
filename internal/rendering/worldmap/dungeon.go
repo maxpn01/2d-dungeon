@@ -20,7 +20,14 @@ func dungeonRect(x, y, w, h int, c color.RGBA) {
 
 func (m *Map) drawDungeon(ctx primitives.Context) {
 	sanctumID, feastID := 0, 0
-	for i, room := range m.world.Rooms() {
+	rooms := m.world.Rooms()
+	secretDoors := m.world.SecretDoors()
+	northBorder := mapdata.CellRect{}
+	for i, room := range rooms {
+		if room.ID == mapdata.NorthSanctuary {
+			area := room.Area
+			northBorder = mapdata.Cells(area.X-1, area.Y-1, area.Width+2, area.Height+2)
+		}
 		if room.HasRole(mapdata.PortalSanctum) {
 			sanctumID = i + 2
 		}
@@ -35,7 +42,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 	bottom := min(mapdata.MaxCellY, int(math.Ceil(float64(ctx.Camera.Target.Y+(float32(ctx.WindowHeight)-ctx.Camera.Offset.Y)/zoom)/40))+1)
 	for y := max(mapdata.MinCellY, top); y < bottom; y++ {
 		for x := max(mapdata.MinCellX, left); x < min(mapdata.MaxCellX, right); x++ {
-			if m.sanctuaryTile(x, y) || m.world.CellFloor(x, y) != m.floor {
+			if m.sanctuaryTile(x, y, northBorder) || m.world.CellFloor(x, y) != m.floor {
 				continue
 			}
 			id := m.world.Cell(x, y)
@@ -87,7 +94,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 					continue
 				}
 				sliding := false
-				for _, door := range m.world.SecretDoors() {
+				for _, door := range secretDoors {
 					if door.Interactable && door.Area.Contains(mapdata.At(x, y)) {
 						sliding = true
 					}
@@ -98,7 +105,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 				dungeonRect(px, py, 40, 40, color.RGBA{17, 22, 30, 255})
 				wallStone, wallHighlight := stone, paleStone
 				cracked := false
-				for _, door := range m.world.SecretDoors() {
+				for _, door := range secretDoors {
 					if door.Area.Contains(mapdata.At(x, y)) {
 						wallStone = color.RGBA{56, 64, 74, 255}
 						wallHighlight = color.RGBA{96, 110, 120, 255}
@@ -140,7 +147,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 			drawDungeonPool(pool.Area.X*mapdata.Tile, pool.Area.Y*mapdata.Tile, pool.Area.Width*mapdata.Tile, pool.Area.Height*mapdata.Tile)
 		}
 	}
-	for _, room := range m.world.Rooms() {
+	for _, room := range rooms {
 		if room.Floor != m.floor {
 			continue
 		}

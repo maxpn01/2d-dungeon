@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"slices"
 	"time"
 
 	"raylib-2d-sandbox/internal/parameters"
@@ -16,7 +17,7 @@ import (
 )
 
 func (h *Hub) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
-	conn, err := websocket.Accept(w, r, nil)
+	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{CompressionMode: websocket.CompressionContextTakeover})
 	if err != nil {
 		return
 	}
@@ -25,7 +26,7 @@ func (h *Hub) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	c := &client{joined: make(chan bool, 1), character: simulation.NormalizeCharacter(simulation.Character(r.URL.Query().Get("character"))), name: protocol.NormalizePlayerName(r.URL.Query().Get("name")), send: make(chan protocol.Message, 16), cancel: cancel}
+	c := &client{joined: make(chan bool, 1), character: simulation.NormalizeCharacter(simulation.Character(r.URL.Query().Get("character"))), name: protocol.NormalizePlayerName(r.URL.Query().Get("name")), send: make(chan protocol.Message, 16), snapshots: make(chan protocol.Message, 1), cancel: cancel}
 	select {
 	case h.join <- c:
 	case <-h.done:
@@ -51,15 +52,46 @@ func (h *Hub) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer close(writerDone)
 		defer cancel()
+		var sentFruits []protocol.Fruit
+		var sentRound uint64
+		write := func(message protocol.Message) error {
+			fruits := message.Fruits
+			if message.Type == protocol.TypeSnapshot && message.RoundID == sentRound && fruits != nil && slices.Equal(*fruits, sentFruits) {
+				message.Fruits = nil
+			}
+			writeCtx, stop := context.WithTimeout(ctx, 5*time.Second)
+			defer stop()
+			err := wsjson.Write(writeCtx, conn, message)
+			if err == nil && message.Type == protocol.TypeSnapshot && fruits != nil {
+				sentFruits, sentRound = *fruits, message.RoundID
+			}
+			return err
+		}
 		for {
+			select {
+			case message := <-c.send:
+				if err := write(message); err != nil {
+					return
+				}
+				continue
+			default:
+			}
 			select {
 			case <-ctx.Done():
 				return
 			case message := <-c.send:
-				writeCtx, stop := context.WithTimeout(ctx, 5*time.Second)
-				err := wsjson.Write(writeCtx, conn, message)
-				stop()
-				if err != nil {
+				if err := write(message); err != nil {
+					return
+				}
+			case message := <-c.snapshots:
+				select {
+				case control := <-c.send:
+					if err := write(control); err != nil {
+						return
+					}
+				default:
+				}
+				if err := write(message); err != nil {
 					return
 				}
 			}

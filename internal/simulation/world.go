@@ -164,12 +164,23 @@ func (w *World) Command(id string, direction Direction, sequence uint64, now tim
 		}
 		player.direction = direction
 	} else {
-		if sequence != player.lastSequence+1 || len(player.commands) >= 32 {
+		if sequence != player.lastSequence+1 {
 			return false
 		}
 		player.lastSequence = sequence
 		if !player.Dead {
-			player.commands = append(player.commands, command{direction, sequence})
+			if len(player.commands) > 0 {
+				pending := player.commands[0].direction
+				if pending.Shoot || pending.Dash || pending.Interact {
+					direction.AimX, direction.AimY = pending.AimX, pending.AimY
+				}
+				direction.Shoot = direction.Shoot || pending.Shoot
+				direction.Dash = direction.Dash || pending.Dash
+				direction.Interact = direction.Interact || pending.Interact
+				player.commands[0] = command{direction, sequence}
+			} else {
+				player.commands = append(player.commands, command{direction, sequence})
+			}
 		}
 	}
 	if player.Dead {
