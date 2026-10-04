@@ -106,6 +106,7 @@ const (
 	ShotMPCost                 = 0.5
 	ShotCooldown               = 1.0 / BaseAttackRate
 	ShotDamage                 = 2.0
+	DamagePerLevelIncrease     = 0.25
 	BaseAttackRate             = 4.0
 	AttackRatePerLevelIncrease = 0.25
 	MobBaseStatMultiplier      = 0.7

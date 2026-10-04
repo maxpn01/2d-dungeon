@@ -10,6 +10,8 @@ import (
 )
 
 type Actor struct {
+	Stone          bool
+	Awakening      float64
 	Aiming         bool
 	Frenzied       bool
 	ID, Label      string
@@ -44,6 +46,10 @@ func DrawAIActor(ai Actor, exploration Visibility, feedback *Feedback) {
 	}
 	count := ai.Split.Count()
 	if exploration == nil || exploration.EntityVisible(ai.X, ai.Y, ai.Size) {
+		if ai.Stone || ai.Awakening > 0 {
+			drawStoneSentinel(ai)
+			return
+		}
 		if ai.Frenzied {
 			drawPossession(ai)
 		}

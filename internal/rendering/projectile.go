@@ -20,7 +20,7 @@ func DrawProjectiles(previous, shots []simulation.Projectile, alpha float64, exp
 		start, exists := starts[shot.ID]
 		if !exists {
 			start = shot
-			start.X, start.Y = worldmap.Default().Move(shot.X, shot.Y, -shot.Direction.X*parameters.ShotSpeed*simulation.StepSeconds, -shot.Direction.Y*parameters.ShotSpeed*simulation.StepSeconds, shot.Size, shot.Size)
+			start.X, start.Y = worldmap.Default().Move(shot.X, shot.Y, -shot.Direction.X*simulation.ProjectileSpeed(shot)*simulation.StepSeconds, -shot.Direction.Y*simulation.ProjectileSpeed(shot)*simulation.StepSeconds, shot.Size, shot.Size)
 		}
 		shot.X = start.X + (shot.X-start.X)*alpha
 		shot.Y = start.Y + (shot.Y-start.Y)*alpha
@@ -28,8 +28,26 @@ func DrawProjectiles(previous, shots []simulation.Projectile, alpha float64, exp
 			continue
 		}
 		center := rl.NewVector2(float32(shot.X+shot.Size/2), float32(shot.Y+shot.Size/2))
+		if shot.Kind == "arrow" {
+			drawVaultArrow(center, shot)
+			continue
+		}
 		drawMagicBall(center, shot)
 	}
+}
+
+func drawVaultArrow(center rl.Vector2, shot simulation.Projectile) {
+	dx, dy := float32(shot.Direction.X), float32(shot.Direction.Y)
+	point := func(distance, side float32) rl.Vector2 {
+		return rl.NewVector2(center.X+dx*distance-dy*side, center.Y+dy*distance+dx*side)
+	}
+	rl.DrawLineEx(point(-24, 0), point(4, 0), 7, rl.Fade(rl.Orange, .15))
+	rl.DrawLineEx(point(-20, 0), point(4, 0), 3, rl.NewColor(159, 123, 78, 255))
+	rl.DrawLineEx(point(-18, -1), point(4, -1), 1, rl.NewColor(219, 198, 149, 255))
+	rl.DrawLineEx(point(7, 0), point(-2, -5), 2, rl.RayWhite)
+	rl.DrawLineEx(point(7, 0), point(-2, 5), 2, rl.RayWhite)
+	rl.DrawLineEx(point(-18, 0), point(-24, -5), 2, rl.NewColor(185, 49, 52, 255))
+	rl.DrawLineEx(point(-18, 0), point(-24, 5), 2, rl.NewColor(185, 49, 52, 255))
 }
 
 func drawMagicBall(center rl.Vector2, shot simulation.Projectile) {

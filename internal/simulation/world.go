@@ -84,6 +84,10 @@ type playerState struct {
 }
 
 type World struct {
+	sentinelTactics   map[string]*sentinelTactic
+	vaultArrowStarted uint64
+	vaultFire         [1]VaultFire
+	vaultFireHits     [1]map[string]bool
 	dungeonLayout     string
 	wingDoorOpen      float64
 	northWingDoorOpen float64
@@ -287,8 +291,10 @@ func (w *World) Step(now time.Time) {
 	w.replenishEntranceFood()
 	w.advanceFood()
 	eaters := w.eaters(previous)
+	w.advanceVaultArrows(eaters)
 	w.advanceProjectiles(eaters)
 	w.advanceSentinelSwords(eaters)
+	w.advanceVaultTraps(eaters)
 	for id, p := range w.players {
 		old := previous[id]
 		ConstrainArena(&p.Player, old.x, old.y)
@@ -322,6 +328,8 @@ func (w *World) Step(now time.Time) {
 }
 
 type Snapshot struct {
+	VaultArrowStarted uint64
+	VaultFire         []VaultFire
 	SecretWallHits    map[string]int
 	DungeonLayout     string
 	WingDoorOpen      float64
@@ -369,7 +377,7 @@ func (w *World) Snapshot() Snapshot {
 	for id, count := range w.secretWallHits {
 		hits[id] = count
 	}
-	return Snapshot{SecretWallHits: hits, DungeonLayout: w.dungeonLayout, NorthWingDoorOpen: w.northWingDoorOpen, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, FinishedTick: w.finishedTick, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	return Snapshot{VaultArrowStarted: w.vaultArrowStarted, VaultFire: append([]VaultFire(nil), w.vaultFire[:]...), SecretWallHits: hits, DungeonLayout: w.dungeonLayout, NorthWingDoorOpen: w.northWingDoorOpen, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, FinishedTick: w.finishedTick, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }

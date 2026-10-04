@@ -36,7 +36,7 @@ func MultiplayerLayout() Layout {
 			layout.SetRoom(room)
 			continue
 		case OrbVault:
-			room.Area = Cells(24, -170, 18, 20)
+			room.Area = Cells(24, -180, 27, 38)
 			layout.SetRoom(room)
 			continue
 		}
@@ -69,7 +69,7 @@ func MultiplayerLayout() Layout {
 	layout.Rooms = append(layout.Rooms, Room{ID: NorthSanctuary, Name: "THE NORTHERN SANCTUARY", Area: Cells(0, 2*MirrorAxis-SurfaceCells, SurfaceCells, SurfaceCells), Floor: FirstFloor})
 	for i := range layout.SecretDoors {
 		if layout.SecretDoors[i].RoomID == OrbVault {
-			layout.SecretDoors[i].Area = Cells(23, -161, 1, 3)
+			layout.SecretDoors[i].Area = Cells(23, -162, 1, 3)
 		}
 	}
 	for _, door := range original.SecretDoors {
@@ -93,7 +93,7 @@ func MultiplayerLayout() Layout {
 		layout.Passages = append(layout.Passages, Passage{ID: NorthID(passage.ID), From: Location{At: from}, To: Location{At: to}, Width: width})
 	}
 	layout.Passages = append(layout.Passages,
-		Passage{ID: "vault-secret", From: Location{At: At(23, -161)}, To: Location{At: At(24, -161)}, Width: 3},
+		Passage{ID: "vault-secret", From: Location{At: At(23, -162)}, To: Location{At: At(24, -162)}, Width: 3},
 	)
 	layout.SetPassage(Passage{ID: "sanctum-entrance", From: Location{Room: TeleportSanctum, At: At(4, 22)}, To: Location{Room: CrownArena, At: At(10, -1)}, Width: 4})
 	layout.SetPassage(Passage{ID: NorthID("sanctum-entrance"), From: Location{Room: NorthID(CrownArena), At: At(10, 30)}, To: Location{Room: TeleportSanctum, At: At(4, -1)}, Width: 4})

@@ -180,7 +180,7 @@ func validStats(stats PlayerStats, baseSpeed float64) bool {
 	if stats.MP < 0 || stats.MP > stats.MaxMP() {
 		return false
 	}
-	if stats.Level < 1 || stats.Level > simulation.MaxLevel || stats.XP < 0 || stats.HP < 0 || stats.HP > stats.MaxHP() || stats.Speed <= 0 || stats.Speed > baseSpeed*2 || stats.Damage <= 0 || stats.Damage > max(100, parameters.ShotDamage*(1+simulation.PerkBonus(simulation.DamagePerk, simulation.MaxPerkRank)+simulation.PerkBonus(simulation.HeavyPerk, simulation.MaxPerkRank))) || stats.AttackRate <= 0 || stats.AttackRate > max(simulation.TickRate, simulation.AttackRateForLevel(stats.Level)*(1+simulation.PerkBonus(simulation.AttackRatePerk, simulation.MaxPerkRank))) || stats.BoostMultiplier < 1 || stats.BoostMultiplier > 10 || stats.BoostCost <= 0 || stats.BoostCost > 10 {
+	if stats.Level < 1 || stats.Level > simulation.MaxLevel || stats.XP < 0 || stats.HP < 0 || stats.HP > stats.MaxHP() || stats.Speed <= 0 || stats.Speed > baseSpeed*2 || stats.Damage <= 0 || stats.Damage > max(100, (parameters.ShotDamage+parameters.DamagePerLevelIncrease*float64(simulation.MaxLevel-1))*(1+simulation.PerkBonus(simulation.DamagePerk, simulation.MaxPerkRank)+simulation.PerkBonus(simulation.HeavyPerk, simulation.MaxPerkRank))) || stats.AttackRate <= 0 || stats.AttackRate > max(simulation.TickRate, simulation.AttackRateForLevel(stats.Level)*(1+simulation.PerkBonus(simulation.AttackRatePerk, simulation.MaxPerkRank))) || stats.BoostMultiplier < 1 || stats.BoostMultiplier > 10 || stats.BoostCost <= 0 || stats.BoostCost > 10 {
 		return false
 	}
 	if stats.Level == simulation.MaxLevel {
@@ -199,6 +199,9 @@ func validateAIs(ais []AI) error {
 			return errors.New("server sent invalid AI IDs")
 		}
 		ids[ai.ID] = true
+		if math.IsNaN(ai.Awakening) || math.IsInf(ai.Awakening, 0) || ai.Awakening < 0 || ai.Awakening > simulation.SentinelAwakeningDuration || (ai.Stone || ai.Awakening > 0) && ai.Character != simulation.Triangle || ai.Stone && ai.Awakening > 0 {
+			return errors.New("server sent invalid sentinel awakening")
+		}
 		if simulation.NormalizeCharacter(ai.Character) != ai.Character && ai.Character != simulation.Triangle {
 			return errors.New("server sent an invalid AI character")
 		}
@@ -317,6 +320,9 @@ func validateProjectiles(shots []simulation.Projectile) error {
 	}
 	ids := make(map[string]bool, len(shots))
 	for _, shot := range shots {
+		if shot.Kind != "" && shot.Kind != "arrow" || shot.Kind == "arrow" && shot.Owner != "vault arrows" {
+			return errors.New("server sent invalid projectile kind")
+		}
 		if shot.ID == "" || shot.Owner == "" || ids[shot.ID] || !shot.Direction.Valid() {
 			return errors.New("server sent invalid projectile")
 		}
@@ -326,7 +332,7 @@ func validateProjectiles(shots []simulation.Projectile) error {
 				return errors.New("server sent invalid projectile coordinates")
 			}
 		}
-		if shot.Size < parameters.ShotSize || shot.Size > parameters.ShotSize*(1+simulation.PerkBonus(simulation.ShotSizePerk, simulation.MaxPerkRank)) || shot.Damage <= 0 || shot.Damage > max(100, parameters.ShotDamage*(1+simulation.PerkBonus(simulation.DamagePerk, simulation.MaxPerkRank)+simulation.PerkBonus(simulation.HeavyPerk, simulation.MaxPerkRank))) || shot.Remaining <= 0 || shot.Remaining > parameters.ShotLifetime || !worldmap.Default().Walkable(shot.X, shot.Y, shot.Size, shot.Size) {
+		if shot.Size < parameters.ShotSize || shot.Size > parameters.ShotSize*(1+simulation.PerkBonus(simulation.ShotSizePerk, simulation.MaxPerkRank)) || shot.Damage <= 0 || shot.Damage > max(100, (parameters.ShotDamage+parameters.DamagePerLevelIncrease*float64(simulation.MaxLevel-1))*(1+simulation.PerkBonus(simulation.DamagePerk, simulation.MaxPerkRank)+simulation.PerkBonus(simulation.HeavyPerk, simulation.MaxPerkRank))) || shot.Remaining <= 0 || shot.Remaining > parameters.ShotLifetime || !worldmap.Default().Walkable(shot.X, shot.Y, shot.Size, shot.Size) {
 			return errors.New("server sent invalid projectile position or lifetime")
 		}
 	}
@@ -367,6 +373,17 @@ func validateStatues(statues []simulation.StatueState) error {
 }
 
 func validateObjective(snapshot Snapshot) error {
+	if snapshot.VaultArrowStarted > snapshot.Tick {
+		return errors.New("server sent invalid vault arrow timing")
+	}
+	if len(snapshot.VaultFire) != 1 {
+		return errors.New("server sent invalid vault traps")
+	}
+	for _, fire := range snapshot.VaultFire {
+		if fire.TriggeredTick > snapshot.Tick {
+			return errors.New("server sent invalid vault trap timing")
+		}
+	}
 	if math.IsNaN(snapshot.WingDoorOpen) || math.IsInf(snapshot.WingDoorOpen, 0) || snapshot.WingDoorOpen < 0 || snapshot.WingDoorOpen > 1 {
 		return errors.New("server sent invalid secret door animation")
 	}
@@ -396,7 +413,10 @@ func validateObjective(snapshot Snapshot) error {
 	}
 	position := worldmap.Default().OrbPosition()
 	orb := snapshot.Orb
-	if orb.X != position.X || orb.Y != position.Y || orb.GuardsRemaining < 0 || orb.GuardsRemaining > 3 || orb.Unlocked != (orb.GuardsRemaining == 0) {
+	if orb.Carrier == "" && orb.FrenzyAt != 0 || orb.FrenzyAt > snapshot.Tick && orb.FrenzyAt-snapshot.Tick > simulation.OrbFrenzyDelayTicks {
+		return errors.New("server sent invalid orb frenzy timing")
+	}
+	if orb.X != position.X || orb.Y != position.Y || orb.GuardsRemaining < 0 || orb.GuardsRemaining > 4 || orb.Unlocked != (orb.GuardsRemaining == 0) {
 		return errors.New("server sent invalid orb state")
 	}
 	carrierFound := orb.Carrier == ""

@@ -21,6 +21,7 @@ type feedbackActor struct {
 	tint               color.RGBA
 	ai, dead, hidden   bool
 	escaped            bool
+	stone              bool
 	recovery           float64
 	maxHP              float64
 }
@@ -50,6 +51,7 @@ type Feedback struct {
 	lowHP      bool
 	localID    string
 	celebrated bool
+	vaultFire  [1]uint64
 }
 
 func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruits []protocol.Fruit) {
@@ -84,6 +86,12 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 				continue
 			}
 			old, existed := f.actors[id]
+			if existed && old.stone && !actor.stone {
+				local := actors[f.localID]
+				if math.Hypot(actor.x-local.x, actor.y-local.y) < 900 {
+					playFeedbackSound("awaken")
+				}
+			}
 			if actor.escaped && !actor.dead && (!existed || !old.escaped) {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, rl.Gold, "completion")
 				if existed && id == f.localID && !f.celebrated {
@@ -151,6 +159,25 @@ func (f *Feedback) Observe(now time.Time, snapshot protocol.Snapshot, localID st
 			tint = primitives.CharacterColor(a.Character)
 		}
 		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: a.Size, hp: a.Stats.HP + a.Split.Mass(), xp: a.Stats.XP, level: a.Stats.Level, tint: tint, ai: true, maxHP: a.Stats.MaxHP()}
+		actor := actors[a.ID]
+		actor.stone = a.Stone
+		actors[a.ID] = actor
+	}
+	if !f.observed.IsZero() {
+		local := actors[localID]
+		geometry := worldmap.Default().WithSecrets(snapshot.OpenSecrets)
+		for i, state := range snapshot.VaultFire {
+			if i >= len(f.vaultFire) || state.TriggeredTick == 0 || snapshot.Tick < state.TriggeredTick {
+				continue
+			}
+			age := snapshot.Tick - state.TriggeredTick
+			if age >= simulation.VaultTrapWarningTicks && age < simulation.VaultTrapWarningTicks+simulation.VaultTrapFireTicks && f.vaultFire[i] != state.TriggeredTick {
+				f.vaultFire[i] = state.TriggeredTick
+				if geometry.RoomContains(worldmap.OrbVault, physics.Square(local.x, local.y, local.size)) {
+					playFeedbackSound("fire")
+				}
+			}
+		}
 	}
 	f.observeWalls(now, snapshot, localID)
 	f.observe(now, actors, snapshot.Fruits)

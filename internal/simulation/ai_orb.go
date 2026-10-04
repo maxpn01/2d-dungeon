@@ -8,7 +8,12 @@ import (
 	"raylib-2d-sandbox/internal/worldmap"
 )
 
+const OrbFrenzyDelayTicks = 3 * TickRate
+
 func (w *World) orbTarget(ai *aiState) *playerState {
+	if w.tick < w.orb.FrenzyAt {
+		return nil
+	}
 	carrier := w.players[w.orb.Carrier]
 	if carrier == nil || carrier.Dead || !carrier.HasOrb || carrier.Y >= 0 {
 		return nil
@@ -29,8 +34,6 @@ func (w *World) huntOrb(ai *aiState, carrier *playerState) Direction {
 		ai.patrolTicks, ai.patrolPause = 0, 0
 	}
 	ai.returning = true
-	dx, dy := carrier.X-ai.X, carrier.Y-ai.Y
-	distance := math.Hypot(dx, dy)
 	d := Direction{}
 	if target := w.orbShotTarget(ai, carrier); target != nil {
 		ai.shotTargetID = target.ID
@@ -38,20 +41,25 @@ func (w *World) huntOrb(ai *aiState, carrier *playerState) Direction {
 		length := math.Hypot(sx, sy)
 		d.AimX, d.AimY, d.Shoot = sx/max(1, length), sy/max(1, length), true
 	}
-	if distance <= parameters.AIFiringDistance && w.aiCanSeePlayer(ai, carrier, parameters.AIFiringDistance) {
-		ai.Behavior = "attacking"
-		return d
-	}
 	ai.Behavior = "hunting orb"
 	geometry := worldmap.Default().WithSecrets(w.openSecrets)
 	targetX, targetY := carrier.X, carrier.Y
 	if carrier.Flight.Flying && !geometry.CanOccupy(physics.Square(targetX, targetY, AISize)) {
 		targetX, targetY = carrier.Flight.LandingX, carrier.Flight.LandingY
+	} else {
+		goal := w.frenzyPosition(ai, carrier)
+		targetX, targetY = goal.X, goal.Y
+	}
+	distance := math.Hypot(targetX-ai.X, targetY-ai.Y)
+	if distance < 12 {
+		ai.Behavior = "covering orb"
+		return d
 	}
 	mx, my := geometry.Move(ai.X, ai.Y, targetX-ai.X, targetY-ai.Y, AISize, AISize)
 	if math.Hypot(mx-targetX, my-targetY) < .1 {
 		movement := ai.approach(targetX, targetY)
-		d.X, d.Y = movement.X, movement.Y
+		speed := min(1, distance/60)
+		d.X, d.Y = movement.X*speed, movement.Y*speed
 		return d
 	}
 	if w.tick >= ai.orbPathUntil || ai.orbPathFound && math.Hypot(ai.X-ai.orbPathX, ai.Y-ai.orbPathY) < 10 {
@@ -100,6 +108,9 @@ func (w *World) orbShotTarget(ai *aiState, carrier *playerState) *playerState {
 			radius = parameters.ShotSpeed * parameters.ShotLifetime
 		}
 		if !w.aiCanSeePlayer(ai, p, radius) {
+			continue
+		}
+		if !w.clearMobShot(ai, p) {
 			continue
 		}
 		distance := math.Hypot(p.X-ai.X, p.Y-ai.Y)

@@ -24,12 +24,18 @@ func drawOrbPedestal(orb simulation.OrbState, local protocol.Player, exploration
 	if orb.Carrier == "" {
 		tint = primitives.RuneColor
 		if !orb.Unlocked {
-			tint = rl.Orange
+			tint = rl.NewColor(184, 140, 255, 255)
 		}
 		orbCenter := rl.NewVector2(center.X, center.Y-38+float32(math.Sin(rl.GetTime()*2))*4)
 		rl.DrawCircleGradient(orbCenter, 40, rl.Fade(tint, .3), rl.Blank)
 		rl.DrawCircleV(orbCenter, 12, tint)
 		rl.DrawCircleV(rl.NewVector2(orbCenter.X-3, orbCenter.Y-4), 4, rl.RayWhite)
+		for i := 0; i < 3; i++ {
+			angle := rl.GetTime()*.7 + float64(i)*math.Pi*2/3
+			pos := rl.NewVector2(orbCenter.X+float32(math.Cos(angle))*22, orbCenter.Y+float32(math.Sin(angle))*9)
+			rl.DrawCircleV(pos, 2, rl.Gold)
+		}
+		rl.DrawEllipseLines(int32(orbCenter.X), int32(orbCenter.Y), 24, 10, rl.Fade(tint, .65))
 		label = fmt.Sprintf("SEALED / %d SENTINELS REMAIN", orb.GuardsRemaining)
 		if orb.Unlocked {
 			label = "[E] TAKE THE ORB"

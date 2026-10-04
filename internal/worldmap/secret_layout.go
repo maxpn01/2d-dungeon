@@ -63,12 +63,16 @@ func secretPlacements(layout Layout, room Room, span int, side string) []secretP
 			continue
 		}
 		for wall := range 4 {
+			width, height := room.Area.Width, room.Area.Height
+			if room.ID == OrbVault && wall < 2 {
+				width, height = height, width
+			}
 			length := host.Area.Height
 			if wall >= 2 {
 				length = host.Area.Width
 			}
 			for offset := 3; offset <= length-span-3; offset++ {
-				area, door, edge := secretAttachment(host.Area, room.Area.Width, room.Area.Height, span, wall, offset)
+				area, door, edge := secretAttachment(host.Area, width, height, span, wall, offset)
 				if !world.ContainsArea(area) || !secretSpaceFree(area, occupied) || !secretEntranceFree(host, door, edge, occupied) {
 					continue
 				}
@@ -133,6 +137,13 @@ func placeSecret(layout *Layout, room Room, doorID, passageID string, placement 
 	layout.SetRoom(room)
 	door := placement.door
 	layout.SecretDoors = append(layout.SecretDoors, SecretDoor{ID: doorID, RoomID: room.ID, Area: door})
+	if room.ID == OrbVault {
+		start, _ := vaultApproach(room, layout.SecretDoors)
+		for i, cell := range vaultSentinels(room, start) {
+			room.FeedingAreas[i].At = At(cell.X-room.Area.X, cell.Y-room.Area.Y)
+		}
+		layout.SetRoom(room)
+	}
 	layout.SetPassage(Passage{ID: passageID, From: Location{At: door.Origin()}, To: Location{At: At(door.Right()-1, door.Bottom()-1)}, Width: 1})
 }
 

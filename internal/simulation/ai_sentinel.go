@@ -38,6 +38,16 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 	dx, dy := target.X-ai.X, target.Y-ai.Y
 	distance := math.Hypot(dx, dy)
 	d := Direction{AimX: dx / max(1, distance), AimY: dy / max(1, distance)}
+	attacking, flank := w.sentinelFormation(ai, target)
+	if !attacking || ai.attackCooldown > 0 {
+		ai.Behavior = "flanking"
+		movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets), flank.X, flank.Y)
+		if distance := math.Hypot(flank.X-ai.X, flank.Y-ai.Y); distance > 4 {
+			speed := min(1, distance/70)
+			d.X, d.Y = movement.X*speed, movement.Y*speed
+		}
+		return d
+	}
 	if distance <= SentinelSwordReach+PlayerSize/2-8 {
 		ai.Behavior = "attacking"
 		if ai.Combat.Phase == DashIdle && ai.attackCooldown == 0 {

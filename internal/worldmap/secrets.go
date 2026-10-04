@@ -44,11 +44,11 @@ func (m *Map) WithSecrets(open []string) *Map {
 }
 
 func (m *Map) OrbPosition() physics.Vector {
-	room, ok := m.Room(OrbVault)
+	_, ok := m.Room(OrbVault)
 	if !ok {
 		return physics.Vector{}
 	}
-	return room.WorldCell(At(12, 10)).Center()
+	return m.VaultOrbCell().Center()
 }
 
 func (m *Map) SecretHidden(x, y float64) bool {

@@ -9,6 +9,7 @@ import (
 )
 
 type OrbState struct {
+	FrenzyAt        uint64  `json:"frenzy_at,omitempty"`
 	X               float64 `json:"x"`
 	Y               float64 `json:"y"`
 	Unlocked        bool    `json:"unlocked"`
@@ -57,6 +58,7 @@ func (w *World) updateOrb() {
 func (w *World) releaseOrb(id string) {
 	if w.orb.Carrier == id {
 		w.orb.Carrier = ""
+		w.orb.FrenzyAt = 0
 	}
 	if p := w.players[id]; p != nil {
 		p.HasOrb = false
@@ -73,7 +75,9 @@ func (w *World) interactObjective(p *playerState) bool {
 	if math.Hypot(x-w.orb.X, y-w.orb.Y) <= 85 && geometry.Visible(x, y, w.orb.X, w.orb.Y) {
 		if w.orb.Unlocked && w.orb.Carrier == "" && !p.HasOrb {
 			w.orb.Carrier = p.ID
+			w.orb.FrenzyAt = w.tick + OrbFrenzyDelayTicks
 			p.HasOrb = true
+			w.vaultArrowStarted = w.tick
 		}
 		return true
 	}

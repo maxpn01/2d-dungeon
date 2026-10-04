@@ -110,13 +110,13 @@ func (p *presentation) drawResultsButton(width int32) screens.Action {
 func (m *Multiplayer) ResultsOpen() bool { return m.resultsOpen(m.view.Snapshot) }
 func (w *World) ResultsOpen() bool       { return w.resultsOpen(w.snapshot) }
 func (m *Multiplayer) DrawResultsButton(width int32) screens.Action {
-	if m.view.Tick < m.view.FinishedTick+parameters.ResultsDelaySeconds*simulation.TickRate {
+	if !m.resultsDismissed || !m.Finished() || m.ResultsOpen() {
 		return screens.ActionNone
 	}
 	return m.drawResultsButton(width)
 }
 func (w *World) DrawResultsButton(width int32) screens.Action {
-	if w.snapshot.Tick < w.snapshot.FinishedTick+parameters.ResultsDelaySeconds*simulation.TickRate {
+	if !w.resultsDismissed || !w.Finished() || w.ResultsOpen() {
 		return screens.ActionNone
 	}
 	return w.drawResultsButton(width)

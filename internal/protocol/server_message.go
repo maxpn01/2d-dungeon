@@ -3,6 +3,8 @@ package protocol
 import "raylib-2d-sandbox/internal/simulation"
 
 type Message struct {
+	VaultArrowStarted uint64                   `json:"vault_arrow_started,omitempty"`
+	VaultFire         []simulation.VaultFire   `json:"vault_fire,omitempty"`
 	SecretWallHits    map[string]int           `json:"secret_wall_hits,omitempty"`
 	RoundID           uint64                   `json:"round_id"`
 	MatchStarted      bool                     `json:"match_started"`

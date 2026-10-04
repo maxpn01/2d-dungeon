@@ -45,7 +45,7 @@ func DefaultLayout() Layout {
 		SecretDoors: []SecretDoor{
 			{ID: WingDoor, RoomID: WingChamber, Area: Cells(-1, SurfaceCells-6, 1, 2), Interactable: true},
 			{ID: "library-wall", RoomID: SecretLibrary, Area: Cells(-33, -89, 1, 2)},
-			{ID: "vault-wall", RoomID: OrbVault, Area: Cells(68, -131, 1, 3)},
+			{ID: "vault-wall", RoomID: OrbVault, Area: Cells(68, -132, 1, 3)},
 		},
 		Passages: []Passage{
 			{ID: "aerie-entrance", From: Location{At: At(-1, SurfaceCells-6)}, To: Location{At: At(-1, SurfaceCells-5)}, Width: 1},
@@ -56,7 +56,7 @@ func DefaultLayout() Layout {
 			{ID: "east-loop", From: Location{At: At(56, -120)}, To: Location{At: At(56, -112)}, Width: 4},
 			{ID: "east-crown", From: Location{At: At(30, -128)}, To: Location{At: At(48, -128)}, Width: 4},
 			{ID: "library-secret", From: Location{At: At(-33, -89)}, To: Location{At: At(-32, -89)}, Width: 2},
-			{ID: "vault-secret", From: Location{At: At(68, -131)}, To: Location{At: At(69, -131)}, Width: 3},
+			{ID: "vault-secret", From: Location{At: At(68, -132)}, To: Location{At: At(69, -132)}, Width: 3},
 			{
 				ID:    "surface-entrance",
 				From:  Location{Room: ProvisionCourt, At: At(13, 32)},
@@ -223,11 +223,11 @@ func sideRoom(id, name string, area CellRect, statue string) Room {
 }
 
 func orbVault() Room {
-	r := Room{ID: OrbVault, Name: "THE SEALED ORB VAULT", Area: Cells(69, -140, 18, 20), Floor: FirstFloor,
-		Props: []Prop{Cover("north-veil", Cells(6, 3, 2, 2)), Cover("south-veil", Cells(6, 15, 2, 2))}}
-	for i, at := range []Cell{At(5, 10), At(12, 4), At(12, 15)} {
-		encounter := dungeonEncounter([]string{"vault-sentinel-west", "vault-sentinel-north", "vault-sentinel-south"}[i], at, 2, 0)
-		encounter.Guard.Level = 5
+	r := Room{ID: OrbVault, Name: "THE ASTRAL ORB VAULT", Area: Cells(69, -150, 27, 38), Floor: FirstFloor}
+	for i, cell := range vaultSentinels(r, At(r.Area.X, r.Area.Y+r.Area.Height/2)) {
+		at := At(cell.X-r.Area.X, cell.Y-r.Area.Y)
+		encounter := dungeonEncounter([]string{"vault-sentinel-west-north", "vault-sentinel-west-south", "vault-sentinel-east-north", "vault-sentinel-east-south"}[i], at, 2, 0)
+		encounter.Guard.Level = 10
 		r.FeedingAreas = append(r.FeedingAreas, encounter)
 	}
 	return r

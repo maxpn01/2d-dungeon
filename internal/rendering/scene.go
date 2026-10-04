@@ -27,6 +27,7 @@ type Scene struct {
 func DrawScene(ctx primitives.Context, scene Scene) {
 	rl.BeginMode2D(ctx.Camera)
 	scene.Map.Draw(ctx, scene.Snapshot, scene.Local)
+	scene.Map.DrawVaultArrowWarning(scene.Snapshot)
 	scene.Feedback.DrawWallDebris(time.Now(), &scene.Map.Exploration)
 	playerColors := make(map[string]color.RGBA, len(scene.Players))
 	for _, player := range scene.Players {
@@ -44,6 +45,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 			tint = primitives.CharacterColor(ai.Character)
 		}
 		DrawAIActor(Actor{
+			Stone: ai.Stone, Awakening: ai.Awakening,
 			ID: ai.ID, Label: fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior),
 			X: ai.X, Y: ai.Y, Size: ai.Size, HP: ai.Stats.HP, Character: ai.Character,
 			Aiming: ai.Aiming, Frenzied: ai.Frenzied, Combat: ai.Combat, Split: ai.Split, Tint: tint,
@@ -79,6 +81,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 	}
 	DrawProjectiles(scene.PreviousProjectiles, scene.Projectiles, scene.ProjectileAlpha, &scene.Map.Exploration)
 	DrawEncounter(scene.Boss, scene.Local, &scene.Map.Exploration)
+	scene.Map.DrawVaultFire(scene.Snapshot)
 	for _, p := range scene.Players {
 		if p.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(p.X, p.Y, p.Size) {
 			continue

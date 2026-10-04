@@ -64,6 +64,10 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 	}
 	c.HitGrace = max(0, c.HitGrace-dt)
 	pressed := input.Dash && !c.Held
+	walkSpeed := p.MovementSpeed()
+	if p.Stats.Mob {
+		walkSpeed *= min(1, math.Hypot(input.X, input.Y))
+	}
 	c.Held = input.Dash
 	if length := math.Hypot(input.AimX, input.AimY); length > 0 {
 		c.Facing = Direction{X: input.AimX / length, Y: input.AimY / length}
@@ -82,7 +86,7 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 	}
 	for dt > 1e-9 {
 		if c.Phase == DashIdle {
-			p.X, p.Y = Move(p.X, p.Y, input, dt, p.MovementSpeed())
+			p.X, p.Y = Move(p.X, p.Y, input, dt, walkSpeed)
 			return
 		}
 		step := min(dt, c.Remaining)
@@ -114,7 +118,7 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 				p.X, p.Y = MoveBy(p.X, p.Y, Direction{X: c.RecoilX / length, Y: c.RecoilY / length}, length*fraction)
 			}
 		case DashRecovering:
-			p.X, p.Y = Move(p.X, p.Y, input, step, p.MovementSpeed()*0.35)
+			p.X, p.Y = Move(p.X, p.Y, input, step, walkSpeed*0.35)
 		}
 		dt -= step
 		c.Remaining -= step

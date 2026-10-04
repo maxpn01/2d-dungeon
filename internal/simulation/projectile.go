@@ -11,6 +11,8 @@ import (
 )
 
 type Projectile struct {
+	mobOwned         bool
+	Kind             string `json:"kind,omitempty"`
 	originX, originY float64
 	ID               string    `json:"id"`
 	Owner            string    `json:"owner"`
@@ -47,7 +49,7 @@ func (w *World) fire(p *Player, input Direction) {
 	size := p.Stats.ShotSize()
 	w.nextProjectile++
 	w.projectiles = append(w.projectiles, Projectile{
-		ID: fmt.Sprintf("shot-%d", w.nextProjectile), Owner: p.ID, originX: p.X, originY: p.Y,
+		ID: fmt.Sprintf("shot-%d", w.nextProjectile), Owner: p.ID, originX: p.X, originY: p.Y, mobOwned: p.Stats.Mob,
 		X: p.X + (PlayerSize-size)/2, Y: p.Y + (PlayerSize-size)/2,
 		Direction: direction, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage, Size: size,
 	})
@@ -56,15 +58,23 @@ func (w *World) fire(p *Player, input Direction) {
 func (w *World) advanceProjectiles(actors []eater) {
 	remaining := w.projectiles[:0]
 	for _, shot := range w.projectiles {
+		if shot.Kind == "arrow" && (w.vaultArrowStarted == 0 || w.tick-w.vaultArrowStarted >= VaultArrowDurationTicks) {
+			continue
+		}
 		shot.Remaining -= StepSeconds
 		if shot.Remaining <= 0 {
 			continue
 		}
 		alive := true
-		steps := int(math.Ceil(parameters.ShotSpeed * StepSeconds / 4))
+		speed := ProjectileSpeed(shot)
+		steps := int(math.Ceil(speed * StepSeconds / 4))
 		for step := range steps {
 			start := position{shot.X, shot.Y}
-			end := position{shot.X + shot.Direction.X*parameters.ShotSpeed*StepSeconds/float64(steps), shot.Y + shot.Direction.Y*parameters.ShotSpeed*StepSeconds/float64(steps)}
+			end := position{shot.X + shot.Direction.X*speed*StepSeconds/float64(steps), shot.Y + shot.Direction.Y*speed*StepSeconds/float64(steps)}
+			if shot.Kind == "arrow" && !worldmap.Default().RoomContains(worldmap.OrbVault, physics.Square(end.x, end.y, shot.Size)) {
+				alive = false
+				break
+			}
 			wallFraction, wallBlocked := worldmap.Default().WithSecrets(w.openSecrets).MovementLimit(start.x, start.y, end.x-start.x, end.y-start.y, shot.Size, shot.Size)
 			if worldmap.Default().PrivateGateCrossed(start.x, start.y, end.x, end.y, shot.Size) {
 				alive = false
@@ -72,7 +82,7 @@ func (w *World) advanceProjectiles(actors []eater) {
 			}
 			winner, first := -1, math.Inf(1)
 			for i, actor := range actors {
-				if actor.id == shot.Owner || actor.dead() || actor.protectedAt(1, w.safeZones) {
+				if actor.id == shot.Owner || actor.dead() || actor.protectedAt(1, w.safeZones) || shot.Kind == "arrow" && actor.player == nil {
 					continue
 				}
 				if t, hit := eatingContact(start, end, shot.Size, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step)/float64(steps)}, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step+1)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step+1)/float64(steps)}, actor.size); hit && (t < first || t == first && (winner < 0 || actor.id < actors[winner].id)) {
@@ -89,6 +99,10 @@ func (w *World) advanceProjectiles(actors []eater) {
 			shot.X, shot.Y = end.x, end.y
 			if winner >= 0 {
 				target := actors[winner]
+				if shot.mobOwned && target.ai != nil {
+					alive = false
+					break
+				}
 				hp := target.stats.HP
 				target.stats.HP = max(0, hp-shot.Damage)
 				if target.ai != nil && target.stats.HP > 0 {

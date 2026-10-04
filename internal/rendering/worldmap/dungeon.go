@@ -141,6 +141,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 
 	}
 	m.drawFeedingAreas()
+	m.drawVault()
 	m.drawSecretInscriptions(ctx)
 	for _, pool := range m.world.Pools() {
 		if m.world.CellFloor(pool.Area.X, pool.Area.Y) != m.floor {

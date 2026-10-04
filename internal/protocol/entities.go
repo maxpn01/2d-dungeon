@@ -46,6 +46,8 @@ type Fruit struct {
 }
 
 type AI struct {
+	Stone     bool                   `json:"stone,omitempty"`
+	Awakening float64                `json:"awakening,omitempty"`
 	Aiming    bool                   `json:"aiming,omitempty"`
 	Frenzied  bool                   `json:"frenzied,omitempty"`
 	Combat    simulation.CombatState `json:"combat"`

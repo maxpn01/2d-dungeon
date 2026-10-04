@@ -25,6 +25,8 @@ const (
 )
 
 type AI struct {
+	Stone     bool
+	Awakening float64
 	Aiming    bool
 	Frenzied  bool
 	Combat    CombatState
@@ -37,21 +39,22 @@ type AI struct {
 }
 
 type aiState struct {
-	shotTargetID       string
-	aimTargetID        string
-	aimSince           uint64
-	aimLastSeen        uint64
-	aimReady           bool
-	spawnMaxHP         float64
-	frenzyBase         Stats
-	orbTargetID        string
-	orbPathFound       bool
-	orbPathUntil       uint64
-	orbPathX, orbPathY float64
-	aggressorID        string
-	alertUntil         uint64
-	alertX, alertY     float64
-	shotCooldown       float64
+	sentinelMoveX, sentinelMoveY float64
+	shotTargetID                 string
+	aimTargetID                  string
+	aimSince                     uint64
+	aimLastSeen                  uint64
+	aimReady                     bool
+	spawnMaxHP                   float64
+	frenzyBase                   Stats
+	orbTargetID                  string
+	orbPathFound                 bool
+	orbPathUntil                 uint64
+	orbPathX, orbPathY           float64
+	aggressorID                  string
+	alertUntil                   uint64
+	alertX, alertY               float64
+	shotCooldown                 float64
 	AI
 	den             worldmap.Den
 	settleTicks     int
@@ -82,7 +85,11 @@ func (w *World) newDenAI(den worldmap.Den) aiState {
 	if den.RoomID == worldmap.OrbVault {
 		character = Triangle
 	}
-	return aiState{spawnMaxHP: stats.MaxHP(), den: den, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "patrolling", Character: character}}
+	ai := aiState{spawnMaxHP: stats.MaxHP(), den: den, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "patrolling", Character: character}}
+	if den.RoomID == worldmap.OrbVault {
+		ai.Stone, ai.Behavior = true, "stone guardian"
+	}
+	return ai
 }
 
 func (w *World) spawnEntranceGuards() {
@@ -111,6 +118,7 @@ func (w *World) newSurfaceAI(slot int) aiState {
 }
 
 func (w *World) updateAIs() {
+	w.awakenVaultSentinels()
 	for i := range w.ais {
 		ai := &w.ais[i]
 		if ai.respawnTick != 0 {
@@ -119,8 +127,19 @@ func (w *World) updateAIs() {
 		if worldmap.Default().WithSecrets(w.openSecrets).Cell(ai.den.At.X, ai.den.At.Y) == 0 && ai.den.ID != "" {
 			continue
 		}
+		if ai.Stone {
+			continue
+		}
+		if ai.Awakening > 0 {
+			ai.Awakening = max(0, ai.Awakening-StepSeconds)
+			ai.Behavior = "awakening"
+			continue
+		}
 		ai.setFrenzy(w.orbTarget(ai) != nil)
 		input := w.aiInput(ai)
+		if ai.Character == Triangle || ai.Frenzied {
+			input = w.steerSentinel(ai, input)
+		}
 		oldX, oldY := ai.X, ai.Y
 		actor := Player{OpenSecrets: w.openSecrets, ID: ai.ID, ShotCooldown: ai.shotCooldown, X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character, Split: ai.Split}
 		actor.GatesClosed = w.boss.Phase == "fighting"
@@ -226,7 +245,9 @@ func (ai *aiState) patrolInput() Direction {
 		ai.choosePatrolTarget()
 	}
 	if math.Hypot(ai.patrolX-ai.X, ai.patrolY-ai.Y) <= 18 {
-		ai.X, ai.Y = ai.patrolX, ai.patrolY
+		if ai.Character != Triangle {
+			ai.X, ai.Y = ai.patrolX, ai.patrolY
+		}
 		ai.patrolTicks = 0
 		ai.patrolPause = TickRate/3 + rand.IntN(TickRate/2)
 		ai.Behavior = "watching"

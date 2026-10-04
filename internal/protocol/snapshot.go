@@ -3,18 +3,20 @@ package protocol
 import "raylib-2d-sandbox/internal/simulation"
 
 type Snapshot struct {
-	SecretWallHits    map[string]int      `json:"secret_wall_hits,omitempty"`
-	RoundID           uint64              `json:"round_id"`
-	MatchStarted      bool                `json:"match_started"`
-	BriefingActive    bool                `json:"briefing_active"`
-	StartCountdown    int                 `json:"start_countdown"`
-	DungeonLayout     string              `json:"dungeon_layout"`
-	WingDoorOpen      float64             `json:"wing_door_open"`
-	NorthWingDoorOpen float64             `json:"north_wing_door_open"`
-	FinishedTick      uint64              `json:"finished_tick"`
-	WinnerID          string              `json:"winner_id,omitempty"`
-	OpenSecrets       []string            `json:"open_secrets"`
-	Orb               simulation.OrbState `json:"orb"`
+	VaultArrowStarted uint64                 `json:"vault_arrow_started,omitempty"`
+	VaultFire         []simulation.VaultFire `json:"vault_fire,omitempty"`
+	SecretWallHits    map[string]int         `json:"secret_wall_hits,omitempty"`
+	RoundID           uint64                 `json:"round_id"`
+	MatchStarted      bool                   `json:"match_started"`
+	BriefingActive    bool                   `json:"briefing_active"`
+	StartCountdown    int                    `json:"start_countdown"`
+	DungeonLayout     string                 `json:"dungeon_layout"`
+	WingDoorOpen      float64                `json:"wing_door_open"`
+	NorthWingDoorOpen float64                `json:"north_wing_door_open"`
+	FinishedTick      uint64                 `json:"finished_tick"`
+	WinnerID          string                 `json:"winner_id,omitempty"`
+	OpenSecrets       []string               `json:"open_secrets"`
+	Orb               simulation.OrbState    `json:"orb"`
 	Statues           []simulation.StatueState
 	Projectiles       []simulation.Projectile
 	SafeZones         []simulation.SafeZone
@@ -28,6 +30,8 @@ type Snapshot struct {
 func SnapshotFromSimulation(state simulation.Snapshot, names map[string]string) Snapshot {
 	snapshot := Snapshot{
 		SecretWallHits: state.SecretWallHits, DungeonLayout: state.DungeonLayout,
+		VaultFire:         state.VaultFire,
+		VaultArrowStarted: state.VaultArrowStarted,
 		NorthWingDoorOpen: state.NorthWingDoorOpen, WingDoorOpen: state.WingDoorOpen, WinnerID: state.WinnerID, FinishedTick: state.FinishedTick, OpenSecrets: state.OpenSecrets, Orb: state.Orb, Statues: state.Statues, Projectiles: state.Projectiles, SafeZones: state.SafeZones,
 		Boss: state.Boss, Tick: state.Tick,
 		Players: make([]Player, 0, len(state.Players)),
@@ -45,6 +49,7 @@ func SnapshotFromSimulation(state simulation.Snapshot, names map[string]string) 
 	}
 	for _, ai := range state.AIs {
 		snapshot.AIs = append(snapshot.AIs, AI{
+			Stone: ai.Stone, Awakening: ai.Awakening,
 			Aiming: ai.Aiming, Frenzied: ai.Frenzied, Combat: ai.Combat, Behavior: ai.Behavior, Character: ai.Character, Split: ai.Split,
 			ID: ai.ID, X: ai.X, Y: ai.Y, Size: simulation.AISize, Stats: ai.Stats,
 		})
@@ -57,7 +62,9 @@ func SnapshotFromSimulation(state simulation.Snapshot, names map[string]string) 
 
 func (s Snapshot) Message() Message {
 	return Message{
-		SecretWallHits: s.SecretWallHits, RoundID: s.RoundID, MatchStarted: s.MatchStarted, BriefingActive: s.BriefingActive, StartCountdown: s.StartCountdown,
+		VaultFire:         s.VaultFire,
+		VaultArrowStarted: s.VaultArrowStarted,
+		SecretWallHits:    s.SecretWallHits, RoundID: s.RoundID, MatchStarted: s.MatchStarted, BriefingActive: s.BriefingActive, StartCountdown: s.StartCountdown,
 		DungeonLayout:     s.DungeonLayout,
 		NorthWingDoorOpen: s.NorthWingDoorOpen, WingDoorOpen: s.WingDoorOpen, WinnerID: s.WinnerID, FinishedTick: s.FinishedTick, OpenSecrets: s.OpenSecrets, Orb: s.Orb, Statues: s.Statues, Projectiles: s.Projectiles, SafeZones: s.SafeZones, Boss: s.Boss,
 		Type: TypeSnapshot, Tick: s.Tick, Players: &s.Players, Fruits: &s.Fruits, AIs: &s.AIs,
@@ -65,7 +72,7 @@ func (s Snapshot) Message() Message {
 }
 
 func (m Message) Snapshot() Snapshot {
-	snapshot := Snapshot{SecretWallHits: m.SecretWallHits, RoundID: m.RoundID, MatchStarted: m.MatchStarted, StartCountdown: m.StartCountdown, DungeonLayout: m.DungeonLayout, NorthWingDoorOpen: m.NorthWingDoorOpen, WingDoorOpen: m.WingDoorOpen, WinnerID: m.WinnerID, FinishedTick: m.FinishedTick, OpenSecrets: m.OpenSecrets, Orb: m.Orb, Statues: m.Statues, Projectiles: m.Projectiles, SafeZones: m.SafeZones, Boss: m.Boss, Tick: m.Tick}
+	snapshot := Snapshot{VaultArrowStarted: m.VaultArrowStarted, VaultFire: m.VaultFire, SecretWallHits: m.SecretWallHits, RoundID: m.RoundID, MatchStarted: m.MatchStarted, StartCountdown: m.StartCountdown, DungeonLayout: m.DungeonLayout, NorthWingDoorOpen: m.NorthWingDoorOpen, WingDoorOpen: m.WingDoorOpen, WinnerID: m.WinnerID, FinishedTick: m.FinishedTick, OpenSecrets: m.OpenSecrets, Orb: m.Orb, Statues: m.Statues, Projectiles: m.Projectiles, SafeZones: m.SafeZones, Boss: m.Boss, Tick: m.Tick}
 	snapshot.BriefingActive = m.BriefingActive
 	if m.Players != nil {
 		snapshot.Players = *m.Players
