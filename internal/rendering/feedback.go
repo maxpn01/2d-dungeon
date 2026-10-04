@@ -36,18 +36,19 @@ type feedbackEffect struct {
 }
 
 type Feedback struct {
-	observed time.Time
-	secrets  map[string]bool
-	walls    []wallBreak
-	spawns   map[string]time.Time
-	actors   map[string]feedbackActor
-	drops    map[string]bool
-	effects  []feedbackEffect
-	hits     map[string]time.Time
-	hurtAt   time.Time
-	manaAt   time.Time
-	lowHP    bool
-	localID  string
+	observed   time.Time
+	secrets    map[string]bool
+	walls      []wallBreak
+	spawns     map[string]time.Time
+	actors     map[string]feedbackActor
+	drops      map[string]bool
+	effects    []feedbackEffect
+	hits       map[string]time.Time
+	hurtAt     time.Time
+	manaAt     time.Time
+	lowHP      bool
+	localID    string
+	celebrated bool
 }
 
 func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruits []protocol.Fruit) {
@@ -84,6 +85,10 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 			old, existed := f.actors[id]
 			if actor.escaped && !actor.dead && (!existed || !old.escaped) {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, rl.Gold, "completion")
+				if existed && id == f.localID && !f.celebrated {
+					f.celebrated = true
+					playFeedbackSound("completion")
+				}
 			}
 			if existed && !old.dead && !actor.dead && actor.level > old.level && !actor.ai {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, primitives.RuneColor, "level")
