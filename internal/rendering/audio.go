@@ -32,7 +32,7 @@ func InitFeedbackAudio() {
 	for _, cue := range []struct {
 		name                 string
 		start, end, duration float64
-	}{{"hit", 950, 220, .075}, {"hurt", 180, 65, .18}, {"mana", 240, 170, .16}, {"low", 100, 75, .3}, {"completion", 0, 0, 8}} {
+	}{{"hit", 950, 220, .075}, {"hurt", 180, 65, .18}, {"mana", 240, 170, .16}, {"low", 100, 75, .3}, {"stone", 130, 42, .14}, {"completion", 0, 0, 8}} {
 		var data []byte
 		if cue.name == "completion" {
 			data = assets.RoundComplete

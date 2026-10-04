@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"raylib-2d-sandbox/internal/physics"
+	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -13,21 +14,33 @@ import (
 type wallBreak struct {
 	started time.Time
 	area    worldmap.CellRect
+	hit     bool
 }
 
-func (f *Feedback) observeWalls(now time.Time, open []string) {
+func (f *Feedback) observeWalls(now time.Time, snapshot protocol.Snapshot, localID string) {
+	open := snapshot.OpenSecrets
 	current := make(map[string]bool, len(open))
 	for _, id := range open {
 		current[id] = true
 	}
 	if f.secrets != nil {
 		for _, door := range worldmap.Default().SecretDoors() {
+			if !door.Interactable && !current[door.ID] && snapshot.SecretWallHits[door.ID] > f.wallHits[door.ID] {
+				f.walls = append(f.walls, wallBreak{started: now, area: door.Area, hit: true})
+				center := door.Area.Bounds().Center()
+				for _, p := range snapshot.Players {
+					if p.ID == localID && worldmap.Default().FloorAt(p.X, p.Y) == worldmap.Default().FloorAt(center.X, center.Y) && math.Hypot(p.X-center.X, p.Y-center.Y) < 300 {
+						playFeedbackSound("stone")
+					}
+				}
+			}
 			if !door.Interactable && current[door.ID] && !f.secrets[door.ID] {
 				f.walls = append(f.walls, wallBreak{started: now, area: door.Area})
 			}
 		}
 	}
 	f.secrets = current
+	f.wallHits = snapshot.SecretWallHits
 }
 
 func (f *Feedback) DrawWallDebris(now time.Time, visibility Visibility) {
@@ -42,6 +55,32 @@ func (f *Feedback) DrawWallDebris(now time.Time, visibility Visibility) {
 	geometry := worldmap.Default().WithSecrets(open)
 	for _, wall := range f.walls {
 		age := max(0, now.Sub(wall.started).Seconds())
+		if wall.hit {
+			if age < .45 {
+				active = append(active, wall)
+				visible := false
+				for _, cell := range []worldmap.Cell{worldmap.At(wall.area.X-1, wall.area.Y), worldmap.At(wall.area.Right(), wall.area.Y), worldmap.At(wall.area.X, wall.area.Y-1), worldmap.At(wall.area.X, wall.area.Bottom())} {
+					at := cell.Center()
+					visible = visible || visibility.EntityVisible(at.X, at.Y, 0)
+				}
+				if !visible {
+					continue
+				}
+				for y := wall.area.Y; y < wall.area.Bottom(); y++ {
+					for x := wall.area.X; x < wall.area.Right(); x++ {
+						center := worldmap.At(x, y).Center()
+						p := float32(age / .45)
+						at := rl.NewVector2(float32(center.X), float32(center.Y))
+						rl.DrawCircleGradient(at, 12+30*p, rl.Fade(rl.NewColor(165, 178, 189, 255), .4*(1-p)), rl.Blank)
+						for i := 0; i < 6; i++ {
+							angle := float64(i)*math.Pi/3 + float64(x+y)
+							rl.DrawCircleV(rl.NewVector2(at.X+float32(math.Cos(angle))*p*28, at.Y+float32(math.Sin(angle))*p*20+p*p*16), 2*(1-p), rl.Fade(rl.NewColor(132, 143, 153, 255), 1-p))
+						}
+					}
+				}
+			}
+			continue
+		}
 		if age >= 10 {
 			continue
 		}

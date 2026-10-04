@@ -105,18 +105,20 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 				dungeonRect(px, py, 40, 40, color.RGBA{17, 22, 30, 255})
 				wallStone, wallHighlight := stone, paleStone
 				cracked := false
+				damage := 0
 				for _, door := range secretDoors {
 					if door.Area.Contains(mapdata.At(x, y)) {
 						wallStone = color.RGBA{56, 64, 74, 255}
 						wallHighlight = color.RGBA{96, 110, 120, 255}
-						cracked = y == door.Area.Y+door.Area.Height/2 && x == door.Area.X+door.Area.Width/2
+						damage = m.wallHits[door.ID]
+						cracked = !door.Interactable && (damage > 0 || y == door.Area.Y+door.Area.Height/2 && x == door.Area.X+door.Area.Width/2)
 					}
 				}
 				dungeonRect(px+1, py+1, 38, 30, wallStone)
 				dungeonRect(px+3, py+3, 34, 2, wallHighlight)
 				dungeonRect(px+3, py+6, 2, 22, color.RGBA{67, 78, 87, 255})
 				if cracked {
-					drawSecretCrack(px, py)
+					drawSecretCrack(px, py, damage)
 				}
 				if m.world.Cell(x, y+1) != 0 {
 					dungeonRect(px+1, py+31, 38, 9, color.RGBA{32, 39, 49, 255})
@@ -139,6 +141,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 
 	}
 	m.drawFeedingAreas()
+	m.drawSecretInscriptions(ctx)
 	for _, pool := range m.world.Pools() {
 		if m.world.CellFloor(pool.Area.X, pool.Area.Y) != m.floor {
 			continue
@@ -283,7 +286,7 @@ func drawDungeonPool(x, y, width, height int) {
 	}
 }
 
-func drawSecretCrack(x, y int) {
+func drawSecretCrack(x, y, damage int) {
 	tint := color.RGBA{26, 34, 43, 255}
 	points := [][2]int{{20, 9}, {23, 13}, {21, 16}, {24, 21}}
 	for i := 1; i < len(points); i++ {
@@ -292,6 +295,21 @@ func drawSecretCrack(x, y int) {
 	}
 	rl.DrawLine(int32(x+22), int32(y+15), int32(x+27), int32(y+13), rl.Fade(tint, .75))
 	rl.DrawPixel(int32(x+24), int32(y+14), color.RGBA{77, 87, 96, 255})
+	light := rl.NewColor(152, 181, 207, 255)
+	pulse := float32(.65 + .35*math.Sin(rl.GetTime()*1.7+float64(x+y)))
+	center := rl.NewVector2(float32(x+22), float32(y+16))
+	rl.DrawCircleGradient(center, float32(14+damage*4), rl.Fade(light, (.05+float32(damage)*.025)*pulse), rl.Blank)
+	rl.DrawLineEx(rl.NewVector2(float32(x+21), float32(y+16)), rl.NewVector2(float32(x+24), float32(y+21)), 1, rl.Fade(light, (.22+float32(damage)*.12)*pulse))
+	branches := [][4]int{{21, 16, 11, 23}, {23, 13, 31, 7}, {24, 21, 29, 29}, {11, 23, 5, 14}}
+	for i := 0; i < min(damage, len(branches)); i++ {
+		p := branches[i]
+		a, b := rl.NewVector2(float32(x+p[0]), float32(y+p[1])), rl.NewVector2(float32(x+p[2]), float32(y+p[3]))
+		rl.DrawLineEx(a, b, float32(2+damage/2), rl.NewColor(12, 19, 27, 255))
+		rl.DrawLineEx(a, b, 1, rl.Fade(light, .12+float32(damage)*.1))
+	}
+	for i := 0; i < damage; i++ {
+		dungeonRect(x+6+i*7, y+30+i%2*3, 4+i%2, 3, color.RGBA{100, 109, 117, 255})
+	}
 }
 
 func drawFeastRoom(room mapdata.Room) {

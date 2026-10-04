@@ -17,6 +17,7 @@ type edgePos struct {
 }
 
 type Map struct {
+	wallHits    map[string]int
 	world       *mapdata.Map
 	gate        simulation.EntranceGateState
 	floor       mapdata.Floor
@@ -45,6 +46,7 @@ func NewMap() *Map {
 
 func (m *Map) Draw(ctx primitives.Context, snapshot protocol.Snapshot, local protocol.Player) {
 	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
+	m.wallHits = snapshot.SecretWallHits
 	m.safeZones, m.gate = snapshot.SafeZones, local.EntranceGate
 	m.floor = m.world.FloorAt(local.X+local.Size/2, local.Y+local.Size/2)
 	m.gatePrompt = !local.Dead && simulation.NearEntranceGateFor(local.EntranceID, local.X, local.Y)

@@ -3,6 +3,7 @@ package protocol
 import "raylib-2d-sandbox/internal/simulation"
 
 type Message struct {
+	SecretWallHits    map[string]int           `json:"secret_wall_hits,omitempty"`
 	RoundID           uint64                   `json:"round_id"`
 	MatchStarted      bool                     `json:"match_started"`
 	BriefingActive    bool                     `json:"briefing_active"`

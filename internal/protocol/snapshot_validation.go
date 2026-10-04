@@ -371,8 +371,10 @@ func validateObjective(snapshot Snapshot) error {
 		return errors.New("server sent invalid secret door animation")
 	}
 	known := map[string]bool{}
+	breakable := map[string]bool{}
 	for _, door := range worldmap.Default().SecretDoors() {
 		known[door.ID] = true
+		breakable[door.ID] = !door.Interactable
 	}
 	open := map[string]bool{}
 	for _, id := range snapshot.OpenSecrets {
@@ -380,6 +382,11 @@ func validateObjective(snapshot Snapshot) error {
 			return errors.New("server sent invalid secret discovery")
 		}
 		open[id] = true
+	}
+	for id, hits := range snapshot.SecretWallHits {
+		if !breakable[id] || hits < 1 || hits > parameters.SecretWallHits || hits == parameters.SecretWallHits && !open[id] {
+			return errors.New("server sent invalid secret wall damage")
+		}
 	}
 	if !open[worldmap.WingDoor] && snapshot.WingDoorOpen != 0 {
 		return errors.New("server sent inconsistent secret door animation")
