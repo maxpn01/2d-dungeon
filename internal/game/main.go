@@ -4,6 +4,7 @@ import (
 	"raylib-2d-sandbox/internal/gameplay"
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/rendering"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/screens"
 
@@ -90,6 +91,8 @@ func (g *Game) leaveMultiplayer() {
 func (g *Game) run() {
 	g.window.initWindow()
 	defer g.window.close()
+	rendering.InitFeedbackAudio()
+	defer rendering.CloseFeedbackAudio()
 	defer primitives.UnloadTextFonts()
 	defer g.leaveMultiplayer()
 	g.cameraFollowPlayer()
@@ -98,6 +101,9 @@ func (g *Game) run() {
 	exitRequested := false
 	for !rl.WindowShouldClose() && !exitRequested {
 		dt := rl.GetFrameTime()
+		if rl.IsKeyPressed(rl.KeyF8) {
+			rendering.ToggleFeedbackAudio()
+		}
 		if rl.IsKeyPressed(rl.KeyEscape) {
 			if current == screenSinglePlayer && g.world.StatsOpen() {
 				g.world.CloseStats()

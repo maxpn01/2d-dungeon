@@ -1,6 +1,7 @@
 package rendering
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 	"time"
@@ -21,6 +22,7 @@ type feedbackActor struct {
 	ai, dead, hidden   bool
 	escaped            bool
 	recovery           float64
+	maxHP              float64
 }
 
 type feedbackEffect struct {
@@ -28,6 +30,9 @@ type feedbackEffect struct {
 	x, y, size float32
 	tint       color.RGBA
 	kind       string
+	amount     float64
+	owner      string
+	sounded    bool
 }
 
 type Feedback struct {
@@ -38,6 +43,11 @@ type Feedback struct {
 	actors   map[string]feedbackActor
 	drops    map[string]bool
 	effects  []feedbackEffect
+	hits     map[string]time.Time
+	hurtAt   time.Time
+	manaAt   time.Time
+	lowHP    bool
+	localID  string
 }
 
 func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruits []protocol.Fruit) {
@@ -64,7 +74,7 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 		}
 	}
 	emit := func(x, y, size float64, tint color.RGBA, kind string) {
-		f.effects = append(f.effects, feedbackEffect{now, float32(x), float32(y), float32(size), tint, kind})
+		f.effects = append(f.effects, feedbackEffect{started: now, x: float32(x), y: float32(y), size: float32(size), tint: tint, kind: kind})
 	}
 	if f.actors != nil {
 		for id, actor := range actors {
@@ -78,8 +88,16 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 			if existed && !old.dead && !actor.dead && actor.level > old.level && !actor.ai {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, primitives.RuneColor, "level")
 			}
-			if existed && !old.dead && !actor.dead && actor.hp < old.hp {
-				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, rl.RayWhite, "mass")
+			previousHP := old.hp
+			if actor.ai && actor.level != old.level && old.maxHP > 0 {
+				previousHP = old.hp / old.maxHP * actor.maxHP
+			}
+			if existed && !old.dead && actor.hp < previousHP-1e-6 {
+				if f.hits == nil {
+					f.hits = make(map[string]time.Time)
+				}
+				f.hits[id] = now
+				f.effects = append(f.effects, feedbackEffect{started: now, x: float32(actor.x + actor.size/2), y: float32(actor.y + actor.size/2), size: float32(actor.size), tint: rl.Orange, kind: "hit", amount: previousHP - actor.hp, owner: id})
 			}
 			if existed && !old.dead && !actor.dead && (actor.hp > old.hp+actor.recovery*(max(0, now.Sub(f.observed).Seconds())+simulation.StepSeconds)+1e-6 || actor.level > old.level || actor.xp > old.xp) {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, float64(actorRenderSize(actor.size, actor.hp)), actor.tint, "eat")
@@ -87,8 +105,17 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 		}
 		for id, old := range f.actors {
 			if actor, exists := actors[id]; !old.dead && !old.hidden && (!exists || actor.dead && !actor.hidden) {
-				emit(old.x+old.size/2, old.y+old.size/2, float64(actorRenderSize(old.size, old.hp)), old.tint, "prey")
+				kind := "prey"
+				if old.ai {
+					kind = "defeat"
+				}
+				emit(old.x+old.size/2, old.y+old.size/2, float64(actorRenderSize(old.size, old.hp)), old.tint, kind)
 			}
+		}
+	}
+	for id, at := range f.hits {
+		if now.Sub(at) > time.Second {
+			delete(f.hits, id)
 		}
 	}
 	for _, fruit := range fruits {
@@ -107,15 +134,34 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 }
 
 func (f *Feedback) Observe(now time.Time, snapshot protocol.Snapshot, localID string) {
+	f.localID = localID
 	actors := make(map[string]feedbackActor)
 	for _, p := range snapshot.Players {
-		actors[p.ID] = feedbackActor{p.X, p.Y, p.Size, p.Stats.HP, p.Stats.XP, p.Stats.Level, primitives.CharacterColor(p.Character), false, p.Dead, p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, p.Size)), p.Escaped, p.Stats.HPRecoveryPerSecond()}
+		actors[p.ID] = feedbackActor{x: p.X, y: p.Y, size: p.Size, hp: p.Stats.HP + p.Split.Mass(), xp: p.Stats.XP, level: p.Stats.Level, tint: primitives.CharacterColor(p.Character), dead: p.Dead, hidden: p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, p.Size)), escaped: p.Escaped, recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP()}
 	}
 	for _, a := range snapshot.AIs {
-		actors[a.ID] = feedbackActor{a.X, a.Y, a.Size, a.Stats.HP, a.Stats.XP, a.Stats.Level, rl.Green, true, false, false, false, 0}
+		tint := rl.Green
+		if a.Character == simulation.Triangle {
+			tint = primitives.CharacterColor(a.Character)
+		}
+		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: a.Size, hp: a.Stats.HP + a.Split.Mass(), xp: a.Stats.XP, level: a.Stats.Level, tint: tint, ai: true, maxHP: a.Stats.MaxHP()}
 	}
 	f.observeWalls(now, snapshot.OpenSecrets)
 	f.observe(now, actors, snapshot.Fruits)
+	for _, p := range snapshot.Players {
+		if p.ID != localID {
+			continue
+		}
+		if at := f.hits[localID]; at == now {
+			f.hurtAt = now
+			playFeedbackSound("hurt")
+		}
+		low := !p.Dead && p.Stats.HP+p.Split.Mass() <= p.Stats.MaxHP()*.25
+		if low && !f.lowHP {
+			playFeedbackSound("low")
+		}
+		f.lowHP = low
+	}
 }
 
 func (f *Feedback) Draw(now time.Time, exploration Visibility) {
@@ -128,6 +174,12 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 		if e.kind == "completion" {
 			duration = 4.5
 		}
+		if e.kind == "hit" {
+			duration = .65
+		}
+		if e.kind == "defeat" {
+			duration = .8
+		}
 		p := float32(max(0, now.Sub(e.started).Seconds()) / duration)
 		if p >= 1 {
 			continue
@@ -139,6 +191,24 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 		tint := rl.Fade(e.tint, 1-p)
 		center := rl.NewVector2(e.x, e.y)
 		switch e.kind {
+		case "hit":
+			if !e.sounded {
+				if e.owner != f.localID {
+					playFeedbackSound("hit")
+				}
+				active[len(active)-1].sounded = true
+			}
+			label := fmt.Sprintf("-%.1f", e.amount)
+			primitives.DrawText(label, int32(e.x)-primitives.MeasureText(label, 20)/2, int32(e.y-e.size/2-56-28*p), 20, tint)
+			if p < .4 {
+				for i := range 6 {
+					angle := float64(i) * math.Pi / 3
+					radius := e.size/2 + 42*p
+					a := rl.NewVector2(e.x+float32(math.Cos(angle))*radius, e.y+float32(math.Sin(angle))*radius)
+					b := rl.NewVector2(a.X+float32(math.Cos(angle))*7, a.Y+float32(math.Sin(angle))*7)
+					rl.DrawLineEx(a, b, 2, rl.Fade(rl.RayWhite, 1-p/.4))
+				}
+			}
 		case "completion":
 			glow := float32(math.Sin(float64(p) * math.Pi))
 			rl.DrawCircleGradient(center, 150, rl.Fade(e.tint, .32*glow), rl.Blank)
@@ -163,7 +233,15 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 				radius := (e.size*0.8 + 12) * (1 - p)
 				rl.DrawRectangleRec(rl.NewRectangle(e.x+float32(math.Cos(angle))*radius-2, e.y+float32(math.Sin(angle))*radius-2, 4, 4), tint)
 			}
-		case "prey":
+		case "prey", "defeat":
+			if e.kind == "defeat" {
+				if !e.sounded {
+					playFeedbackSound("hit")
+					active[len(active)-1].sounded = true
+				}
+				label := "DEFEATED"
+				primitives.DrawText(label, int32(e.x)-primitives.MeasureText(label, 18)/2, int32(e.y-e.size/2-28-22*p), 18, rl.Fade(rl.Gold, 1-p))
+			}
 			side := e.size * (1 - p) * (1 - p)
 			rl.DrawRectangleRec(rl.NewRectangle(e.x-side/2, e.y-side/2, side, side), tint)
 		case "mass":

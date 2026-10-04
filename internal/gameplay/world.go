@@ -81,6 +81,7 @@ func (w *World) ReadInput(camera rl.Camera2D, width, height int32) {
 		return
 	}
 	next := w.controls.read(camera, w.Center(), p.Combat.Facing)
+	w.feedback.CheckCombatInput(time.Now(), next, p)
 	next.Shoot = !w.controls.suppressShootUntilRelease && (next.Shoot || w.direction.Shoot)
 	next.Dash = next.Dash || w.direction.Dash
 	next.Interact = next.Interact || w.direction.Interact

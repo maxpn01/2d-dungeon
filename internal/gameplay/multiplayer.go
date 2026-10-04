@@ -123,6 +123,11 @@ func (m *Multiplayer) ReadInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 			}
 		}
 		direction = m.controls.read(camera, center, m.view.Local.Combat.Facing)
+		resourcePlayer := m.view.Local
+		if predicted, ready := m.session.PredictedPlayer(); ready {
+			resourcePlayer = predicted
+		}
+		m.feedback.CheckCombatInput(time.Now(), direction, resourcePlayer)
 	}
 	m.session.SetInput(direction)
 	now := time.Now()

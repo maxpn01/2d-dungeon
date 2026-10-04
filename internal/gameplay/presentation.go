@@ -1,6 +1,8 @@
 package gameplay
 
 import (
+	"time"
+
 	"raylib-2d-sandbox/internal/hud"
 	"raylib-2d-sandbox/internal/rendering"
 	"raylib-2d-sandbox/internal/rendering/primitives"
@@ -32,6 +34,7 @@ func (p *presentation) draw(ctx primitives.Context, scene rendering.Scene, multi
 	width, height := ctx.WindowWidth, ctx.WindowHeight
 	snapshot, local, players := scene.Snapshot, scene.Local, scene.RenderedPlayers
 	hud.DrawPlayer(local, width)
+	p.feedback.DrawCombatOverlay(time.Now(), local, width, height)
 	hud.DrawBossTimer(snapshot.Boss, width)
 	if snapshot.WinnerID != "" {
 		label := "FLOOR I COMPLETE"

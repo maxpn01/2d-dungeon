@@ -27,6 +27,7 @@ func DrawPlayerActor(p Actor, feedback *Feedback, exploration Visibility) {
 	}
 	count := p.Split.Count()
 	bounds := feedback.DrawPlayer(p.ID, p.X, p.Y, p.Size, p.HP, p.Combat, p.Tint, p.Character)
+	feedback.DrawHit(p.ID, bounds, p.Character)
 	for _, cell := range p.Split {
 		if cell.Active {
 			if exploration == nil || exploration.EntityVisible(cell.X, cell.Y, p.Size) {
@@ -37,7 +38,7 @@ func DrawPlayerActor(p Actor, feedback *Feedback, exploration Visibility) {
 	primitives.DrawTextAt(p.Label, rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 }
 
-func DrawAIActor(ai Actor, exploration Visibility) {
+func DrawAIActor(ai Actor, exploration Visibility, feedback *Feedback) {
 	if ai.Dead {
 		return
 	}
@@ -47,6 +48,7 @@ func DrawAIActor(ai Actor, exploration Visibility) {
 			drawPossession(ai)
 		}
 		bounds := DrawActor(ai.X, ai.Y, ai.Size, ai.HP, ai.Combat, ai.Tint, ai.Character)
+		feedback.DrawHit(ai.ID, bounds, ai.Character)
 		if ai.Aiming {
 			center := rl.NewVector2(bounds.X+bounds.Width/2, bounds.Y+bounds.Height/2)
 			radius := max(bounds.Width, bounds.Height)*.75 + 4

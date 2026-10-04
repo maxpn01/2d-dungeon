@@ -47,7 +47,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 			ID: ai.ID, Label: fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior),
 			X: ai.X, Y: ai.Y, Size: ai.Size, HP: ai.Stats.HP, Character: ai.Character,
 			Aiming: ai.Aiming, Frenzied: ai.Frenzied, Combat: ai.Combat, Split: ai.Split, Tint: tint,
-		}, &scene.Map.Exploration)
+		}, &scene.Map.Exploration, scene.Feedback)
 	}
 	for _, player := range scene.RenderedPlayers {
 		if player.Dead {

@@ -18,6 +18,14 @@ func drawSentinelSword(center rl.Vector2, size float32, c simulation.CombatState
 	if c.SwordRemaining > 0 {
 		elapsed := simulation.SentinelSwordDuration - c.SwordRemaining
 		if elapsed < simulation.SentinelSwordWindup {
+			progress := float32(elapsed / simulation.SentinelSwordWindup)
+			base := float32(math.Atan2(facing.Y, facing.X) * 180 / math.Pi)
+			reach := float32(simulation.SentinelSwordReach)
+			warning := rl.Orange
+			rl.DrawCircleSector(center, reach, base-60, base+60, 24, rl.Fade(warning, .10+.18*progress))
+			rl.DrawCircleSectorLines(center, reach, base-60, base+60, 24, rl.Fade(warning, .5+.5*progress))
+			rl.DrawRing(center, reach+5, reach+8, base-60, base-60+120*progress, 24, rl.Gold)
+			rl.DrawRing(center, reach*progress, reach*progress+2, base-60, base+60, 24, rl.Fade(rl.Gold, .8))
 			angle -= math.Pi / 3 * elapsed / simulation.SentinelSwordWindup
 		} else {
 			progress := (elapsed - simulation.SentinelSwordWindup) / (simulation.SentinelSwordDuration - simulation.SentinelSwordWindup)

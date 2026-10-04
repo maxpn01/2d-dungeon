@@ -3,8 +3,11 @@ package hud
 import (
 	"fmt"
 	"image/color"
+	"math"
 
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/rendering"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 
@@ -44,8 +47,21 @@ func drawPlayer(p playerView, windowWidth int32) {
 	primitives.DrawText(level, x+width-12-primitives.MeasureText(level, 20), y+18, 20, rl.RayWhite)
 
 	barWidth := width - 24
-	drawHUDMeter(x+12, y+58, barWidth, "HP", fmt.Sprintf("%.2f / %.0f", p.HP, p.MaxHP), p.HP, p.MaxHP, color.RGBA{230, 0, 18, 255})
-	drawHUDMeter(x+12, y+100, barWidth, "MP", fmt.Sprintf("%.2f / %.0f", p.MP, p.MaxMP), p.MP, p.MaxMP, rl.SkyBlue)
+	hpLabel, mpLabel := "HP", "MP"
+	hpTint, mpTint := color.RGBA{230, 0, 18, 255}, rl.SkyBlue
+	if p.HP > 0 && p.HP <= p.MaxHP*.25 {
+		hpLabel = "HP / LOW"
+		hpTint = rl.Fade(rl.Red, float32(.65+.35*math.Sin(rl.GetTime()*9)))
+	}
+	if p.MP < parameters.ShotMPCost {
+		mpLabel = "MP / LOW"
+		mpTint = rl.Orange
+	}
+	if p.MP <= .001 {
+		mpLabel = "MP / EMPTY"
+	}
+	drawHUDMeter(x+12, y+58, barWidth, hpLabel, fmt.Sprintf("%.2f / %.0f", p.HP, p.MaxHP), p.HP, p.MaxHP, hpTint)
+	drawHUDMeter(x+12, y+100, barWidth, mpLabel, fmt.Sprintf("%.2f / %.0f", p.MP, p.MaxMP), p.MP, p.MaxMP, mpTint)
 	xpLabel := fmt.Sprintf("%.2f / %.2f", p.XP, p.NextXP)
 	xp, nextXP := p.XP, p.NextXP
 	if p.Level >= p.MaxLevel {
@@ -53,7 +69,11 @@ func drawPlayer(p playerView, windowWidth int32) {
 	}
 	drawHUDMeter(x+12, y+142, barWidth, "EXP", xpLabel, xp, nextXP, rl.Yellow)
 	muted := color.RGBA{160, 170, 180, 255}
-	primitives.DrawText("[P] Player stats", x+12, y+195, 16, muted)
+	sound := "off"
+	if rendering.FeedbackAudioEnabled() {
+		sound = "on"
+	}
+	primitives.DrawText("[P] Stats  [F8] Sound: "+sound, x+12, y+195, 16, muted)
 
 }
 
