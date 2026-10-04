@@ -31,15 +31,7 @@ func (p *presentation) draw(ctx primitives.Context, scene rendering.Scene, multi
 	rendering.DrawScene(ctx, scene)
 	width, height := ctx.WindowWidth, ctx.WindowHeight
 	snapshot, local, players := scene.Snapshot, scene.Local, scene.RenderedPlayers
-	counts := hud.Counts{Food: len(snapshot.Fruits), AIs: len(snapshot.AIs)}
-	if multiplayer {
-		for _, player := range snapshot.Players {
-			if !player.Dead {
-				counts.Players++
-			}
-		}
-	}
-	hud.DrawPlayer(local, counts, width)
+	hud.DrawPlayer(local, width)
 	hud.DrawBossTimer(snapshot.Boss, width)
 	if snapshot.WinnerID != "" {
 		label := "FLOOR I COMPLETE"

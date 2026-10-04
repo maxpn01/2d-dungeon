@@ -43,6 +43,9 @@ type Session struct {
 	done             chan struct{}
 	cancel           context.CancelFunc
 	inputMu          sync.Mutex
+	pingMu           sync.RWMutex
+	ping             time.Duration
+	pingAt           time.Time
 	direction        protocol.Direction
 	inputAt          time.Time
 	chatMu           sync.Mutex
@@ -251,6 +254,12 @@ func (s *Session) run(ctx context.Context, url string) error {
 		}
 	}()
 	defer func() { stop(); <-writerDone }()
+	pingDone := make(chan struct{})
+	go func() {
+		defer close(pingDone)
+		s.measurePing(ioCtx, conn)
+	}()
+	defer func() { stop(); <-pingDone }()
 
 	var lastTick, lastAck, roundID uint64
 	var dungeonLayout string

@@ -12,7 +12,7 @@ import (
 )
 
 func DrawStats(player protocol.Player, width, height int32) {
-	p := playerDetails(player, Counts{})
+	p := playerDetails(player)
 	owned := []simulation.PerkCard{}
 	for family, rank := range p.Perks {
 		if rank > 0 {

@@ -20,7 +20,6 @@ type playerView struct {
 	HP, MaxHP, MP, MaxMP, XP, NextXP float32
 	Speed                            float32
 	Damage, AttackRate, Boost        float32
-	Fruit, AIs, Players              int
 }
 
 func drawPlayer(p playerView, windowWidth int32) {
@@ -56,16 +55,6 @@ func drawPlayer(p playerView, windowWidth int32) {
 	muted := color.RGBA{160, 170, 180, 255}
 	primitives.DrawText("[P] Player stats", x+12, y+195, 16, muted)
 
-	counts := fmt.Sprintf("Food: %d    AIs: %d", p.Fruit, p.AIs)
-	if p.Players > 0 {
-		counts += fmt.Sprintf("    Players: %d", p.Players)
-	}
-	countsX := x + width
-	countsWidth := primitives.MeasureText(counts, 18) + 24
-	if countsX+countsWidth <= windowWidth-220 {
-		rl.DrawRectangle(countsX, y, countsWidth, 38, background)
-		primitives.DrawText(counts, countsX+12, y+10, 18, rl.RayWhite)
-	}
 }
 
 func drawHUDMeter(x, y, width int32, label, value string, current, maximum float32, tint color.RGBA) {
@@ -83,9 +72,7 @@ func drawHUDMeter(x, y, width int32, label, value string, current, maximum float
 	}
 }
 
-type Counts struct{ Food, AIs, Players int }
-
-func playerDetails(player protocol.Player, counts Counts) playerView {
+func playerDetails(player protocol.Player) playerView {
 	stats := player.Stats
 	hp := float32(stats.HP + player.Split.Mass())
 	if player.Dead {
@@ -97,12 +84,11 @@ func playerDetails(player protocol.Player, counts Counts) playerView {
 		MP: float32(stats.MP), MaxMP: float32(stats.MaxMP()), XP: float32(stats.XP), NextXP: float32(simulation.XPForNextLevel(stats.Level)),
 		Speed:  float32(simulation.PlayerMovementSpeed(player.Character, stats.Speed, stats.HP, player.Split)),
 		Damage: float32(stats.Damage), AttackRate: float32(stats.AttackRate), Boost: float32(stats.BoostMultiplier),
-		Fruit: counts.Food, AIs: counts.AIs, Players: counts.Players,
 	}
 }
 
-func DrawPlayer(player protocol.Player, counts Counts, width int32) {
-	drawPlayer(playerDetails(player, counts), width)
+func DrawPlayer(player protocol.Player, width int32) {
+	drawPlayer(playerDetails(player), width)
 	label := ""
 	tint := rl.LightGray
 	if player.HasWings {

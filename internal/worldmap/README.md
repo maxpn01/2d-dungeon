@@ -206,6 +206,12 @@ line of sight cancels an unfinished aim. Once aiming completes, brief cover does
 not restart the delay; one second without a visible target resets it. Switching
 targets requires a fresh aim. Sustained fire keeps the normal attack rate.
 
+The initial multiplayer lobby
+waits for both players to press Start game before showing the briefing over the
+loaded dungeon. Both must dismiss it before the shared countdown begins;
+the simulation remains paused throughout the briefing and countdown. Disconnecting
+during the briefing cancels readiness and returns the remaining player to the lobby.
+
 A round finishes when the first player reaches the next floor. The winner and
 round time stay fixed while exploration continues. After three seconds, a results
 popup appears over the game. Continue exploring dismisses it; Round results

@@ -162,6 +162,8 @@ func (m *Multiplayer) scene() rendering.Scene {
 
 func (m *Multiplayer) Draw(camera rl.Camera2D, width, height int32) {
 	m.presentation.draw(primitives.Context{Camera: camera, WindowWidth: width, WindowHeight: height}, m.scene(), true)
+	ping, measured := m.session.Ping()
+	hud.DrawPing(ping, measured, width)
 	m.chat.Draw(width, height, m.session.Chat())
 	m.perks.Draw(m.view.Local.ActiveStatue, m.view.Statues, m.view.Local.Stats, width, height)
 	if m.StatsOpen() {
