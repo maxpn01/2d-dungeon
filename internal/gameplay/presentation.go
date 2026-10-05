@@ -13,15 +13,17 @@ import (
 )
 
 type presentation struct {
-	gameMap           *maprender.Map
-	feedback          rendering.Feedback
-	perks             hud.PerkPanel
-	statsOpen         bool
-	rematch           *screens.MenuButton
-	resultsMenu       *screens.MenuButton
-	continueExploring *screens.MenuButton
-	showResults       *screens.MenuButton
-	resultsDismissed  bool
+	dungeonShakeAt      uint64
+	dungeonShakeStarted time.Time
+	gameMap             *maprender.Map
+	feedback            rendering.Feedback
+	perks               hud.PerkPanel
+	statsOpen           bool
+	rematch             *screens.MenuButton
+	resultsMenu         *screens.MenuButton
+	continueExploring   *screens.MenuButton
+	showResults         *screens.MenuButton
+	resultsDismissed    bool
 }
 
 func newPresentation() presentation {
@@ -30,7 +32,9 @@ func newPresentation() presentation {
 
 func (p *presentation) draw(ctx primitives.Context, scene rendering.Scene, multiplayer bool) {
 	scene.Map, scene.Feedback = p.gameMap, &p.feedback
-	rendering.DrawScene(ctx, scene)
+	sceneContext := ctx
+	sceneContext.Camera = p.dungeonAwakeningCamera(ctx.Camera, scene.Snapshot, scene.Local, time.Now())
+	rendering.DrawScene(sceneContext, scene)
 	width, height := ctx.WindowWidth, ctx.WindowHeight
 	snapshot, local, players := scene.Snapshot, scene.Local, scene.RenderedPlayers
 	hud.DrawPlayer(local, width)

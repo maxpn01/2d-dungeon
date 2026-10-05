@@ -32,14 +32,14 @@ func InitFeedbackAudio() {
 	for _, cue := range []struct {
 		name                 string
 		start, end, duration float64
-	}{{"hit", 950, 220, .075}, {"hurt", 180, 65, .18}, {"mana", 240, 170, .16}, {"low", 100, 75, .3}, {"stone", 130, 42, .14}, {"awaken", 0, 0, 3.0}, {"fire", 0, 0, .9}, {"completion", 0, 0, 8}} {
+	}{{"hit", 950, 220, .075}, {"hurt", 180, 65, .18}, {"mana", 240, 170, .16}, {"low", 100, 75, .3}, {"stone", 130, 42, .14}, {"awaken", 0, 0, 3.0}, {"fire", 0, 0, .9}, {"rumble", 0, 0, DungeonAwakeningShakeDuration}, {"completion", 0, 0, 8}} {
 		var data []byte
 		if cue.name == "completion" {
 			data = assets.RoundComplete
 		} else {
 			data = feedbackWave(cue.start, cue.end, cue.duration)
 		}
-		if cue.name == "fire" || cue.name == "awaken" {
+		if cue.name == "fire" || cue.name == "awaken" || cue.name == "rumble" {
 			data = environmentWave(cue.name, cue.duration)
 		}
 		wave := rl.LoadWaveFromMemory(".wav", data, int32(len(data)))

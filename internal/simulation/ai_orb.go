@@ -8,7 +8,7 @@ import (
 	"raylib-2d-sandbox/internal/worldmap"
 )
 
-const OrbFrenzyDelayTicks = 3 * TickRate
+const OrbFrenzyDelayTicks = 5 * TickRate
 
 func (w *World) orbTarget(ai *aiState) *playerState {
 	if w.tick < w.orb.FrenzyAt {

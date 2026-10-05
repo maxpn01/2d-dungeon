@@ -1,7 +1,11 @@
 package gameplay
 
 import (
+	"math"
+	"time"
+
 	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/rendering"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/worldmap"
@@ -9,16 +13,51 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func drawFrenzyAnnouncement(snapshot protocol.Snapshot, local protocol.Player, width int32) {
+const frenzyAnnouncementDuration = float32(simulation.OrbFrenzyDelayTicks)/simulation.TickRate + 2
+
+func frenzyAnnouncementAge(snapshot protocol.Snapshot, local protocol.Player) (float32, bool) {
 	if snapshot.Orb.FrenzyAt < simulation.OrbFrenzyDelayTicks {
-		return
+		return 0, false
 	}
 	at := snapshot.Orb.FrenzyAt - simulation.OrbFrenzyDelayTicks
-	if snapshot.Orb.Carrier == "" || snapshot.Tick < at || snapshot.Tick-at >= 5*simulation.TickRate || snapshot.WinnerID != "" || worldmap.Default().FloorAt(local.X+local.Size/2, local.Y+local.Size/2) != worldmap.FirstFloor {
+	if snapshot.Orb.Carrier == "" || snapshot.Tick < at || float32(snapshot.Tick-at)/simulation.TickRate >= frenzyAnnouncementDuration || snapshot.WinnerID != "" || worldmap.Default().FloorAt(local.X+local.Size/2, local.Y+local.Size/2) != worldmap.FirstFloor {
+		return 0, false
+	}
+	return float32(snapshot.Tick-at) / simulation.TickRate, true
+}
+
+func (p *presentation) dungeonAwakeningCamera(camera rl.Camera2D, snapshot protocol.Snapshot, local protocol.Player, now time.Time) rl.Camera2D {
+	age, visible := frenzyAnnouncementAge(snapshot, local)
+	if !visible {
+		if snapshot.Orb.FrenzyAt == 0 {
+			p.dungeonShakeAt, p.dungeonShakeStarted = 0, time.Time{}
+		}
+		return camera
+	}
+	if p.dungeonShakeAt != snapshot.Orb.FrenzyAt {
+		p.dungeonShakeAt = snapshot.Orb.FrenzyAt
+		p.dungeonShakeStarted = now.Add(-time.Duration(float64(age) * float64(time.Second)))
+		if age < .25 {
+			rendering.PlayDungeonAwakeningSound()
+		}
+	}
+	elapsed := max(0, now.Sub(p.dungeonShakeStarted).Seconds())
+	const duration = rendering.DungeonAwakeningShakeDuration
+	if elapsed >= duration {
+		return camera
+	}
+	strength := 8 * min(1, elapsed/.06) * math.Pow(1-elapsed/duration, 2)
+	camera.Offset.X += float32(strength * (.65*math.Sin(elapsed*57) + .35*math.Sin(elapsed*91)))
+	camera.Offset.Y += float32(strength * (.65*math.Sin(elapsed*71) + .35*math.Sin(elapsed*43)))
+	return camera
+}
+
+func drawFrenzyAnnouncement(snapshot protocol.Snapshot, local protocol.Player, width int32) {
+	age, visible := frenzyAnnouncementAge(snapshot, local)
+	if !visible {
 		return
 	}
-	age := float32(snapshot.Tick-at) / simulation.TickRate
-	alpha := min(float32(1), (5-age)/.75)
+	alpha := min(float32(1), (frenzyAnnouncementDuration-age)/.75)
 	title, subtitle := "THE FIRST FLOOR AWAKENS", "Its guardians enter a frenzy!"
 	if snapshot.Tick < snapshot.Orb.FrenzyAt {
 		subtitle = "Its guardians are stirring..."

@@ -129,6 +129,11 @@ and they stay defeated for the match. Frenzy raises ordinary guards to at
 least `AIFrenzyLevel` while preserving their HP/MP percentages, then restores
 their original level when the hunt ends. Higher-level guards are not weakened.
 
+Taking the orb starts a five-second warning before guardians enter frenzy.
+The awakening announcement lasts seven seconds, with a three-second camera
+shake and matching low dungeon rumble at pickup. The shake and rumble fade
+together; the HUD stays steady and the rumble follows the sound mute setting.
+
 `MobAimAccuracy` controls random angular spread, not a guaranteed hit rate.
 The maximum spread in degrees is `(1 - MobAimAccuracy) * 90`. Player shots
 remain exact. Killing a mob drops HP pickups totaling 50% of its maximum HP
