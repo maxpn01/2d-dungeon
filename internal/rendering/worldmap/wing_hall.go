@@ -3,6 +3,7 @@ package worldmap
 import (
 	"math"
 
+	"raylib-2d-sandbox/internal/parameters"
 	mapdata "raylib-2d-sandbox/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -46,12 +47,19 @@ func drawMagicTorch(at rl.Vector2, phase float64) {
 	pulse := float32(.75 + .12*math.Sin(t*4+phase) + .06*math.Sin(t*9+phase*2))
 	tint := rl.NewColor(164, 117, 237, 255)
 	flame := rl.NewVector2(at.X, at.Y-13)
-	rl.DrawCircleGradient(flame, 65, rl.Fade(tint, .16*pulse), rl.Blank)
 	rl.DrawRectangleRec(rl.NewRectangle(at.X-7, at.Y-7, 14, 19), rl.NewColor(22, 28, 39, 255))
 	rl.DrawRectangleLinesEx(rl.NewRectangle(at.X-6, at.Y-6, 12, 17), 1, paleStone)
 	rl.DrawRectangleRec(rl.NewRectangle(at.X-3, at.Y-5, 6, 13), stone)
 	rl.DrawRectangleRec(rl.NewRectangle(at.X-9, at.Y-3, 18, 4), paleStone)
-	rl.DrawCircleGradient(flame, 25, rl.Fade(tint, .35*pulse), rl.Blank)
+	strength := math.Max(0, float64(parameters.WingWallGlowStrength))
+	reach := float32(math.Sqrt(1 + strength))
+	brightness := float32(-math.Expm1(-strength*.65)) * pulse
+	rl.BeginBlendMode(rl.BlendAdditive)
+	rl.DrawCircleGradient(flame, 85*reach, rl.Fade(tint, .3*brightness), rl.Fade(tint, 0))
+	rl.DrawCircleGradient(flame, 38*reach, rl.Fade(tint, .55*brightness), rl.Fade(tint, 0))
+	core := rl.NewColor(211, 184, 255, 255)
+	rl.DrawCircleGradient(flame, 15*reach, rl.Fade(core, .85*brightness), rl.Fade(core, 0))
+	rl.EndBlendMode()
 	rl.DrawEllipse(int32(flame.X), int32(flame.Y), 5*pulse, 10*pulse, rl.Fade(tint, .9))
 	rl.DrawEllipse(int32(flame.X), int32(flame.Y+2), 2.5, 5*pulse, rl.NewColor(187, 229, 244, 255))
 	for i := 0; i < 2; i++ {

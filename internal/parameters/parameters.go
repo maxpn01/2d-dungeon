@@ -192,6 +192,7 @@ const (
 	WindowHeight                  = 1000
 	RadarWorldSpan        float32 = 3000
 	ExplorationRadius             = 400
+	WingWallGlowStrength          = 5
 	EntityDetectionRadius         = 1200
 	ChatVisibleLines              = 8
 	ChatFadeSeconds               = 10
