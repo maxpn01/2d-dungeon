@@ -223,29 +223,31 @@ const (
 
 // Client display, feedback, and network smoothing.
 const (
-	WindowWidth                   = 1440
-	WindowHeight                  = 1000
-	RadarWorldSpan        float32 = 3000
-	ExplorationRadius             = 400
-	WingWallGlowStrength          = 5
-	EntityDetectionRadius         = 1200
-	ChatVisibleLines              = 8
-	ChatFadeSeconds               = 10
-	ChatFontSize                  = 18
-	ChatLineHeight                = 24
-	ChatMargin                    = 24
-	EatingContactTime             = 80 * time.Millisecond
-	EatingShrinkTime              = 140 * time.Millisecond
-	EatingSceneTime               = EatingContactTime + EatingShrinkTime + 30*time.Millisecond
-	MaxExtrapolation              = 100 * time.Millisecond
-	CorrectionSeconds             = 0.05
-	TeleportDistance              = 200
-	PlayerBufferTicks             = 2.0
-	MaxChatEntries                = 50
-	ChatCooldown                  = 500 * time.Millisecond
-	MessagesPerSecond             = 120.0
-	SnapshotRate                  = 15
-	LobbySnapshotInterval         = time.Second
-	MatchCountdownSeconds         = 3
-	ResultsDelaySeconds           = 3
+	WindowWidth                      = 1440
+	WindowHeight                     = 1000
+	RadarWorldSpan           float32 = 3000
+	SecretRuneRevealDistance         = 90.0
+	SecretRuneTextDistance           = 65.0
+	ExplorationRadius                = 400
+	WingWallGlowStrength             = 5
+	EntityDetectionRadius            = 1200
+	ChatVisibleLines                 = 8
+	ChatFadeSeconds                  = 10
+	ChatFontSize                     = 18
+	ChatLineHeight                   = 24
+	ChatMargin                       = 24
+	EatingContactTime                = 80 * time.Millisecond
+	EatingShrinkTime                 = 140 * time.Millisecond
+	EatingSceneTime                  = EatingContactTime + EatingShrinkTime + 30*time.Millisecond
+	MaxExtrapolation                 = 100 * time.Millisecond
+	CorrectionSeconds                = 0.05
+	TeleportDistance                 = 200
+	PlayerBufferTicks                = 2.0
+	MaxChatEntries                   = 50
+	ChatCooldown                     = 500 * time.Millisecond
+	MessagesPerSecond                = 120.0
+	SnapshotRate                     = 15
+	LobbySnapshotInterval            = time.Second
+	MatchCountdownSeconds            = 3
+	ResultsDelaySeconds              = 3
 )

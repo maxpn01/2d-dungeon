@@ -92,6 +92,8 @@ The encounter seed is stored in the dungeon layout ID so clients reconstruct
 the same assignments; mirrored multiplayer wings receive matching encounters.
 Guard roles remain fixed across respawns until the next dungeon initialization.
 Dungeon melee weapons and their warning accents are green.
+Secret-wall runes appear only within `SecretRuneRevealDistance` (90 units) of
+the player; inscription text appears within `SecretRuneTextDistance` (65 units).
 
 Entrance guards start at level 1; ordinary dungeon guards start at level 2.
 Each guard spawn tracks its own deaths. Every `AIDeathsPerLevel` deaths raises
