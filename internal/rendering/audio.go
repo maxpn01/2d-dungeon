@@ -10,6 +10,8 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+const victorySoundVolume float32 = .10
+
 var combatAudio struct {
 	sounds       map[string]rl.Sound
 	last         map[string]time.Time
@@ -51,7 +53,7 @@ func InitFeedbackAudio() {
 		if rl.IsSoundValid(sound) {
 			volume := float32(.3)
 			if cue.name == "completion" {
-				volume = .55
+				volume = victorySoundVolume
 			}
 			rl.SetSoundVolume(sound, volume)
 			combatAudio.sounds[cue.name] = sound
