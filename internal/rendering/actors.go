@@ -10,6 +10,8 @@ import (
 )
 
 type Actor struct {
+	Type           simulation.MobType
+	Level          int
 	Stone          bool
 	Awakening      float64
 	Aiming         bool
@@ -54,6 +56,10 @@ func DrawAIActor(ai Actor, exploration Visibility, feedback *Feedback) {
 			drawPossession(ai)
 		}
 		bounds := DrawActor(ai.X, ai.Y, ai.Size, ai.HP, ai.Combat, ai.Tint, ai.Character)
+		drawMobMark(ai.Type, bounds)
+		if ai.Type == simulation.DungeonPursuer || ai.Type == simulation.DungeonHeavy {
+			drawMobWeapon(rl.NewVector2(bounds.X+bounds.Width/2, bounds.Y+bounds.Height/2), bounds.Width, ai.Combat, ai.Type)
+		}
 		feedback.DrawHit(ai.ID, bounds, ai.Character)
 		if ai.Aiming {
 			center := rl.NewVector2(bounds.X+bounds.Width/2, bounds.Y+bounds.Height/2)

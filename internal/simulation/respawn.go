@@ -22,7 +22,7 @@ func (w *World) replenishPrivateRoute(entranceID string) {
 			ai := &w.ais[i]
 			if ai.den.RoomID == room.ID {
 				oldGuards[ai.ID] = true
-				*ai = w.newDenAI(ai.den)
+				*ai = w.respawnDenAI(*ai)
 			}
 		}
 		remaining := w.fruits[:0]

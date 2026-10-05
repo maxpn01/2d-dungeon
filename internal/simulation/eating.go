@@ -112,12 +112,16 @@ func (e eater) die(killer string, tick uint64) {
 		}
 	}
 	if e.player == nil {
+		if e.ai.respawnTick != 0 {
+			return
+		}
 		if e.ai.Split.Count() > 0 {
 			e.stats.HP = 0
 			if e.ai.Stats.HP > 0 || e.ai.Split.Mass() > 0 {
 				return
 			}
 		}
+		e.ai.deaths++
 		e.ai.respawnTick = tick + AIRespawnSeconds*TickRate
 		if e.ai.den.ID != "" {
 			e.ai.respawnTick = tick + uint64(math.Ceil(e.ai.den.Respawn.Seconds()*TickRate))

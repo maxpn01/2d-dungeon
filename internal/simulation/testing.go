@@ -128,6 +128,7 @@ func (w *World) TestingWarp(id, roomID string) bool {
 	p.Flight, p.Combat, p.Split = FlightState{}, CombatState{}, nil
 	p.ActiveStatue, p.TeleportCharge, p.portalCooldown = "", 0, 0
 	p.direction, p.commands = Direction{}, nil
+	p.velocityX, p.velocityY = 0, 0
 	p.OpenSecrets = w.openSecrets
 	p.Escaped, p.GatesClosed, p.InArena = false, false, false
 	w.winnerID, w.finishedTick = "", 0

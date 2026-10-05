@@ -48,7 +48,7 @@ FeedingArea{
     Radius: 4,
     Style: TealGarden,
     Food: FoodSource{Capacity: 7, Respawn: 30 * time.Second},
-    Guard: &Guard{PatrolRadius: 4, Level: 1, Respawn: 2 * time.Minute},
+    Guard: &Guard{Type: SpawnGuard, PatrolRadius: 4, Level: 1, Respawn: 2 * time.Minute},
 }
 ```
 
@@ -61,31 +61,86 @@ Simulation compiles these definitions into world-coordinate patches and dens,
 with spawning and patrol constraints supplied by their owning room.
 
 Players start with 2 shot damage, 4 shots per second, and 550 world units per
-second movement speed. Guards start with 70% of those combat and movement stats:
-1.4 damage, 2.8 shots per second, and 385 world units per second. Both gain 5
-maximum HP, 5 maximum MP, and 0.25 shots per second per level. The mob multiplier
-applies only to the initial combat and movement values, not level growth or HP/MP.
-Damage and movement speed stay constant before perks. Guards spawn and respawn
-with full HP/MP. Entrance guards are level 1 (10/10 HP/MP, 2.8 shots/sec); dungeon
-guards are level 2 (15/15, 3.05 shots/sec); vault sentinels are level-5 Triangles
-with 30 HP/MP. They approach players, dash across clear ground, and attack with
-magical swords instead of shooting. Sword strikes have a 0.3-second windup,
-a short forward arc, and recovery between attacks. Their only ability is dash;
-they do not boost or split. Defeating all three unlocks the orb, and they stay
-defeated for the match. Frenzied guards use the same mob level-5 scaling while preserving
-their current HP/MP percentages, then restore their original level when the hunt ends.
+second movement speed. Guards use separate `MobDamageMultiplier`,
+`MobAttackRateMultiplier`, and `MobMovementSpeedMultiplier` values from
+`internal/parameters/parameters.go`. These multiply the starting stats only.
+Both players and guards gain 5 maximum HP, 5 maximum MP, 0.25 damage, and
+0.25 shots per second per level. Movement speed stays constant before perks.
+Guards spawn and respawn with full HP/MP.
 
-Mob shots have a random angular spread of up to 4.5 degrees with the default
-`MobAimAccuracy` of 0.95; this is an aim-spread setting, not a guaranteed hit rate.
-Player shots remain exact. Killing a mob drops HP pickups totaling 50% of its
-maximum HP at spawn (5, 7.5, or 15 for levels 1, 2, or 5), subject to the shared
-loot limit. Temporary frenzy levels do not increase this reward. MP loot still
-uses 50% of the mob's remaining MP.
+Guard definitions carry a `Type`: `SpawnGuard`, `DungeonShooter`,
+`DungeonPursuer`, `DungeonHeavy`, or `Sentinel`. The type is compiled into its
+den and retained in simulation stats and multiplayer snapshots. Spawn guards
+keep the entrance behavior. Dungeon shooters maintain a 260–350 unit firing distance and strafe with
+periodic direction changes, checking walls and territory before moving.
+Distance changes use a midpoint dead band, and wall-induced strafe reversals
+have a short cooldown to prevent rapid direction switching. Shooter combat
+movement stays outside cover; losing sight preserves a short movement
+commitment without firing, instead of immediately switching to patrol.
+Ordinary direction changes accelerate smoothly, while shot dodges stay reactive. Navigation commits
+to grid waypoints and slows for arrival rather than overshooting corners.
+Pursuers move faster than an unboosted starting player with the default tuning
+and use quick melee strikes. Heavy guards move slowly, have more HP, dodge
+less often, and use slower, stronger melee strikes; they can dash toward
+targets across clear ground on a three-second cooldown. Their square bodies share green coloring with different symbols;
+sentinels remain triangular. Role tuning lives in `internal/parameters/parameters.go`.
+
+The central halls contain shooters. Each dungeon initialization shuffles four
+side-room encounter pairs: two pursuers, two heavies, a shooter with a heavy,
+and a shooter with a pursuer. Each pair's spawn positions are shuffled too.
+The encounter seed is stored in the dungeon layout ID so clients reconstruct
+the same assignments; mirrored multiplayer wings receive matching encounters.
+Guard roles remain fixed across respawns until the next dungeon initialization.
+Dungeon melee weapons and their warning accents are green.
+
+Entrance guards start at level 1; ordinary dungeon guards start at level 2.
+Each guard spawn tracks its own deaths. Every `AIDeathsPerLevel` deaths raises
+that guard's next spawn level by one. At each multiple of `AIPerkLevelInterval`
+(default 4), it receives a random perk or rank upgrade using the same offers
+and rank weights as player statues. Earned perks persist across respawns.
+There is no special guard level cap; the shared `MaxLevel` still applies.
+A rematch resets guard progression along with the rest of the dungeon.
+
+Vault sentinels are Triangles. When they awaken, their level is the average
+ordinary first-floor dungeon guard level, rounded to the nearest whole level,
+plus `SentinelLevelOffset` (default 15). The average excludes private entrance
+guards, sentinels, and temporary frenzy levels, and includes defeated guards
+at their last spawn level. Sentinel levels stay fixed during the encounter.
+Each sentinel receives one random perk or rank upgrade at level 14, then
+another every four levels (18, 22, and so on), using the same selection as
+ordinary guards. Awakening at a higher level grants all reached milestones.
+The first threshold is configurable through `SentinelFirstPerkLevel`; the
+interval uses `AIPerkLevelInterval`.
+Sentinels intercept observed player movement rather than orbiting their current
+position. The nearest ready sentinel leads pursuit, with up to
+`SentinelConcurrentAttackers` (default 2) attacking together; nearby flankers
+can strike without waiting for their turn. They charge across clear ground
+for up to `SentinelDashBurst` (default 0.28 seconds), shortening the charge
+to stop near their predicted target. Charges have a separate cooldown from
+swords, allowing melee follow-ups. `SentinelAttackPrediction` (default 0.75)
+controls how much observed movement they anticipate.
+Sword strikes have a 0.3-second windup and a short forward arc. Sentinels
+advance at `SentinelSwordAdvanceMultiplier` (default 0.8) during windup,
+adjusting aim for only the first `SentinelSwordTrackingDuration` (default
+0.18 seconds), with turning limited by `SentinelSwordTurnRate` (default 2.5
+radians per second). The final 0.12 seconds commit to the telegraphed direction,
+followed by stationary swing recovery. Defeating all four unlocks the orb,
+and they stay defeated for the match. Frenzy raises ordinary guards to at
+least `AIFrenzyLevel` while preserving their HP/MP percentages, then restores
+their original level when the hunt ends. Higher-level guards are not weakened.
+
+`MobAimAccuracy` controls random angular spread, not a guaranteed hit rate.
+The maximum spread in degrees is `(1 - MobAimAccuracy) * 90`. Player shots
+remain exact. Killing a mob drops HP pickups totaling 50% of its maximum HP
+at spawn, including health perks, subject to the shared loot limit. Temporary
+frenzy levels do not increase this reward. MP loot still uses 50% of the mob's
+remaining MP.
 
 Player respawn immediately refills their private provision court food patches
-and resets that court's guards to fresh level-1 stats and positions. Loot and
-shots belonging to those replaced guards are cleared. The opponent's private
-route and the shared dungeon keep their existing state.
+and resets that court's guards to fresh HP/MP and positions while preserving
+their death counts and earned perks. Loot and shots belonging to those replaced
+guards are cleared. The opponent's private route and the shared dungeon keep
+their existing state.
 
 ## Inscription statues
 

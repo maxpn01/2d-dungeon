@@ -24,13 +24,13 @@ func (ai *aiState) canAttack(target *playerState) bool {
 		return false
 	}
 	distance := math.Hypot(target.X-ai.X, target.Y-ai.Y)
-	reach := ai.Stats.MovementSpeed() * SpeedScale * DashSpeedMultiplier * DashBurst
+	reach := ai.Stats.MovementSpeed() * SpeedScale * DashSpeedMultiplier * DashBurstDuration(ai.Stats)
 	return distance > 0 && distance <= reach*0.7 && ai.clearDash(ai.approach(target.X, target.Y))
 }
 
 func (ai *aiState) clearDash(d Direction) bool {
 	x, y := ai.X, ai.Y
-	distance := ai.Stats.MovementSpeed() * SpeedScale * DashSpeedMultiplier * DashBurst
+	distance := ai.Stats.MovementSpeed() * SpeedScale * DashSpeedMultiplier * DashBurstDuration(ai.Stats)
 	for distance > 1e-9 {
 		step := min(4, distance)
 		motion := moveByMotion(x, y, d, step)

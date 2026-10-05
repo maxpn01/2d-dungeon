@@ -193,9 +193,10 @@ func validateAIs(ais []AI) error {
 	if len(ais) > simulation.InitialAIs+len(worldmap.Default().Dens()) {
 		return errors.New("server sent too many AIs")
 	}
+	baseSpeed := parameters.BaseSpeed * parameters.MobMovementSpeedMultiplier
 	ids := make(map[string]bool, len(ais))
 	for _, ai := range ais {
-		if ai.ID == "" || ids[ai.ID] {
+		if !ai.Type.Valid() || ai.Stats.MobType != ai.Type || !ai.Stats.Mob || (ai.Type == simulation.Sentinel) != (ai.Character == simulation.Triangle) || ai.ID == "" || ids[ai.ID] {
 			return errors.New("server sent invalid AI IDs")
 		}
 		ids[ai.ID] = true
@@ -205,10 +206,10 @@ func validateAIs(ais []AI) error {
 		if simulation.NormalizeCharacter(ai.Character) != ai.Character && ai.Character != simulation.Triangle {
 			return errors.New("server sent an invalid AI character")
 		}
-		if !validCombat(ai.Combat) {
+		if !validCombat(ai.Combat, simulation.DashBurstDuration(ai.Stats)) {
 			return errors.New("server sent invalid AI combat state")
 		}
-		if !validStats(ai.Stats, simulation.AISpeed) {
+		if !validStats(ai.Stats, baseSpeed) {
 			return errors.New("server sent invalid AI stats")
 		}
 		if ai.Stats.HP+ai.Split.Mass() > ai.Stats.MaxHP()+1e-9 {
@@ -218,7 +219,7 @@ func validateAIs(ais []AI) error {
 			if !cell.Active {
 				continue
 			}
-			if ai.Character != simulation.Circle || !validStats(cell.Stats, simulation.AISpeed) || cell.Stats.HP <= 0 || cell.Stats.Level != ai.Stats.Level || cell.Stats.XP != ai.Stats.XP {
+			if ai.Character != simulation.Circle || !validStats(cell.Stats, baseSpeed) || cell.Stats.HP <= 0 || cell.Stats.Level != ai.Stats.Level || cell.Stats.XP != ai.Stats.XP {
 				return errors.New("server sent invalid AI split stats")
 			}
 			for _, v := range []float64{cell.X, cell.Y, cell.Remaining, cell.Launch} {
@@ -242,8 +243,12 @@ func validateAIs(ais []AI) error {
 	return nil
 }
 
-func validCombat(c simulation.CombatState) bool {
-	if math.IsNaN(c.SwordRemaining) || math.IsInf(c.SwordRemaining, 0) || c.SwordRemaining < 0 || c.SwordRemaining > simulation.SentinelSwordDuration || !c.SwordDirection.Valid() || c.SwordDirection.Dash {
+func validCombat(c simulation.CombatState, burstDuration ...float64) bool {
+	burst := simulation.DashBurst
+	if len(burstDuration) > 0 {
+		burst = burstDuration[0]
+	}
+	if math.IsNaN(c.SwordRemaining) || math.IsInf(c.SwordRemaining, 0) || c.SwordRemaining < 0 || c.SwordRemaining > max(simulation.SentinelSwordDuration, parameters.HeavyMeleeDuration, parameters.PursuerMeleeDuration) || !c.SwordDirection.Valid() || c.SwordDirection.Dash {
 		return false
 	}
 	for _, v := range []float64{c.RecoilX, c.RecoilY} {
@@ -263,7 +268,7 @@ func validCombat(c simulation.CombatState) bool {
 	case simulation.DashWinding:
 		return c.Remaining <= simulation.DashWindup
 	case simulation.DashRushing:
-		return c.Remaining <= simulation.DashBurst
+		return c.Remaining <= burst
 	case simulation.DashRecovering:
 		return c.Remaining <= simulation.DashRecovery
 	case simulation.DashRecoiling:

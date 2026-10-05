@@ -1,6 +1,9 @@
 package worldmap
 
-import "time"
+import (
+	"raylib-2d-sandbox/internal/parameters"
+	"time"
+)
 
 const (
 	ProvisionCourt  = "the-provision-hall"
@@ -102,7 +105,7 @@ func guardedGarden(id string, at Cell, style FeedingStyle) FeedingArea {
 		Radius: 4,
 		Style:  style,
 		Food:   FoodSource{Capacity: 7, Respawn: 30 * time.Second},
-		Guard:  &Guard{PatrolRadius: 4, Level: 1, Respawn: 2 * time.Minute},
+		Guard:  &Guard{Type: SpawnGuard, PatrolRadius: 4, Level: 1, Respawn: 2 * time.Minute},
 	}
 }
 
@@ -170,7 +173,7 @@ func crownArena() Room {
 func dungeonEncounter(id string, at Cell, radius, food int) FeedingArea {
 	return FeedingArea{ID: id, At: at, Radius: max(1, radius), Style: TealGarden,
 		Food:  FoodSource{Capacity: food, Respawn: 30 * time.Second},
-		Guard: &Guard{PatrolRadius: radius, Level: 2, Respawn: time.Minute},
+		Guard: &Guard{Type: DungeonShooter, PatrolRadius: radius, Level: 2, Respawn: time.Minute},
 	}
 }
 
@@ -227,7 +230,8 @@ func orbVault() Room {
 	for i, cell := range vaultSentinels(r, At(r.Area.X, r.Area.Y+r.Area.Height/2)) {
 		at := At(cell.X-r.Area.X, cell.Y-r.Area.Y)
 		encounter := dungeonEncounter([]string{"vault-sentinel-west-north", "vault-sentinel-west-south", "vault-sentinel-east-north", "vault-sentinel-east-south"}[i], at, 2, 0)
-		encounter.Guard.Level = 10
+		encounter.Guard.Type = Sentinel
+		encounter.Guard.Level = 2 + parameters.SentinelLevelOffset
 		r.FeedingAreas = append(r.FeedingAreas, encounter)
 	}
 	return r

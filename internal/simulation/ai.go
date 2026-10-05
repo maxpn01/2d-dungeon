@@ -17,7 +17,6 @@ const (
 	AIAwakeSeconds        = parameters.AIAwakeSeconds
 	AIAsleepSeconds       = parameters.AIAsleepSeconds
 	AISize                = parameters.AISize
-	AISpeed               = parameters.AISpeed
 	AIDetectionRadius     = parameters.AIDetectionRadius
 	AISettleTicks         = parameters.AISettleTicks
 	AIReactionTicks       = parameters.AIReactionTicks
@@ -25,6 +24,7 @@ const (
 )
 
 type AI struct {
+	Type      MobType
 	Stone     bool
 	Awakening float64
 	Aiming    bool
@@ -56,37 +56,53 @@ type aiState struct {
 	alertX, alertY               float64
 	shotCooldown                 float64
 	AI
-	den             worldmap.Den
-	settleTicks     int
-	targetID        string
-	targetTicks     int
-	attackCooldown  int
-	returning       bool
-	direction       Direction
-	wanderTicks     int
-	patrolX         float64
-	patrolY         float64
-	patrolTicks     int
-	patrolPause     int
-	respawnTick     uint64
-	awakeTicks      int
-	asleepTicks     int
-	escapeTicks     int
-	escapeDirection Direction
-	evadeTicks      int
-	evadeDirection  Direction
+	den                        worldmap.Den
+	settleTicks                int
+	targetID                   string
+	targetTicks                int
+	attackCooldown             int
+	returning                  bool
+	direction                  Direction
+	wanderTicks                int
+	patrolX                    float64
+	patrolY                    float64
+	patrolTicks                int
+	patrolPause                int
+	respawnTick                uint64
+	awakeTicks                 int
+	asleepTicks                int
+	escapeTicks                int
+	escapeDirection            Direction
+	evadeTicks                 int
+	evadeDirection             Direction
+	shotDodgeReactionTicks     int
+	shotDodgeCooldown          int
+	strafeDirection            float64
+	strafeUntil                uint64
+	strafeTurnUntil            uint64
+	shooterLastInput           Direction
+	shooterSightUntil          uint64
+	shooterMoveX, shooterMoveY float64
+	shooterRangeMode           int
+	navigationActive           bool
+	navigationX, navigationY   float64
+	navigationGoal             [2]int
+	navigationMap              *worldmap.Map
+	mobChargeCooldown          int
+	deaths                     int
+	perkMilestones             int
 }
 
 func (w *World) newDenAI(den worldmap.Den) aiState {
 	w.nextAI++
 	x, y := worldmap.CellPosition(den.At.X, den.At.Y, AISize)
-	stats := NewMobStatsAtLevel(den.Level)
+	stats := newMobStats(den.Level, den.Type)
 	character := Square
-	if den.RoomID == worldmap.OrbVault {
+	if den.Type == Sentinel {
 		character = Triangle
 	}
-	ai := aiState{spawnMaxHP: stats.MaxHP(), den: den, AI: AI{ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "patrolling", Character: character}}
-	if den.RoomID == worldmap.OrbVault {
+	ai := aiState{spawnMaxHP: stats.MaxHP(), den: den, AI: AI{Type: den.Type, ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "patrolling", Character: character}}
+	if den.Type == Sentinel {
 		ai.Stone, ai.Behavior = true, "stone guardian"
 	}
 	return ai
@@ -110,9 +126,9 @@ func (w *World) spawnAIs() {
 
 func (w *World) newSurfaceAI(slot int) aiState {
 	w.nextAI++
-	stats := NewMobStatsAtLevel(1)
+	stats := newMobStats(1, SpawnGuard)
 	return aiState{spawnMaxHP: stats.MaxHP(), settleTicks: AISettleTicks, AI: AI{
-		ID: fmt.Sprintf("ai-%d", w.nextAI), X: 600 + float64(slot%3)*450,
+		Type: SpawnGuard, ID: fmt.Sprintf("ai-%d", w.nextAI), X: 600 + float64(slot%3)*450,
 		Y: 400 + float64(slot/3)*650, Stats: stats, Behavior: "emerging", Character: Square,
 	}}
 }
@@ -135,10 +151,18 @@ func (w *World) updateAIs() {
 			ai.Behavior = "awakening"
 			continue
 		}
+		ai.mobChargeCooldown = max(0, ai.mobChargeCooldown-1)
+		if ai.Type == DungeonPursuer || ai.Type == DungeonHeavy {
+			ai.attackCooldown = max(0, ai.attackCooldown-1)
+		}
 		ai.setFrenzy(w.orbTarget(ai) != nil)
 		input := w.aiInput(ai)
-		if ai.Character == Triangle || ai.Frenzied {
+		input = w.avoidPlayerShots(ai, input)
+		if ai.Type == Sentinel || ai.Frenzied {
 			input = w.steerSentinel(ai, input)
+		}
+		if ai.Type == DungeonShooter {
+			input = w.steerShooter(ai, input)
 		}
 		oldX, oldY := ai.X, ai.Y
 		actor := Player{OpenSecrets: w.openSecrets, ID: ai.ID, ShotCooldown: ai.shotCooldown, X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character, Split: ai.Split}
@@ -159,10 +183,16 @@ func (w *World) updateAIs() {
 }
 
 func (w *World) aiIntent(ai *aiState) Direction {
-	if ai.Character == Triangle {
+	if ai.Type == Sentinel {
 		return w.sentinelInput(ai)
 	}
+	if ai.Combat.SwordRemaining > 0 {
+		return w.meleeGuardInput(ai, nil)
+	}
 	if carrier := w.orbTarget(ai); carrier != nil {
+		if ai.Type == DungeonPursuer || ai.Type == DungeonHeavy {
+			return w.meleeGuardInput(ai, carrier)
+		}
 		d := w.huntOrb(ai, carrier)
 		offset := uint64(math.Abs(float64(ai.den.At.X*17 + ai.den.At.Y*31)))
 		d.Boost = ai.Frenzied && (d.X != 0 || d.Y != 0) && (w.tick+offset)%parameters.AIFrenzyBoostCycleTicks < parameters.AIFrenzyBoostTicks
@@ -181,6 +211,12 @@ func (w *World) aiIntent(ai *aiState) Direction {
 		}
 	}
 	if target := w.rangedTarget(ai); target != nil {
+		if ai.Type == DungeonPursuer || ai.Type == DungeonHeavy {
+			return w.meleeGuardInput(ai, target)
+		}
+		if ai.Type == DungeonShooter {
+			return w.shooterInput(ai, target)
+		}
 		ai.shotTargetID = target.ID
 		dx, dy := target.X-ai.X, target.Y-ai.Y
 		length := math.Hypot(dx, dy)
@@ -195,6 +231,15 @@ func (w *World) aiIntent(ai *aiState) Direction {
 			d.X, d.Y = movement.X, movement.Y
 		}
 		return d
+	}
+	if ai.Type == DungeonShooter && w.tick < ai.shooterSightUntil {
+		input := ai.shooterLastInput
+		input.Shoot = false
+		if !w.shotDodgeFits(ai, worldmap.Default().WithSecrets(w.openSecrets), input, StepSeconds) {
+			input.X, input.Y = 0, 0
+		}
+		ai.Behavior = "repositioning"
+		return input
 	}
 	if d, investigating := w.investigateAI(ai); investigating {
 		return d
@@ -291,7 +336,7 @@ func (w *World) respawnEntranceGuards() {
 			ai.respawnTick = w.tick + TickRate
 			continue
 		}
-		*ai = w.newDenAI(ai.den)
+		*ai = w.respawnDenAI(*ai)
 	}
 }
 

@@ -19,6 +19,7 @@ const (
 )
 
 type Stats struct {
+	MobType         MobType              `json:"mob_type,omitempty"`
 	Mob             bool                 `json:"mob,omitempty"`
 	Level           int                  `json:"level"`
 	XP              float64              `json:"xp"`
@@ -50,15 +51,12 @@ func NewMobStatsAtLevel(level int) Stats {
 	return stats
 }
 
-func (s Stats) baseMultiplier() float64 {
-	if s.Mob {
-		return parameters.MobBaseStatMultiplier
-	}
-	return 1
-}
-
 func (s Stats) MaxHP() float64 {
-	return MaxHPForLevel(s.Level) + PerkBonus(HealthPerk, s.Perks[HealthPerk])
+	hp := MaxHPForLevel(s.Level) + PerkBonus(HealthPerk, s.Perks[HealthPerk])
+	if s.Mob && s.MobType == DungeonHeavy {
+		hp *= parameters.HeavyHealthMultiplier
+	}
+	return hp
 }
 func (s Stats) MaxMP() float64 {
 	return MaxMPForLevel(s.Level) + PerkBonus(ManaPerk, s.Perks[ManaPerk])

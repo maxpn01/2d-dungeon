@@ -59,7 +59,11 @@ func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 		p := phaseProgress(c.Remaining, simulation.DashWindup)
 		stretch, offset = -0.18*p, -4*p
 	case simulation.DashRushing:
-		stretch = 0.3 * (1 - 0.4*phaseProgress(c.Remaining, simulation.DashBurst))
+		burst := simulation.DashBurst
+		if character == simulation.Triangle {
+			burst = simulation.SentinelDashBurst
+		}
+		stretch = 0.3 * (1 - 0.4*phaseProgress(c.Remaining, burst))
 		for i := 3; i > 0; i-- {
 			trail := bounds
 			trail.X -= dir.X * float32(i) * 13

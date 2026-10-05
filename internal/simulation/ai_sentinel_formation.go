@@ -2,24 +2,23 @@ package simulation
 
 import (
 	"math"
+
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/worldmap"
 )
 
 type sentinelTactic struct {
 	leader string
-	next   int
 	until  uint64
-	struck bool
 }
 
 func (w *World) sentinelFormation(ai *aiState, target *playerState) (bool, physics.Vector) {
 	guards := make([]*aiState, 0, 4)
-	slot := 0
-	busy := false
+	slot, busy := 0, 0
 	for i := range w.ais {
 		guard := &w.ais[i]
-		if guard.Character != Triangle || guard.den.RoomID != ai.den.RoomID || guard.respawnTick != 0 || guard.Stats.HP <= 0 || guard.Stone || guard.Awakening > 0 {
+		if guard.Type != Sentinel || guard.den.RoomID != ai.den.RoomID || guard.respawnTick != 0 || guard.Stats.HP <= 0 || guard.Stone || guard.Awakening > 0 {
 			continue
 		}
 		if guard == ai {
@@ -27,7 +26,7 @@ func (w *World) sentinelFormation(ai *aiState, target *playerState) (bool, physi
 		}
 		guards = append(guards, guard)
 		if guard != ai && (guard.Combat.SwordRemaining > 0 || guard.Combat.Phase == DashWinding || guard.Combat.Phase == DashRushing) {
-			busy = true
+			busy++
 		}
 	}
 	if len(guards) <= 1 {
@@ -45,46 +44,51 @@ func (w *World) sentinelFormation(ai *aiState, target *playerState) (bool, physi
 	for _, guard := range guards {
 		if guard.ID == tactic.leader {
 			leader = guard
-			if guard.Combat.SwordRemaining > 0 {
-				tactic.struck = true
-			}
 		}
 	}
-	if leader == nil || w.tick >= tactic.until && !busy || tactic.struck && leader.Combat.SwordRemaining == 0 {
-		for offset := range len(guards) {
-			index := (tactic.next + offset) % len(guards)
-			guard := guards[index]
-			if guard.attackCooldown > 0 || guard.Combat.Phase != DashIdle || guard.Combat.SwordRemaining > 0 {
+	if leader == nil || leader.Combat.SwordRemaining == 0 && leader.Combat.Phase == DashIdle && (w.tick >= tactic.until || leader.attackCooldown > 0 || !w.aiCanSeePlayer(leader, target, AIDetectionRadius)) {
+		best := math.Inf(1)
+		for _, guard := range guards {
+			if guard.attackCooldown > 0 || guard.Combat.Phase != DashIdle || guard.Combat.SwordRemaining > 0 || !w.aiCanSeePlayer(guard, target, AIDetectionRadius) {
 				continue
 			}
-			tactic.leader, tactic.next = guard.ID, (index+1)%len(guards)
-			tactic.until, tactic.struck = w.tick+5*TickRate, false
-			break
+			intercept := sentinelIntercept(target, .2)
+			score := math.Hypot(intercept.X-guard.X, intercept.Y-guard.Y)
+			if score < best {
+				leader, best = guard, score
+			}
+		}
+		if leader != nil {
+			tactic.leader, tactic.until = leader.ID, w.tick+TickRate
 		}
 	}
-	angle := float64(slot)*2*math.Pi/float64(len(guards)) + .6*math.Sin(float64(w.tick)/TickRate*(.45+float64(slot)*.12)+float64(slot))
-	radius := 115.0 + float64(slot%2)*35 + 20*math.Sin(float64(w.tick)/TickRate*.7+float64(slot)*2)
-	point := physics.Vector{X: target.X + math.Cos(angle)*radius, Y: target.Y + math.Sin(angle)*radius}
+	angle := float64(slot) * 2 * math.Pi / float64(len(guards))
+	if math.Hypot(target.velocityX, target.velocityY) > 40 {
+		angle += math.Atan2(target.velocityY, target.velocityX)
+	}
+	intercept := sentinelIntercept(target, .25)
+	point := physics.Vector{X: intercept.X + math.Cos(angle)*85, Y: intercept.Y + math.Sin(angle)*85}
 	if room, ok := worldmap.Default().Room(ai.den.RoomID); ok {
 		b := physics.Square(point.X, point.Y, AISize).ClampedTo(room.Bounds().Expanded(-AISize))
 		point.X, point.Y = b.X, b.Y
 	}
 	geometry := worldmap.Default().WithSecrets(w.openSecrets)
 	if !geometry.CanOccupy(physics.Square(point.X, point.Y, AISize)) {
-		point = physics.Vector{X: ai.X, Y: ai.Y}
+		point = physics.Vector{X: target.X, Y: target.Y}
 	}
-	return ai.ID == tactic.leader && !busy, point
+	close := math.Hypot(target.X-ai.X, target.Y-ai.Y) <= SentinelSwordReach+PlayerSize/2+16
+	return busy < parameters.SentinelConcurrentAttackers && (ai.ID == tactic.leader || close), point
 }
 
 func (w *World) steerSentinel(ai *aiState, input Direction) Direction {
-	if ai.Combat.SwordRemaining > 0 || ai.Combat.Phase == DashWinding || ai.Combat.Phase == DashRushing {
+	if ai.Combat.SwordRemaining > 0 || ai.Combat.Phase == DashWinding || ai.Combat.Phase == DashRushing || input.Dash || ai.Behavior == "pursuing" {
 		ai.sentinelMoveX, ai.sentinelMoveY = 0, 0
 		return input
 	}
 	x, y := input.X, input.Y
 	for i := range w.ais {
 		other := &w.ais[i]
-		ally := other.Character == Triangle && other.den.RoomID == ai.den.RoomID
+		ally := other.Type == Sentinel && other.den.RoomID == ai.den.RoomID
 		if ai.Frenzied {
 			ally = other.Frenzied
 		}

@@ -74,8 +74,9 @@ type command struct {
 }
 
 type playerState struct {
-	testing bool
-	god     bool
+	velocityX, velocityY float64
+	testing              bool
+	god                  bool
 	Player
 	spawnSlot        uint64
 	progressionReset bool
@@ -280,6 +281,8 @@ func (w *World) Step(now time.Time) {
 			direction.Interact = false
 		}
 		AdvancePlayer(&player.Player, direction, StepSeconds, w.safeZones)
+		player.velocityX = (player.X - previous[id].x) / StepSeconds
+		player.velocityY = (player.Y - previous[id].y) / StepSeconds
 		w.revealFlownSecrets(player)
 		w.fire(&player.Player, direction)
 	}
@@ -298,7 +301,7 @@ func (w *World) Step(now time.Time) {
 	eaters := w.eaters(previous)
 	w.advanceVaultArrows(eaters)
 	w.advanceProjectiles(eaters)
-	w.advanceSentinelSwords(eaters)
+	w.advanceMobMelee(eaters)
 	w.advanceVaultTraps(eaters)
 	for id, p := range w.players {
 		old := previous[id]

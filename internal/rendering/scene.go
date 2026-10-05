@@ -40,13 +40,10 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		DrawFruit(float32(fruit.X), float32(fruit.Y), float32(fruit.Size), MassColor(fruit.Source, playerColors), fruit.Source != "", fruit.MP > 0)
 	}
 	for _, ai := range scene.RenderedAIs {
-		tint := rl.Green
-		if ai.Character == simulation.Triangle {
-			tint = primitives.CharacterColor(ai.Character)
-		}
+		tint := mobTint(ai.Type)
 		DrawAIActor(Actor{
-			Stone: ai.Stone, Awakening: ai.Awakening,
-			ID: ai.ID, Label: fmt.Sprintf("%s Lv.%d %s", ai.ID, ai.Stats.Level, ai.Behavior),
+			Type: ai.Type, Level: ai.Stats.Level, Stone: ai.Stone, Awakening: ai.Awakening,
+			ID: ai.ID, Label: fmt.Sprintf("%s Lv.%d", mobName(ai.Type), ai.Stats.Level),
 			X: ai.X, Y: ai.Y, Size: ai.Size, HP: ai.Stats.HP, Character: ai.Character,
 			Aiming: ai.Aiming, Frenzied: ai.Frenzied, Combat: ai.Combat, Split: ai.Split, Tint: tint,
 		}, &scene.Map.Exploration, scene.Feedback)

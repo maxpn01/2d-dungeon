@@ -107,12 +107,25 @@ func (s *Stats) ApplyPerk(card PerkCard) bool {
 
 func (s *Stats) rebuildPerks() {
 	b := func(f PerkFamily) float64 { return PerkBonus(f, s.Perks[f]) }
-	multiplier := s.baseMultiplier()
-	damage := parameters.ShotDamage * multiplier
+	damageMultiplier, attackRateMultiplier, movementSpeedMultiplier := 1.0, 1.0, 1.0
+	if s.Mob {
+		damageMultiplier = parameters.MobDamageMultiplier
+		attackRateMultiplier = parameters.MobAttackRateMultiplier
+		movementSpeedMultiplier = parameters.MobMovementSpeedMultiplier
+	}
+	damage := parameters.ShotDamage * damageMultiplier
 	damage += parameters.DamagePerLevelIncrease * float64(max(1, min(MaxLevel, s.Level))-1)
 	s.Damage = damage * (1 + b(DamagePerk) + b(HeavyPerk))
-	s.AttackRate = attackRateForLevel(s.Level, multiplier) * (1 + b(AttackRatePerk))
-	s.Speed = BaseSpeed * multiplier * (1 + b(SpeedPerk) - PerkPenalty(HeavyPerk, s.Perks[HeavyPerk]))
+	s.AttackRate = attackRateForLevel(s.Level, attackRateMultiplier) * (1 + b(AttackRatePerk))
+	s.Speed = BaseSpeed * movementSpeedMultiplier * (1 + b(SpeedPerk) - PerkPenalty(HeavyPerk, s.Perks[HeavyPerk]))
+	if s.Mob {
+		switch s.MobType {
+		case DungeonPursuer:
+			s.Speed *= parameters.PursuerSpeedMultiplier
+		case DungeonHeavy:
+			s.Speed *= parameters.HeavySpeedMultiplier
+		}
+	}
 	s.BoostMultiplier = BoostMultiplier * (1 + b(BoostPerk) + b(OverdrivePerk))
 	s.BoostCost = BoostMPPerSecond * (1 + PerkPenalty(OverdrivePerk, s.Perks[OverdrivePerk]))
 }

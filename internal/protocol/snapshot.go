@@ -49,7 +49,7 @@ func SnapshotFromSimulation(state simulation.Snapshot, names map[string]string) 
 	}
 	for _, ai := range state.AIs {
 		snapshot.AIs = append(snapshot.AIs, AI{
-			Stone: ai.Stone, Awakening: ai.Awakening,
+			Type: ai.Type, Stone: ai.Stone, Awakening: ai.Awakening,
 			Aiming: ai.Aiming, Frenzied: ai.Frenzied, Combat: ai.Combat, Behavior: ai.Behavior, Character: ai.Character, Split: ai.Split,
 			ID: ai.ID, X: ai.X, Y: ai.Y, Size: simulation.AISize, Stats: ai.Stats,
 		})

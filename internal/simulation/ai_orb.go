@@ -80,7 +80,11 @@ func (w *World) huntOrb(ai *aiState, carrier *playerState) Direction {
 }
 
 func (ai *aiState) setFrenzy(active bool) {
-	if ai.Frenzied == active && (!active || ai.Stats.Level == parameters.AIFrenzyLevel) {
+	level := max(parameters.AIFrenzyLevel, ai.Stats.Level)
+	if ai.Frenzied {
+		level = max(parameters.AIFrenzyLevel, ai.frenzyBase.Level)
+	}
+	if ai.Frenzied == active && (!active || ai.Stats.Level == level) {
 		return
 	}
 	hpFraction, mpFraction := ai.Stats.HP/ai.Stats.MaxHP(), ai.Stats.MP/ai.Stats.MaxMP()
@@ -88,7 +92,7 @@ func (ai *aiState) setFrenzy(active bool) {
 		if !ai.Frenzied {
 			ai.frenzyBase = ai.Stats
 		}
-		ai.Stats.Level, ai.Stats.XP = parameters.AIFrenzyLevel, 0
+		ai.Stats.Level, ai.Stats.XP = level, 0
 	} else {
 		ai.Stats.Level, ai.Stats.XP = ai.frenzyBase.Level, ai.frenzyBase.XP
 		ai.Combat.Boosting = false

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -181,14 +182,25 @@ func secretRoom(layout Layout, roomID, doorID, passageID, side, id string, span 
 }
 
 func dungeonLayout(multiplayer bool, id string) (Layout, string, error) {
-	parts := []string{"", "", "", "", ""}
+	parts := []string{"", "", "", "", "", ""}
 	if id != "" {
 		parts = strings.Split(id, "|")
-		if len(parts) != 5 || parts[0] == "" || parts[2] == "" || parts[3] == "" || parts[4] == "" || multiplayer && (parts[1] == "" || parts[1] == "-" || parts[4] == "-") || !multiplayer && (parts[1] != "-" || parts[4] != "-") {
+		if len(parts) == 5 {
+			parts = append(parts, "0000000000000000")
+		}
+		if len(parts) != 6 || parts[0] == "" || parts[2] == "" || parts[3] == "" || parts[4] == "" || multiplayer && (parts[1] == "" || parts[1] == "-" || parts[4] == "-") || !multiplayer && (parts[1] != "-" || parts[4] != "-") {
 			return Layout{}, "", fmt.Errorf("invalid dungeon layout %q", id)
 		}
 	}
+	if id == "" {
+		parts[5] = fmt.Sprintf("%016x", rand.Uint64())
+	}
+	seed, seedErr := strconv.ParseUint(parts[5], 16, 64)
+	if seedErr != nil {
+		return Layout{}, "", fmt.Errorf("invalid guard placement seed %q", parts[5])
+	}
 	layout := secretBase(multiplayer)
+	randomizeSideRoomGuards(&layout, seed)
 	var err error
 	layout, parts[3], err = wingRoom(layout, false, parts[3])
 	if err != nil {

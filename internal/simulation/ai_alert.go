@@ -70,14 +70,42 @@ func (w *World) investigateAI(ai *aiState) (Direction, bool) {
 }
 
 func (ai *aiState) navigateMap(geometry *worldmap.Map, x, y float64) Direction {
-	dx, dy := x-ai.X, y-ai.Y
-	mx, my := geometry.Move(ai.X, ai.Y, dx, dy, AISize, AISize)
-	if math.Hypot(mx-x, my-y) < .1 {
-		return ai.approach(x, y)
+	clear := func(tx, ty float64) bool {
+		_, blocked := geometry.MovementLimit(ai.X, ai.Y, tx-ai.X, ty-ai.Y, AISize, AISize)
+		return !blocked
 	}
+	if clear(x, y) {
+		ai.navigationActive = false
+		return ai.approachWaypoint(x, y)
+	}
+	goal := worldmap.WorldCell(x+AISize/2, y+AISize/2)
+	if ai.navigationActive && ai.navigationMap == geometry && ai.navigationGoal == goal && math.Hypot(ai.navigationX-ai.X, ai.navigationY-ai.Y) > 1 && clear(ai.navigationX, ai.navigationY) {
+		return ai.approachWaypoint(ai.navigationX, ai.navigationY)
+	}
+	ai.navigationActive = false
 	nx, ny, ok := geometry.NextStep(ai.X, ai.Y, x, y, AISize)
 	if !ok {
 		return Direction{}
 	}
-	return ai.approach(nx, ny)
+	if !clear(nx, ny) {
+		cell := worldmap.WorldCell(ai.X+AISize/2, ai.Y+AISize/2)
+		nx, ny = worldmap.CellPosition(cell[0], cell[1], AISize)
+		if !clear(nx, ny) || math.Hypot(nx-ai.X, ny-ai.Y) <= 1 {
+			return Direction{}
+		}
+	}
+	ai.navigationActive = true
+	ai.navigationMap, ai.navigationGoal = geometry, goal
+	ai.navigationX, ai.navigationY = nx, ny
+	return ai.approachWaypoint(nx, ny)
+}
+
+func (ai *aiState) approachWaypoint(x, y float64) Direction {
+	dx, dy := x-ai.X, y-ai.Y
+	distance := math.Hypot(dx, dy)
+	if distance <= .01 {
+		return Direction{}
+	}
+	scale := min(1, distance/(ai.Stats.MovementSpeed()*SpeedScale*StepSeconds))
+	return Direction{X: dx / distance * scale, Y: dy / distance * scale}
 }

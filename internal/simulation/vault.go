@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"math"
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/worldmap"
 )
@@ -26,9 +27,16 @@ func (w *World) awakenVaultSentinels() {
 			if ai.den.RoomID != worldmap.OrbVault || !ai.Stone || !w.aiCanSeePlayer(ai, p, 260) {
 				continue
 			}
+			level := min(MaxLevel, w.averageDungeonGuardLevel()+parameters.SentinelLevelOffset)
 			for j := range w.ais {
 				guard := &w.ais[j]
 				if guard.den.RoomID == worldmap.OrbVault && guard.Stone && geometry.Cell(guard.den.At.X, guard.den.At.Y) != 0 {
+					guard.Stats = newMobStats(level, guard.Type)
+					guard.perkMilestones = 0
+					if level >= parameters.SentinelFirstPerkLevel {
+						guard.grantPerkMilestones(1 + (level-parameters.SentinelFirstPerkLevel)/parameters.AIPerkLevelInterval)
+					}
+					guard.spawnMaxHP = guard.Stats.MaxHP()
 					guard.Stone, guard.Awakening, guard.Behavior = false, SentinelAwakeningDuration, "awakening"
 				}
 			}

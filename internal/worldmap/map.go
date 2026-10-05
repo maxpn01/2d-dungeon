@@ -17,6 +17,7 @@ type FeedingPatch struct {
 }
 
 type Den struct {
+	Type       MobType
 	ID, RoomID string
 	At         Cell
 	Patrol     CellRect
@@ -115,7 +116,7 @@ func New(layout Layout) (*Map, error) {
 			}
 			if area.Guard != nil {
 				guard := area.Guard
-				m.dens = append(m.dens, Den{ID: area.ID, RoomID: room.ID, At: at, Patrol: Around(at, guard.PatrolRadius), Level: guard.Level, Respawn: guard.Respawn})
+				m.dens = append(m.dens, Den{Type: guard.Type, ID: area.ID, RoomID: room.ID, At: at, Patrol: Around(at, guard.PatrolRadius), Level: guard.Level, Respawn: guard.Respawn})
 			}
 		}
 		for _, gate := range room.Gates {

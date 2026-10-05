@@ -74,6 +74,7 @@ type FoodSource struct {
 }
 
 type Guard struct {
+	Type         MobType
 	PatrolRadius int
 	Level        int
 	Respawn      time.Duration

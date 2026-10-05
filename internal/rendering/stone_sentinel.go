@@ -1,6 +1,7 @@
 package rendering
 
 import (
+	"fmt"
 	"math"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
@@ -78,5 +79,5 @@ func drawStoneSentinel(ai Actor) {
 			}
 		}
 	}
-	primitives.DrawTextAt("SENTINEL Lv.10", rl.NewVector2(center.X-43, center.Y-49), 14, edge)
+	primitives.DrawTextAt(fmt.Sprintf("SENTINEL Lv.%d", ai.Level), rl.NewVector2(center.X-43, center.Y-49), 14, edge)
 }
