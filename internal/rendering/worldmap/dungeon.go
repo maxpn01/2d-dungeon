@@ -40,6 +40,10 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 	right := int(math.Ceil(float64(ctx.Camera.Target.X+(float32(ctx.WindowWidth)-ctx.Camera.Offset.X)/zoom)/40)) + 1
 	top := int(math.Floor(float64(ctx.Camera.Target.Y-ctx.Camera.Offset.Y/zoom)/40)) - 1
 	bottom := min(mapdata.MaxCellY, int(math.Ceil(float64(ctx.Camera.Target.Y+(float32(ctx.WindowHeight)-ctx.Camera.Offset.Y)/zoom)/40))+1)
+	if m.floor == mapdata.SecondFloor {
+		m.drawForest(left, top, right, bottom)
+		return
+	}
 	for y := max(mapdata.MinCellY, top); y < bottom; y++ {
 		for x := max(mapdata.MinCellX, left); x < min(mapdata.MaxCellX, right); x++ {
 			if m.sanctuaryTile(x, y, northBorder) || m.world.CellFloor(x, y) != m.floor {

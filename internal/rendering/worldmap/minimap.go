@@ -85,7 +85,11 @@ func (v *radarView) begin(m *Map) {
 			if m.world.Cover(x, y) && m.world.Cell(x, y) != 0 {
 				v.rect(float32(x*mapdata.Tile), float32(y*mapdata.Tile), mapdata.Tile, mapdata.Tile, color.RGBA{102, 91, 150, 255})
 			} else if m.world.Cell(x, y) != 0 {
-				v.rect(float32(x*mapdata.Tile), float32(y*mapdata.Tile), mapdata.Tile, mapdata.Tile, paleStone)
+				tint := paleStone
+				if m.floor == mapdata.SecondFloor {
+					tint = forestGrass
+				}
+				v.rect(float32(x*mapdata.Tile), float32(y*mapdata.Tile), mapdata.Tile, mapdata.Tile, tint)
 			} else if mapdata.Default().Pool(x, y) {
 				v.rect(float32(x*mapdata.Tile), float32(y*mapdata.Tile), mapdata.Tile, mapdata.Tile, color.RGBA{23, 58, 71, 255})
 			}

@@ -86,6 +86,15 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 				continue
 			}
 			old, existed := f.actors[id]
+			if existed && !actor.ai && !old.dead && !actor.dead && worldmap.Default().FloorAt(old.x+old.size/2, old.y+old.size/2) != worldmap.Default().FloorAt(actor.x+actor.size/2, actor.y+actor.size/2) {
+				for _, portal := range worldmap.Default().Portals() {
+					at := portal.Position()
+					if math.Hypot(actor.x+actor.size/2-at.X, actor.y+actor.size/2-at.Y) <= 60 {
+						emit(at.X, at.Y, actor.size, primitives.RuneColor, "teleport-arrival")
+						break
+					}
+				}
+			}
 			if existed && old.stone && !actor.stone {
 				local := actors[f.localID]
 				if math.Hypot(actor.x-local.x, actor.y-local.y) < 900 {
@@ -207,6 +216,9 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 		if e.kind == "completion" {
 			duration = 4.5
 		}
+		if e.kind == "teleport-arrival" {
+			duration = .9
+		}
 		if e.kind == "hit" {
 			duration = .65
 		}
@@ -224,6 +236,9 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 		tint := rl.Fade(e.tint, 1-p)
 		center := rl.NewVector2(e.x, e.y)
 		switch e.kind {
+		case "teleport-arrival":
+			drawTeleportEnergy(center, center, simulation.PortalSeconds+float64(p)*duration, (1-p)*(1-p), 1-p)
+			rl.DrawRing(center, 84+55*p, 87+55*p, 0, 360, 64, rl.Fade(e.tint, (1-p)*.6))
 		case "hit":
 			if !e.sounded {
 				if e.owner != f.localID {

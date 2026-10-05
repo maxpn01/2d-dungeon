@@ -24,32 +24,40 @@ func DrawTeleportCharge(x, y, charge float64) {
 		}
 	}
 	progress := float32(min(1, charge/simulation.PortalSeconds))
-	energy := progress * progress
+	drawTeleportEnergy(player, center, charge, progress*progress, 1)
+}
+
+func drawTeleportEnergy(player, center rl.Vector2, charge float64, energy, opacity float32) {
 	rotation := float32(charge * 260)
 	tint := primitives.RuneColor
-	rl.DrawCircleGradient(center, 145, rl.Fade(tint, .18+energy*.5), rl.Blank)
-	rl.DrawRing(center, 81, 84, 0, 360, 64, rl.Fade(tint, .6+energy*.4))
-	rl.DrawPolyLinesEx(center, 6, 74-progress*12, rotation, 2, tint)
-	rl.DrawPolyLinesEx(center, 6, 63+progress*12, -rotation, 2, rl.Fade(rl.RayWhite, .35+energy*.5))
+	white := rl.RayWhite
+	fade := func(tint rl.Color, alpha float32) rl.Color {
+		return rl.Fade(tint, alpha*opacity)
+	}
+	progress := float32(math.Sqrt(float64(energy)))
+	rl.DrawCircleGradient(center, 145, fade(tint, .18+energy*.5), rl.Blank)
+	rl.DrawRing(center, 81, 84, 0, 360, 64, fade(tint, .6+energy*.4))
+	rl.DrawPolyLinesEx(center, 6, 74-progress*12, rotation, 2, fade(tint, 1))
+	rl.DrawPolyLinesEx(center, 6, 63+progress*12, -rotation, 2, fade(white, .35+energy*.5))
 	for i := 0; i < 12; i++ {
 		angle := float64(i)*math.Pi/6 + float64(rotation)*math.Pi/180
 		rune := rl.NewVector2(center.X+float32(math.Cos(angle))*94, center.Y+float32(math.Sin(angle))*94)
-		rl.DrawPolyLinesEx(rune, 4, 3+energy*2, float32(angle*180/math.Pi), 1, rl.Fade(tint, .65))
+		rl.DrawPolyLinesEx(rune, 4, 3+energy*2, float32(angle*180/math.Pi), 1, fade(tint, .65))
 		phase := float32(math.Mod(charge*1.7+float64(i)/12, 1))
 		radius := 70 * (1 - phase)
 		height := phase * (45 + energy*95)
 		mote := rl.NewVector2(center.X+float32(math.Cos(angle))*radius, center.Y+float32(math.Sin(angle))*radius*.45-height)
-		rl.DrawLineEx(rl.NewVector2(mote.X, mote.Y+6+energy*8), mote, 1, rl.Fade(tint, .35))
-		rl.DrawCircleV(mote, 1.5+energy, rl.Fade(rl.RayWhite, .4+phase*.5))
+		rl.DrawLineEx(rl.NewVector2(mote.X, mote.Y+6+energy*8), mote, 1, fade(tint, .35))
+		rl.DrawCircleV(mote, 1.5+energy, fade(white, .4+phase*.5))
 	}
 	for i := 0; i < 3; i++ {
 		phase := float32(math.Mod(charge*2+float64(i)/3, 1))
-		rl.DrawEllipseLines(int32(center.X), int32(center.Y-phase*(50+energy*90)), 57*(1-phase*.65), 14*(1-phase*.65), rl.Fade(tint, (1-phase)*(.3+energy*.6)))
+		rl.DrawEllipseLines(int32(center.X), int32(center.Y-phase*(50+energy*90)), 57*(1-phase*.65), 14*(1-phase*.65), fade(tint, (1-phase)*(.3+energy*.6)))
 	}
 	beamHeight := 25 + energy*155
 	for i := -3; i <= 3; i++ {
 		x := player.X + float32(i)*6
-		rl.DrawLineEx(rl.NewVector2(x, player.Y+18), rl.NewVector2(x, player.Y-beamHeight), 4, rl.Fade(tint, energy*.12))
+		rl.DrawLineEx(rl.NewVector2(x, player.Y+18), rl.NewVector2(x, player.Y-beamHeight), 4, fade(tint, energy*.12))
 	}
-	rl.DrawCircleGradient(player, 35+energy*20, rl.Fade(rl.RayWhite, energy*.65), rl.Blank)
+	rl.DrawCircleGradient(player, 35+energy*20, fade(white, energy*.65), rl.Blank)
 }
