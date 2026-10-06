@@ -24,9 +24,17 @@ type Projectile struct {
 	Size             float64   `json:"size"`
 }
 
+func ProjectileWallBody(shot Projectile) physics.Rect {
+	size := shot.Size
+	if shot.Kind == "shockwave" {
+		size = min(size, AISize)
+	}
+	return physics.Square(shot.X+(shot.Size-size)/2, shot.Y+(shot.Size-size)/2, size)
+}
+
 func PrepareShot(p *Player, input Direction) bool {
 	defer func() { p.ShotCooldown = max(0, p.ShotCooldown) }()
-	if p.Dead || !worldmap.Default().WithSecrets(p.OpenSecrets).Walkable(p.X, p.Y, PlayerSize, PlayerSize) || worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, PlayerSize)) || !input.Valid() || !input.Shoot || p.ShotCooldown > 1e-9 || p.Stats.MP < parameters.ShotMPCost || math.Hypot(input.AimX, input.AimY) == 0 {
+	if p.Combat.StunRemaining > 0 || p.Combat.StompRemaining > 0 || p.Dead || !worldmap.Default().WithSecrets(p.OpenSecrets).Walkable(p.X, p.Y, PlayerSize, PlayerSize) || worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, PlayerSize)) || !input.Valid() || !input.Shoot || p.ShotCooldown > 1e-9 || p.Stats.MP < parameters.ShotMPCost || math.Hypot(input.AimX, input.AimY) == 0 {
 		return false
 	}
 	p.Stats.MP -= parameters.ShotMPCost
@@ -75,14 +83,15 @@ func (w *World) advanceProjectiles(actors []eater) {
 				alive = false
 				break
 			}
-			wallFraction, wallBlocked := worldmap.Default().WithSecrets(w.openSecrets).MovementLimit(start.x, start.y, end.x-start.x, end.y-start.y, shot.Size, shot.Size)
-			if worldmap.Default().PrivateGateCrossed(start.x, start.y, end.x, end.y, shot.Size) {
+			body := ProjectileWallBody(shot)
+			wallFraction, wallBlocked := worldmap.Default().WithSecrets(w.openSecrets).MovementLimit(body.X, body.Y, end.x-start.x, end.y-start.y, body.W, body.H)
+			if worldmap.Default().PrivateGateCrossed(body.X, body.Y, body.X+end.x-start.x, body.Y+end.y-start.y, body.W) {
 				alive = false
 				break
 			}
 			winner, first := -1, math.Inf(1)
 			for i, actor := range actors {
-				if actor.id == shot.Owner || actor.dead() || actor.protectedAt(1, w.safeZones) || shot.Kind == "arrow" && actor.player == nil {
+				if actor.id == shot.Owner || actor.dead() || actor.protectedAt(1, w.safeZones) || (shot.Kind == "arrow" || shot.Kind == "shockwave") && actor.player == nil {
 					continue
 				}
 				if t, hit := eatingContact(start, end, shot.Size, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step)/float64(steps)}, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step+1)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step+1)/float64(steps)}, actor.size); hit && (t < first || t == first && (winner < 0 || actor.id < actors[winner].id)) {
@@ -105,6 +114,9 @@ func (w *World) advanceProjectiles(actors []eater) {
 				}
 				hp := target.stats.HP
 				target.stats.HP = max(0, hp-shot.Damage)
+				if shot.Kind == "shockwave" {
+					target.player.Combat = CombatState{Facing: target.player.Combat.Facing, StunRemaining: parameters.HeavyStompStun}
+				}
 				if target.ai != nil && target.stats.HP > 0 {
 					w.alertAI(target.ai, shot)
 				}

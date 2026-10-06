@@ -251,6 +251,14 @@ func validCombat(c simulation.CombatState, burstDuration ...float64) bool {
 	if math.IsNaN(c.SwordRemaining) || math.IsInf(c.SwordRemaining, 0) || c.SwordRemaining < 0 || c.SwordRemaining > max(simulation.SentinelSwordDuration, parameters.HeavyMeleeDuration, parameters.PursuerMeleeDuration) || !c.SwordDirection.Valid() || c.SwordDirection.Dash {
 		return false
 	}
+	if !c.StompDirection.Valid() || c.StompDirection.Dash {
+		return false
+	}
+	for _, timer := range []struct{ value, limit float64 }{{c.StompRemaining, parameters.HeavyStompDuration}, {c.StunRemaining, parameters.HeavyStompStun}} {
+		if math.IsNaN(timer.value) || math.IsInf(timer.value, 0) || timer.value < 0 || timer.value > timer.limit {
+			return false
+		}
+	}
 	for _, v := range []float64{c.RecoilX, c.RecoilY} {
 		if math.IsNaN(v) || math.IsInf(v, 0) || math.Abs(v) > simulation.BossRecoilDistance+.001 {
 			return false
@@ -325,7 +333,7 @@ func validateProjectiles(shots []simulation.Projectile) error {
 	}
 	ids := make(map[string]bool, len(shots))
 	for _, shot := range shots {
-		if shot.Kind != "" && shot.Kind != "arrow" || shot.Kind == "arrow" && shot.Owner != "vault arrows" {
+		if shot.Kind != "" && shot.Kind != "arrow" && shot.Kind != "shockwave" || shot.Kind == "arrow" && shot.Owner != "vault arrows" {
 			return errors.New("server sent invalid projectile kind")
 		}
 		if shot.ID == "" || shot.Owner == "" || ids[shot.ID] || !shot.Direction.Valid() {
@@ -337,7 +345,19 @@ func validateProjectiles(shots []simulation.Projectile) error {
 				return errors.New("server sent invalid projectile coordinates")
 			}
 		}
-		if shot.Size < parameters.ShotSize || shot.Size > parameters.ShotSize*(1+simulation.PerkBonus(simulation.ShotSizePerk, simulation.MaxPerkRank)) || shot.Damage <= 0 || shot.Damage > max(100, (parameters.ShotDamage+parameters.DamagePerLevelIncrease*float64(simulation.MaxLevel-1))*(1+simulation.PerkBonus(simulation.DamagePerk, simulation.MaxPerkRank)+simulation.PerkBonus(simulation.HeavyPerk, simulation.MaxPerkRank))) || shot.Remaining <= 0 || shot.Remaining > parameters.ShotLifetime || !worldmap.Default().Walkable(shot.X, shot.Y, shot.Size, shot.Size) {
+		maxSize := parameters.ShotSize * (1 + simulation.PerkBonus(simulation.ShotSizePerk, simulation.MaxPerkRank))
+		maxDamage := max(100, (parameters.ShotDamage+parameters.DamagePerLevelIncrease*float64(simulation.MaxLevel-1))*(1+simulation.PerkBonus(simulation.DamagePerk, simulation.MaxPerkRank)+simulation.PerkBonus(simulation.HeavyPerk, simulation.MaxPerkRank)))
+		maxLifetime := parameters.ShotLifetime
+		if shot.Kind == "shockwave" {
+			maxSize = parameters.HeavyStompWaveSize
+			maxDamage *= parameters.HeavyStompDamageMultiplier
+			maxLifetime = parameters.HeavyStompWaveLifetime
+			if shot.Size != parameters.HeavyStompWaveSize {
+				return errors.New("server sent invalid shockwave size")
+			}
+		}
+		body := simulation.ProjectileWallBody(shot)
+		if shot.Size < parameters.ShotSize || shot.Size > maxSize || shot.Damage <= 0 || shot.Damage > maxDamage || shot.Remaining <= 0 || shot.Remaining > maxLifetime || !worldmap.Default().CanOccupy(body) {
 			return errors.New("server sent invalid projectile position or lifetime")
 		}
 	}

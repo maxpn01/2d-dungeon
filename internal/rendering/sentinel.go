@@ -13,6 +13,9 @@ func drawSentinelSword(center rl.Vector2, size float32, c simulation.CombatState
 }
 
 func drawMobWeapon(center rl.Vector2, size float32, c simulation.CombatState, kind simulation.MobType) {
+	if c.StompRemaining > 0 {
+		return
+	}
 	attack := simulation.MobMelee(kind)
 	facing := c.Facing
 	if c.SwordRemaining > 0 {

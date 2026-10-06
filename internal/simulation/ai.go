@@ -186,7 +186,7 @@ func (w *World) aiIntent(ai *aiState) Direction {
 	if ai.Type == Sentinel {
 		return w.sentinelInput(ai)
 	}
-	if ai.Combat.SwordRemaining > 0 {
+	if ai.Combat.SwordRemaining > 0 || ai.Combat.StompRemaining > 0 {
 		return w.meleeGuardInput(ai, nil)
 	}
 	if carrier := w.orbTarget(ai); carrier != nil {

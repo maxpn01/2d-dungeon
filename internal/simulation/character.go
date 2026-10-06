@@ -88,6 +88,13 @@ func AdvancePlayer(p *Player, input Direction, dt float64, zones ...[]SafeZone) 
 	p.Stats.GainMP(p.Stats.MPRecoveryPerSecond() * dt)
 	p.Stats.HP = min(p.Stats.MaxHP(), p.Stats.HP+p.Stats.HPRecoveryPerSecond()*dt)
 	p.ShotCooldown = max(-dt, p.ShotCooldown-dt)
+	if p.Combat.StunRemaining > 0 {
+		p.Combat.StunRemaining = max(0, p.Combat.StunRemaining-dt)
+		return
+	}
+	if p.Combat.StompRemaining > 0 {
+		return
+	}
 	if p.HasWings {
 		advanceWingPlayer(p, input, dt)
 		return

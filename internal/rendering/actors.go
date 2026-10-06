@@ -3,6 +3,7 @@ package rendering
 import (
 	"image/color"
 
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 
@@ -45,6 +46,12 @@ func DrawPlayerActor(p Actor, feedback *Feedback, exploration Visibility) {
 func DrawAIActor(ai Actor, exploration Visibility, feedback *Feedback) {
 	if ai.Dead {
 		return
+	}
+	if ai.Type == simulation.DungeonHeavy {
+		size := ai.Size * parameters.HeavySizeMultiplier
+		ai.X -= (size - ai.Size) / 2
+		ai.Y -= (size - ai.Size) / 2
+		ai.Size = size
 	}
 	count := ai.Split.Count()
 	if exploration == nil || exploration.EntityVisible(ai.X, ai.Y, ai.Size) {

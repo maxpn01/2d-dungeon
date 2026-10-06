@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 
@@ -113,6 +114,38 @@ func DrawSplitBody(x, y, size, hp float64, tint color.RGBA, character simulation
 }
 
 func drawCombat(center rl.Vector2, size float32, c simulation.CombatState) {
+	if c.StompRemaining > 0 {
+		direction := rl.NewVector2(float32(c.StompDirection.X), float32(c.StompDirection.Y))
+		elapsed := parameters.HeavyStompDuration - c.StompRemaining
+		if elapsed < parameters.HeavyStompWindup {
+			progress := float32(elapsed / parameters.HeavyStompWindup)
+			tip := rl.NewVector2(center.X+direction.X*parameters.HeavyStompReach, center.Y+direction.Y*parameters.HeavyStompReach)
+			rl.DrawLineEx(center, tip, parameters.HeavyStompWaveSize, rl.Fade(rl.Orange, .08+.12*progress))
+			for _, side := range []float32{-1, 1} {
+				offset := side * parameters.HeavyStompWaveSize / 2
+				start := rl.NewVector2(center.X-direction.Y*offset, center.Y+direction.X*offset)
+				end := rl.NewVector2(tip.X-direction.Y*offset, tip.Y+direction.X*offset)
+				rl.DrawLineEx(start, end, 1, rl.Fade(rl.Orange, .4+.4*progress))
+			}
+			rl.DrawRing(center, size/2+3, size/2+6, -90, -90+360*progress, 32, rl.Gold)
+		} else {
+			age := elapsed - parameters.HeavyStompWindup
+			fade := float32(1 - age/(parameters.HeavyStompDuration-parameters.HeavyStompWindup))
+			radius := size/2 + float32(age)*95
+			rl.DrawCircleGradient(center, size*1.4, rl.Fade(rl.Gold, fade*.55), rl.Fade(rl.Orange, 0))
+			rl.DrawRing(center, radius, radius+5, 0, 360, 40, rl.Fade(rl.Orange, fade))
+			rl.DrawRing(center, radius*.7, radius*.7+2, 0, 360, 40, rl.Fade(rl.Gold, fade))
+			drawStompDebris(center, direction, age, fade)
+		}
+	}
+	if c.StunRemaining > 0 {
+		for i := 0; i < 3; i++ {
+			angle := rl.GetTime()*5 + float64(i)*2*math.Pi/3
+			star := rl.NewVector2(center.X+float32(math.Cos(angle))*size*.55, center.Y-size*.7+float32(math.Sin(angle))*4)
+			rl.DrawCircleV(star, 3, rl.Gold)
+		}
+	}
+
 	dir := rl.NewVector2(float32(c.Direction.X), float32(c.Direction.Y))
 	point := func(distance, sideways float32) rl.Vector2 {
 		return rl.NewVector2(center.X+dir.X*distance-dir.Y*sideways, center.Y+dir.Y*distance+dir.X*sideways)

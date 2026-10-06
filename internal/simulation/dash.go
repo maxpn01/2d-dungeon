@@ -43,6 +43,9 @@ const (
 )
 
 type CombatState struct {
+	StompRemaining float64   `json:"stomp_remaining,omitempty"`
+	StompDirection Direction `json:"stomp_direction"`
+	StunRemaining  float64   `json:"stun_remaining,omitempty"`
 	dashDuration   float64
 	SwordRemaining float64   `json:"sword_remaining,omitempty"`
 	SwordDirection Direction `json:"sword_direction"`
@@ -94,7 +97,7 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 		c.Facing.X = 1
 	}
 	if c.Phase == DashIdle {
-		if pressed && p.Stats.MP >= DashCost {
+		if pressed && p.Stats.MP >= DashCost && !(p.Stats.Mob && p.Stats.MobType == DungeonHeavy) {
 			p.Stats.MP -= DashCost
 			c.Direction = c.Facing
 			c.Phase, c.Remaining = DashWinding, DashWindup

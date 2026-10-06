@@ -137,6 +137,22 @@ func (w *World) steerShooter(ai *aiState, input Direction) Direction {
 
 func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 	attack := MobMelee(ai.Type)
+	if ai.Combat.StompRemaining > 0 {
+		ai.Behavior = "stomping"
+		if ai.Combat.StompRemaining > parameters.HeavyStompDuration-parameters.HeavyStompWindup {
+			ai.Behavior = "winding stomp"
+			if ai.Combat.StompRemaining > parameters.HeavyStompDuration-parameters.HeavyStompWindup+parameters.HeavyStompAimLock {
+				if target := w.players[ai.aggressorID]; target != nil && w.aiCanSeePlayer(ai, target, parameters.HeavyStompReach+PlayerSize) {
+					dx, dy := target.X-ai.X, target.Y-ai.Y
+					if distance := math.Hypot(dx, dy); distance > 0 {
+						ai.Combat.StompDirection = Direction{X: dx / distance, Y: dy / distance}
+						ai.Combat.Facing = ai.Combat.StompDirection
+					}
+				}
+			}
+		}
+		return Direction{AimX: ai.Combat.StompDirection.X, AimY: ai.Combat.StompDirection.Y}
+	}
 	if ai.Combat.SwordRemaining > 0 {
 		ai.Behavior = "striking"
 		if ai.Combat.SwordRemaining > attack.Duration-attack.Windup {
@@ -167,6 +183,16 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 		}
 		return d
 	}
+	if ai.Type == DungeonHeavy && ai.mobChargeCooldown == 0 && ai.Stats.MP >= parameters.HeavyStompCost && distance <= parameters.HeavyStompReach+PlayerSize/2 && w.aiCanSeePlayer(ai, target, parameters.HeavyStompReach+PlayerSize) {
+		ai.Stats.MP -= parameters.HeavyStompCost
+		ai.Combat.StompRemaining = parameters.HeavyStompDuration
+		ai.Combat.StompDirection = Direction{X: d.AimX, Y: d.AimY}
+		ai.Combat.Facing = ai.Combat.StompDirection
+		ai.mobChargeCooldown = parameters.HeavyStompCooldownTicks
+		ai.attackCooldown = int(math.Ceil((parameters.HeavyStompDuration + 1/ai.Stats.AttackRate) * TickRate))
+		ai.Behavior = "winding stomp"
+		return d
+	}
 	if distance <= attack.Reach+PlayerSize/2-8 && w.aiCanSeePlayer(ai, target, attack.Reach+PlayerSize) {
 		ai.Combat.SwordRemaining = attack.Duration
 		ai.Combat.SwordDirection = Direction{X: d.AimX, Y: d.AimY}
@@ -177,14 +203,5 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 	movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets), target.X, target.Y)
 	d.X, d.Y = movement.X, movement.Y
 	ai.Behavior = "pursuing"
-	if ai.Type == DungeonHeavy && ai.mobChargeCooldown == 0 && !ai.Combat.Held && ai.Stats.MP >= DashCost {
-		reach := ai.Stats.MovementSpeed() * SpeedScale * DashSpeedMultiplier * DashBurst
-		charge := Direction{X: d.AimX, Y: d.AimY}
-		if distance > attack.Reach+PlayerSize/2 && distance <= reach+attack.Reach && w.shotDodgeFits(ai, worldmap.Default().WithSecrets(w.openSecrets), charge, DashBurst*DashSpeedMultiplier) {
-			d.Dash = true
-			ai.mobChargeCooldown = parameters.HeavyChargeCooldownTicks
-			ai.Behavior = "winding charge"
-		}
-	}
 	return d
 }

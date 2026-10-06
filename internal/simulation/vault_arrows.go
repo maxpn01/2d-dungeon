@@ -16,6 +16,9 @@ func ProjectileSpeed(shot Projectile) float64 {
 	if shot.Kind == "arrow" {
 		return VaultArrowSpeed
 	}
+	if shot.Kind == "shockwave" {
+		return parameters.HeavyStompWaveSpeed
+	}
 	return parameters.ShotSpeed
 }
 

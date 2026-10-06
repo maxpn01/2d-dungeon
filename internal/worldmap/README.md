@@ -81,8 +81,12 @@ Ordinary direction changes accelerate smoothly, while shot dodges stay reactive.
 to grid waypoints and slows for arrival rather than overshooting corners.
 Pursuers move faster than an unboosted starting player with the default tuning
 and use quick melee strikes. Heavy guards move slowly, have more HP, dodge
-less often, and use slower, stronger melee strikes; they can dash toward
-targets across clear ground on a three-second cooldown. Their square bodies share green coloring with different symbols;
+less often, and use slower, stronger melee strikes; they stomp toward
+targets on a three-second cooldown. During its 0.28-second windup, the guard
+tracks the player before locking its aim for the final 0.1 seconds. The stomp
+sends a 42-unit-wide shockwave and debris toward the player at 700 units per
+second. The wave travels up to 260 units, stops
+at walls, and deals damage and a 0.8-second stun when it hits a player. Their square bodies share green coloring with different symbols;
 sentinels remain triangular. Role tuning lives in `internal/parameters/parameters.go`.
 
 The central halls contain shooters. Each dungeon initialization shuffles four

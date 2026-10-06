@@ -302,6 +302,7 @@ func (w *World) Step(now time.Time) {
 	w.advanceVaultArrows(eaters)
 	w.advanceProjectiles(eaters)
 	w.advanceMobMelee(eaters)
+	w.advanceHeavyStomps()
 	w.advanceVaultTraps(eaters)
 	for id, p := range w.players {
 		old := previous[id]
