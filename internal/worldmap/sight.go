@@ -70,6 +70,12 @@ func (m *Map) NextStep(x, y, tx, ty, size float64) (float64, float64, bool) {
 	return m.nextStep(x, y, tx, ty, size, m.CanOccupy)
 }
 
+func (m *Map) NextStepOutsideCover(x, y, tx, ty, size float64) (float64, float64, bool) {
+	return m.nextStep(x, y, tx, ty, size, func(body physics.Rect) bool {
+		return m.CanOccupy(body) && !m.OverlapsCover(body)
+	})
+}
+
 func (m *Map) nextStep(x, y, tx, ty, size float64, canOccupy func(physics.Rect) bool) (float64, float64, bool) {
 	start := WorldCell(x+size/2, y+size/2)
 	goal := WorldCell(tx+size/2, ty+size/2)

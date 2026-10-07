@@ -48,9 +48,6 @@ type aiState struct {
 	spawnMaxHP                   float64
 	frenzyBase                   Stats
 	orbTargetID                  string
-	orbPathFound                 bool
-	orbPathUntil                 uint64
-	orbPathX, orbPathY           float64
 	aggressorID                  string
 	alertUntil                   uint64
 	alertX, alertY               float64
@@ -203,8 +200,6 @@ func (w *World) aiIntent(ai *aiState) Direction {
 		ai.aggressorID, ai.alertUntil = "", 0
 	}
 	ai.orbTargetID = ""
-	ai.orbPathUntil = 0
-	ai.orbPathFound = false
 	if ai.returning || ai.aggressorID != "" && w.tick >= ai.alertUntil {
 		if d, returning := w.investigateAI(ai); returning {
 			return d
@@ -245,7 +240,7 @@ func (w *World) aiIntent(ai *aiState) Direction {
 		return d
 	}
 	if ai.den.ID != "" {
-		return ai.patrolInput()
+		return ai.patrolInput(worldmap.Default().WithSecrets(w.openSecrets))
 	}
 	if ai.settleTicks > 0 {
 		ai.settleTicks--
@@ -280,14 +275,14 @@ func (w *World) aiIntent(ai *aiState) Direction {
 	return d
 }
 
-func (ai *aiState) patrolInput() Direction {
+func (ai *aiState) patrolInput(geometry *worldmap.Map) Direction {
 	if ai.patrolPause > 0 {
 		ai.patrolPause--
 		ai.Behavior = "watching"
 		return Direction{}
 	}
 	if ai.patrolTicks == 0 {
-		ai.choosePatrolTarget()
+		ai.choosePatrolTarget(geometry)
 	}
 	if math.Hypot(ai.patrolX-ai.X, ai.patrolY-ai.Y) <= 18 {
 		if ai.Character != Triangle {
@@ -300,28 +295,27 @@ func (ai *aiState) patrolInput() Direction {
 	}
 	ai.patrolTicks--
 	ai.Behavior = "patrolling"
-	dx, dy := ai.patrolX-ai.X, ai.patrolY-ai.Y
-	distance := math.Hypot(dx, dy)
-	return Direction{X: dx / distance, Y: dy / distance}
+	return ai.navigateMap(geometry, ai.patrolX, ai.patrolY)
 }
 
-func (ai *aiState) choosePatrolTarget() {
+func (ai *aiState) choosePatrolTarget(geometry *worldmap.Map) {
 	left := float64(ai.den.Patrol.X*worldmap.Tile + 8)
 	right := float64(ai.den.Patrol.Right()*worldmap.Tile - AISize - 8)
 	top := float64(ai.den.Patrol.Y*worldmap.Tile + 8)
 	bottom := float64(ai.den.Patrol.Bottom()*worldmap.Tile - AISize - 8)
+	minimumDistance := min(100.0, max(18.0, min(right-left, bottom-top)/2))
 	for range 24 {
 		x := left + rand.Float64()*(right-left)
 		y := top + rand.Float64()*(bottom-top)
-		if math.Hypot(x-ai.X, y-ai.Y) < 100 || !worldmap.Default().RoomContains(ai.den.RoomID, physics.Square(x, y, AISize)) {
+		body := physics.Square(x, y, AISize)
+		if math.Hypot(x-ai.X, y-ai.Y) < minimumDistance || !geometry.RoomContains(ai.den.RoomID, body) || !geometry.CanOccupy(body) || ai.Type == DungeonShooter && geometry.OverlapsCover(body) {
 			continue
 		}
 		ai.patrolX, ai.patrolY = x, y
 		ai.patrolTicks = 5 * TickRate
 		return
 	}
-	// A temporarily crowded region still gives the guard somewhere to go.
-	ai.patrolX, ai.patrolY = left, top
+	ai.patrolX, ai.patrolY = worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, AISize)
 	ai.patrolTicks = 5 * TickRate
 }
 

@@ -29,8 +29,6 @@ func (w *World) orbTarget(ai *aiState) *playerState {
 func (w *World) huntOrb(ai *aiState, carrier *playerState) Direction {
 	if ai.orbTargetID != carrier.ID {
 		ai.orbTargetID = carrier.ID
-		ai.orbPathUntil = 0
-		ai.orbPathFound = false
 		ai.patrolTicks, ai.patrolPause = 0, 0
 	}
 	ai.returning = true
@@ -55,27 +53,9 @@ func (w *World) huntOrb(ai *aiState, carrier *playerState) Direction {
 		ai.Behavior = "covering orb"
 		return d
 	}
-	mx, my := geometry.Move(ai.X, ai.Y, targetX-ai.X, targetY-ai.Y, AISize, AISize)
-	if math.Hypot(mx-targetX, my-targetY) < .1 {
-		movement := ai.approach(targetX, targetY)
-		speed := min(1, distance/60)
-		d.X, d.Y = movement.X*speed, movement.Y*speed
-		return d
-	}
-	if w.tick >= ai.orbPathUntil || ai.orbPathFound && math.Hypot(ai.X-ai.orbPathX, ai.Y-ai.orbPathY) < 10 {
-		ai.orbPathUntil = w.tick + TickRate/2
-		nx, ny, found := geometry.NextStep(ai.X, ai.Y, targetX, targetY, AISize)
-		ai.orbPathFound = found
-		if !found {
-			return d
-		}
-		ai.orbPathX, ai.orbPathY = nx, ny
-	}
-	if !ai.orbPathFound {
-		return d
-	}
-	movement := ai.approach(ai.orbPathX, ai.orbPathY)
-	d.X, d.Y = movement.X, movement.Y
+	movement := ai.navigateMap(geometry, targetX, targetY)
+	speed := min(1, distance/60)
+	d.X, d.Y = movement.X*speed, movement.Y*speed
 	return d
 }
 

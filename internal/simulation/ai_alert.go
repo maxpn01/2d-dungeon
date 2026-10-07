@@ -70,8 +70,12 @@ func (w *World) investigateAI(ai *aiState) (Direction, bool) {
 }
 
 func (ai *aiState) navigateMap(geometry *worldmap.Map, x, y float64) Direction {
+	avoidCover := ai.Type == DungeonShooter && !geometry.OverlapsCover(physics.Square(ai.X, ai.Y, AISize))
+	terrain := physics.World{CanOccupy: func(body physics.Rect) bool {
+		return geometry.CanOccupy(body) && (!avoidCover || !geometry.OverlapsCover(body))
+	}, MaxStep: worldmap.Tile / 5}
 	clear := func(tx, ty float64) bool {
-		_, blocked := geometry.MovementLimit(ai.X, ai.Y, tx-ai.X, ty-ai.Y, AISize, AISize)
+		_, blocked := terrain.MovementLimit(physics.Square(ai.X, ai.Y, AISize), physics.Vector{X: tx - ai.X, Y: ty - ai.Y})
 		return !blocked
 	}
 	if clear(x, y) {
@@ -83,7 +87,11 @@ func (ai *aiState) navigateMap(geometry *worldmap.Map, x, y float64) Direction {
 		return ai.approachWaypoint(ai.navigationX, ai.navigationY)
 	}
 	ai.navigationActive = false
-	nx, ny, ok := geometry.NextStep(ai.X, ai.Y, x, y, AISize)
+	nextStep := geometry.NextStep
+	if avoidCover {
+		nextStep = geometry.NextStepOutsideCover
+	}
+	nx, ny, ok := nextStep(ai.X, ai.Y, x, y, AISize)
 	if !ok {
 		return Direction{}
 	}

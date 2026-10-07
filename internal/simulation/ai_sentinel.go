@@ -61,7 +61,7 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 		if d, investigating := w.investigateAI(ai); investigating {
 			return d
 		}
-		return ai.patrolInput()
+		return ai.patrolInput(worldmap.Default().WithSecrets(w.openSecrets))
 	}
 	ai.alertX, ai.alertY = target.X, target.Y
 	ai.aggressorID, ai.alertUntil = target.ID, w.tick+3*TickRate
