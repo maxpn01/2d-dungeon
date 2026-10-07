@@ -9,8 +9,8 @@ import (
 )
 
 const VaultArrowDurationTicks = 10 * TickRate
-const VaultArrowIntervalTicks = TickRate * 2 / 3
-const VaultArrowSpeed = 720.0
+const VaultArrowIntervalTicks = TickRate / 12
+const VaultArrowSpeed = 1080.0
 
 func ProjectileSpeed(shot Projectile) float64 {
 	if shot.Kind == "arrow" {

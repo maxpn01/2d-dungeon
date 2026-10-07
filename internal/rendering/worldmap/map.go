@@ -63,6 +63,7 @@ func (m *Map) Draw(ctx primitives.Context, snapshot protocol.Snapshot, local pro
 		m.drawSanctuaryAltar(ctx)
 	}
 	m.drawDungeon(ctx)
+	m.drawVaultTraps(snapshot)
 	m.drawWingDoor(snapshot)
 	drawOrbPedestal(snapshot.Orb, local, &m.Exploration)
 	drawStatues(snapshot.Statues, local.ActiveStatue, local.X, local.Y, local.Dead, &m.Exploration)
