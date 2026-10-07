@@ -10,7 +10,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-const victorySoundVolume float32 = .10
+const victorySoundVolume float32 = .04
 
 var combatAudio struct {
 	sounds       map[string]rl.Sound
