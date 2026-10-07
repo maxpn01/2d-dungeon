@@ -116,6 +116,7 @@ func (g *Game) run(testing bool) {
 	exitRequested := false
 	for !rl.WindowShouldClose() && !exitRequested {
 		dt := rl.GetFrameTime()
+		singlePlayerDeadAtFrameStart := current == screenSinglePlayer && g.world.Dead()
 		if current == screenSinglePlayer && g.world.ReadTestingInput() {
 			mapOpen = false
 			g.cameraFollowPlayer()
@@ -242,6 +243,9 @@ func (g *Game) run(testing bool) {
 				action = g.world.DrawResults(g.window.width, g.window.height)
 			} else if g.world.Dead() {
 				action = g.gameOver.Draw()
+				if !singlePlayerDeadAtFrameStart {
+					action = screens.ActionNone
+				}
 			} else if mapOpen {
 				g.drawFullMap(false)
 			} else {
