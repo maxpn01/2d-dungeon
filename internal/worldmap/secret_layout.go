@@ -105,6 +105,16 @@ func secretSpaceFree(area CellRect, occupied map[[2]int]bool) bool {
 			}
 		}
 	}
+	for y := area.Y; y < area.Bottom(); y++ {
+		if !occupied[[2]int{area.X - 2, y}] && occupied[[2]int{area.X - 3, y}] || !occupied[[2]int{area.Right() + 1, y}] && occupied[[2]int{area.Right() + 2, y}] {
+			return false
+		}
+	}
+	for x := area.X; x < area.Right(); x++ {
+		if !occupied[[2]int{x, area.Y - 2}] && occupied[[2]int{x, area.Y - 3}] || !occupied[[2]int{x, area.Bottom() + 1}] && occupied[[2]int{x, area.Bottom() + 2}] {
+			return false
+		}
+	}
 	return true
 }
 

@@ -103,7 +103,7 @@ func validatePlayers(players []Player, localID string) error {
 		if err := validateFlight(player); err != nil {
 			return err
 		}
-		if _, ok := worldmap.Default().Gate(player.EntranceID); !ok || player.EntranceGate.ID != player.EntranceID || !worldmap.Default().CanAccessEntrance(player.EntranceID, player.X, player.Y, simulation.PlayerSize) {
+		if _, ok := worldmap.Default().Gate(player.EntranceID); !ok || player.EntranceGate.ID != player.EntranceID || !player.Flight.Flying && !worldmap.Default().CanAccessEntrance(player.EntranceID, player.X, player.Y, simulation.PlayerSize) {
 			return errors.New("server sent invalid private entrance ownership")
 		}
 		gate := player.EntranceGate

@@ -53,6 +53,9 @@ func advanceEntranceGate(p *Player, input Direction, dt float64) {
 }
 
 func constrainEntranceGate(p *Player, oldX, oldY float64) {
+	if p.Flight.Flying {
+		return
+	}
 	for _, id := range []string{worldmap.EntranceGate, worldmap.NorthID(worldmap.EntranceGate)} {
 		gate, _ := worldmap.Default().Gate(id)
 		left, right, yGate := float64(gate.Left), float64(gate.Right), float64(gate.Y)
@@ -76,7 +79,7 @@ func constrainEntranceGate(p *Player, oldX, oldY float64) {
 
 func constrainPrivateEntrance(p *Player, oldX, oldY float64, oldFlight FlightState) {
 	geometry := worldmap.Default()
-	if !geometry.CanAccessEntrance(p.EntranceID, p.X, p.Y, PlayerSize) {
+	if !p.Flight.Flying && !geometry.CanAccessEntrance(p.EntranceID, p.X, p.Y, PlayerSize) {
 		p.X, p.Y, p.Flight = oldX, oldY, oldFlight
 	}
 	for i := range p.Split {
