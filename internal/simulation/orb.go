@@ -9,6 +9,7 @@ import (
 )
 
 type OrbState struct {
+	Consumed        bool    `json:"consumed,omitempty"`
 	FrenzyAt        uint64  `json:"frenzy_at,omitempty"`
 	X               float64 `json:"x"`
 	Y               float64 `json:"y"`
@@ -72,7 +73,7 @@ func (w *World) interactObjective(p *playerState) bool {
 	}
 	geometry := worldmap.Default().WithSecrets(w.openSecrets)
 	x, y := p.X+PlayerSize/2, p.Y+PlayerSize/2
-	if math.Hypot(x-w.orb.X, y-w.orb.Y) <= 85 && geometry.Visible(x, y, w.orb.X, w.orb.Y) {
+	if !w.orb.Consumed && math.Hypot(x-w.orb.X, y-w.orb.Y) <= 85 && geometry.Visible(x, y, w.orb.X, w.orb.Y) {
 		if w.orb.Unlocked && w.orb.Carrier == "" && !p.HasOrb {
 			w.orb.Carrier = p.ID
 			w.orb.FrenzyAt = w.tick + OrbFrenzyDelayTicks
@@ -83,7 +84,7 @@ func (w *World) interactObjective(p *playerState) bool {
 	}
 	portal, distance, found := nearestPortal(x, y)
 	if found && distance <= 60 {
-		if p.portalCooldown == 0 && (portal.ID != worldmap.DescentPortal || p.HasOrb) {
+		if p.portalCooldown == 0 && (portal.ID != worldmap.DescentPortal || w.orb.Consumed || p.HasOrb) {
 			p.TeleportCharge = StepSeconds
 		}
 		return true

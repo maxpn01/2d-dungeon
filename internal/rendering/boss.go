@@ -11,19 +11,23 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func DrawEncounter(b simulation.Boss, local protocol.Player, e Visibility) {
+func DrawEncounter(b simulation.Boss, local protocol.Player, orb simulation.OrbState, e Visibility) {
 	for _, portal := range worldmap.Default().Portals() {
 		position := portal.Position()
 		pad := rl.NewVector2(float32(position.X), float32(position.Y))
 		if !e.EntityVisible(float64(pad.X), float64(pad.Y), 0) {
 			continue
 		}
-		active := local.HasOrb || portal.ID == worldmap.ReturnPortal
+		activated := orb.Consumed || portal.ID == worldmap.ReturnPortal
+		active := activated || local.HasOrb
 		tint := rl.Gray
 		label := ""
 		if active {
 			tint = primitives.RuneColor
 			label = "[E] ACTIVATE TELEPORT"
+			if activated {
+				label = "[E] TRAVEL TO FLOOR II"
+			}
 			if portal.ID == worldmap.ReturnPortal {
 				label = "[E] RETURN TO FLOOR I"
 			}
@@ -40,6 +44,11 @@ func DrawEncounter(b simulation.Boss, local protocol.Player, e Visibility) {
 			rotation += float32(rl.GetTime() * 25)
 		}
 		rl.DrawPolyLines(pad, 6, 78, rotation, tint)
+		if activated {
+			drawActivatedPortal(pad)
+			status := "TELEPORT ACTIVE"
+			primitives.DrawTextAt(status, rl.NewVector2(pad.X-float32(primitives.MeasureText(status, 16))/2, pad.Y-125), 16, rl.RayWhite)
+		}
 		if label != "" {
 			primitives.DrawTextAt(label, rl.NewVector2(pad.X-float32(primitives.MeasureText(label, 14))/2, pad.Y+105), 14, tint)
 		}

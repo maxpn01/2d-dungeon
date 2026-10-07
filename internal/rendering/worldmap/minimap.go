@@ -209,7 +209,7 @@ func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker,
 	}
 	v.bossMarker(snapshot.Boss)
 	v.statueMarkers(snapshot.Statues)
-	if snapshot.Orb.Carrier == "" {
+	if !snapshot.Orb.Consumed && snapshot.Orb.Carrier == "" {
 		center := rl.NewVector2(float32(snapshot.Orb.X), float32(snapshot.Orb.Y))
 		if v.Exploration.Explored(explorationCell(center)) {
 			point := v.point(center)

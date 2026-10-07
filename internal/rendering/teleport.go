@@ -61,3 +61,27 @@ func drawTeleportEnergy(player, center rl.Vector2, charge float64, energy, opaci
 	}
 	rl.DrawCircleGradient(player, 35+energy*20, fade(white, energy*.65), rl.Blank)
 }
+
+func drawActivatedPortal(center rl.Vector2) {
+	time := rl.GetTime()
+	pulse := float32(.85 + .15*math.Sin(time*2))
+	tint := primitives.RuneColor
+	rl.DrawCircleGradient(center, 150, rl.Fade(tint, .38*pulse), rl.Blank)
+	rl.DrawCircleGradient(center, 55, rl.Fade(rl.RayWhite, .2*pulse), rl.Blank)
+	rl.DrawRing(center, 87, 92, 0, 360, 96, rl.Fade(tint, .95*pulse))
+	rl.DrawRing(center, 59, 61, 0, 360, 64, rl.Fade(rl.RayWhite, .7*pulse))
+	rl.DrawPolyLinesEx(center, 6, 74, float32(-time*18), 2, rl.Fade(rl.RayWhite, .65*pulse))
+	for i := 0; i < 6; i++ {
+		angle := float64(i)*math.Pi/3 + time*.3
+		inner := rl.NewVector2(center.X+float32(math.Cos(angle))*94, center.Y+float32(math.Sin(angle))*94)
+		outer := rl.NewVector2(center.X+float32(math.Cos(angle))*103, center.Y+float32(math.Sin(angle))*103)
+		rl.DrawLineEx(inner, outer, 3, rl.Fade(rl.RayWhite, .85*pulse))
+		rl.DrawCircleGradient(outer, 12, rl.Fade(tint, .5*pulse), rl.Blank)
+	}
+	for i := 0; i < 8; i++ {
+		phase := math.Mod(time*.35+float64(i)/8, 1)
+		angle := float64(i)*math.Pi/4 + time*.2
+		mote := rl.NewVector2(center.X+float32(math.Cos(angle))*48, center.Y+float32(math.Sin(angle))*20-float32(phase)*65)
+		rl.DrawCircleV(mote, 2, rl.Fade(rl.RayWhite, float32(math.Sin(phase*math.Pi))*.75))
+	}
+}

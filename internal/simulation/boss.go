@@ -374,7 +374,7 @@ func (w *World) updatePortals() {
 			p.portalCooldown = 0
 			continue
 		}
-		if portal.ID == worldmap.DescentPortal && !p.HasOrb {
+		if portal.ID == worldmap.DescentPortal && !w.orb.Consumed && !p.HasOrb {
 			p.TeleportCharge = 0
 			continue
 		}
@@ -389,6 +389,8 @@ func (w *World) updatePortals() {
 		if p.TeleportCharge >= PortalSeconds {
 			p.X, p.Y = toX-PlayerSize/2, toY-PlayerSize/2
 			if portal.ID == worldmap.DescentPortal {
+				w.orb.Consumed = true
+				w.releaseOrb(w.orb.Carrier)
 				p.Escaped = true
 				if w.winnerID == "" {
 					w.winnerID = p.ID

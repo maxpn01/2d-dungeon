@@ -107,8 +107,9 @@ func (w *World) TestingWarp(id, roomID string) bool {
 		w.vaultFireHits = [1]map[string]bool{}
 		w.releaseOrb(id)
 		w.orb.Unlocked = false
+		w.orb.Consumed = false
 	}
-	if roomID == worldmap.TeleportSanctum {
+	if roomID == worldmap.TeleportSanctum && !w.orb.Consumed {
 		for i := range w.ais {
 			if w.ais[i].den.RoomID == worldmap.OrbVault {
 				w.ais[i].Stats.HP = 0

@@ -441,7 +441,7 @@ func validateObjective(snapshot Snapshot) error {
 	if orb.Carrier == "" && orb.FrenzyAt != 0 || orb.FrenzyAt > snapshot.Tick && orb.FrenzyAt-snapshot.Tick > simulation.OrbFrenzyDelayTicks {
 		return errors.New("server sent invalid orb frenzy timing")
 	}
-	if orb.X != position.X || orb.Y != position.Y || orb.GuardsRemaining < 0 || orb.GuardsRemaining > 4 || orb.Unlocked != (orb.GuardsRemaining == 0) {
+	if orb.X != position.X || orb.Y != position.Y || orb.GuardsRemaining < 0 || orb.GuardsRemaining > 4 || orb.Unlocked != (orb.GuardsRemaining == 0) || orb.Consumed && (!orb.Unlocked || orb.Carrier != "") {
 		return errors.New("server sent invalid orb state")
 	}
 	carrierFound := orb.Carrier == ""

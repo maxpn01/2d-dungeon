@@ -21,7 +21,9 @@ func drawOrbPedestal(orb simulation.OrbState, local protocol.Player, exploration
 	rl.DrawEllipse(int32(orb.X), int32(orb.Y-19), 25, 10, paleStone)
 	label := "ORB TAKEN"
 	tint := rl.Gray
-	if orb.Carrier == "" {
+	if orb.Consumed {
+		label = "ORB CONSUMED"
+	} else if orb.Carrier == "" {
 		tint = primitives.RuneColor
 		if !orb.Unlocked {
 			tint = rl.NewColor(184, 140, 255, 255)

@@ -77,7 +77,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		}, scene.Feedback, &scene.Map.Exploration)
 	}
 	DrawProjectiles(scene.PreviousProjectiles, scene.Projectiles, scene.ProjectileAlpha, &scene.Map.Exploration)
-	DrawEncounter(scene.Boss, scene.Local, &scene.Map.Exploration)
+	DrawEncounter(scene.Boss, scene.Local, scene.Snapshot.Orb, &scene.Map.Exploration)
 	scene.Map.DrawVaultFire(scene.Snapshot)
 	for _, p := range scene.Players {
 		if p.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(p.X, p.Y, p.Size) {
