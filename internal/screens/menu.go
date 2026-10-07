@@ -21,6 +21,7 @@ const (
 	ActionContinueExploring
 	ActionShowResults
 	ActionEnterDungeon
+	ActionRestart
 )
 
 type MenuButton struct {

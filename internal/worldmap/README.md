@@ -147,7 +147,11 @@ at spawn, including health perks, subject to the shared loot limit. Temporary
 frenzy levels do not increase this reward. MP loot still uses 50% of the mob's
 remaining MP.
 
-Player respawn immediately refills their private provision court food patches
+Single-player death ends the run. Restart creates a fresh dungeon and resets
+player progression, guard levels and perks, statues, secrets, the orb encounter,
+and map exploration while preserving the selected player name and character.
+
+Multiplayer player respawn immediately refills their private provision court food patches
 and resets that court's guards to fresh HP/MP and positions while preserving
 their death counts and earned perks. Loot and shots belonging to those replaced
 guards are cleared. The opponent's private route and the shared dungeon keep

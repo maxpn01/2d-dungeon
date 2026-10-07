@@ -331,6 +331,9 @@ func (g *Game) run(testing bool) {
 			g.leaveMultiplayer()
 			g.world = g.normalWorld
 			current = g.enterSinglePlayer()
+		case screens.ActionRestart:
+			g.startSinglePlayer()
+			current = screenSinglePlayer
 		case screens.ActionMultiplayer:
 			if g.multiplayer != nil && g.multiplayer.Ready() && g.multiplayer.Dead() && g.multiplayer.Error() == "" {
 				g.multiplayer.Respawn()
@@ -350,7 +353,7 @@ func (g *Game) run(testing bool) {
 
 func (g *Game) enterSinglePlayer() screen {
 	if g.world.TestingEnabled() {
-		g.world.Start(g.settings.PlayerName)
+		g.startSinglePlayer()
 		return screenSinglePlayer
 	}
 	if !g.soloBriefed {
@@ -373,7 +376,7 @@ func (g *Game) startMultiplayer() {
 
 func (g *Game) startSinglePlayer() {
 	testing := g.world.TestingEnabled()
-	if g.world.Finished() || g.world.Character() != g.settings.Character {
+	if g.world.Dead() || g.world.Finished() || g.world.Character() != g.settings.Character {
 		g.world = gameplay.NewWorld()
 		g.world.Configure(g.settings.PlayerName, g.settings.Character)
 		if testing {

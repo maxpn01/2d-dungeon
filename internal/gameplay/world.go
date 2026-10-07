@@ -94,19 +94,6 @@ func (w *World) ClosePerks() {
 	w.syncSimulation()
 }
 
-func (w *World) Respawn() {
-	if !w.simulation.Respawn(localPlayerID) {
-		return
-	}
-	w.direction = protocol.Direction{}
-	w.controls.suppressShootUntilRelease = true
-	w.accumulator = 0
-	w.syncSimulation()
-	w.previousSnapshot = w.snapshot
-	w.perks = hud.PerkPanel{}
-	w.CloseStats()
-}
-
 func (w *World) syncSimulation() {
 	snapshot := protocol.SnapshotFromSimulation(w.simulation.Snapshot(), map[string]string{localPlayerID: w.name})
 	snapshot.Statues = w.simulation.StatuesForPlayer(localPlayerID)
@@ -140,9 +127,6 @@ func (w *World) Start(name string) {
 		panic(err)
 	}
 	w.CloseStats()
-	if w.Dead() {
-		w.Respawn()
-	}
 	if !w.started {
 		w.feedback.Spawn(localPlayerID, time.Now())
 		w.started = true
