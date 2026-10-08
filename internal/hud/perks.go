@@ -112,9 +112,9 @@ func perkPreview(stats simulation.Stats, card simulation.PerkCard) string {
 	case simulation.HealthPerk:
 		return fmt.Sprintf("Max HP %.0f -> %.0f. Heal %.0f HP.", stats.MaxHP(), next.MaxHP(), next.MaxHP()-stats.MaxHP())
 	case simulation.SpeedPerk:
-		return fmt.Sprintf("Speed %.2f -> %.2f", stats.Speed, next.Speed)
+		return fmt.Sprintf("Base speed %.2f -> %.2f", stats.Speed, next.Speed)
 	case simulation.BoostPerk:
-		return fmt.Sprintf("Shift multiplier %.2f -> %.2f", stats.BoostMultiplier, next.BoostMultiplier)
+		return fmt.Sprintf("Shift boost %.2fx -> %.2fx. MP/sec %.2f -> %.2f.", stats.BoostMultiplier, next.BoostMultiplier, stats.BoostCost, next.BoostCost)
 	case simulation.HeavyPerk:
 		return fmt.Sprintf("Damage %.2f -> %.2f. Speed %.2f -> %.2f.", stats.Damage, next.Damage, stats.Speed, next.Speed)
 	case simulation.ManaRecoveryPerk:
@@ -123,8 +123,6 @@ func perkPreview(stats simulation.Stats, card simulation.PerkCard) string {
 		return fmt.Sprintf("HP/sec %.2f -> %.2f", stats.HPRecoveryPerSecond(), next.HPRecoveryPerSecond())
 	case simulation.ShotSizePerk:
 		return fmt.Sprintf("Shot diameter %.1f -> %.1f", stats.ShotSize(), next.ShotSize())
-	case simulation.OverdrivePerk:
-		return fmt.Sprintf("Boost %.2f -> %.2f. MP/sec %.2f -> %.2f.", stats.BoostMultiplier, next.BoostMultiplier, stats.BoostCost, next.BoostCost)
 	}
 	return ""
 }

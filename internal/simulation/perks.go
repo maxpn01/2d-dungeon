@@ -17,7 +17,6 @@ const (
 	SpeedPerk
 	BoostPerk
 	HeavyPerk
-	OverdrivePerk
 	ManaRecoveryPerk
 	HealthRecoveryPerk
 	ShotSizePerk
@@ -43,7 +42,7 @@ func (c PerkCard) Valid() bool {
 }
 
 func PerkName(family PerkFamily) string {
-	names := [...]string{"FORCE", "HASTE", "INSIGHT", "VITALITY", "STRIDE", "SURGE", "HEAVY HAND", "OVERDRIVE", "CHANNELING", "RENEWAL", "MAGNIFY"}
+	names := [...]string{"FORCE", "HASTE", "INSIGHT", "VITALITY", "STRIDE", "OVERDRIVE", "HEAVY HAND", "CHANNELING", "RENEWAL", "MAGNIFY"}
 	if family < 0 || family >= PerkFamilyCount {
 		return "UNKNOWN"
 	}
@@ -76,13 +75,11 @@ func (c PerkCard) Description() string {
 	case HealthPerk:
 		return fmt.Sprintf("+%.0f maximum HP", b)
 	case SpeedPerk:
-		return fmt.Sprintf("+%.0f%% movement speed", b*100)
+		return fmt.Sprintf("+%.0f%% base speed / no extra MP cost", b*100)
 	case BoostPerk:
-		return fmt.Sprintf("+%.0f%% Shift boost strength", b*100)
+		return fmt.Sprintf("+%.0f%% Shift boost / +%.0f%% MP drain", b*100, PerkPenalty(c.Family, c.Rank)*100)
 	case HeavyPerk:
 		return fmt.Sprintf("+%.0f%% damage / -%.0f%% speed", b*100, PerkPenalty(c.Family, c.Rank)*100)
-	case OverdrivePerk:
-		return fmt.Sprintf("+%.0f%% boost / +%.0f%% MP cost", b*100, PerkPenalty(c.Family, c.Rank)*100)
 	case ManaRecoveryPerk:
 		return fmt.Sprintf("+%.2f MP recovered per second", b)
 	case HealthRecoveryPerk:
@@ -126,8 +123,8 @@ func (s *Stats) rebuildPerks() {
 			s.Speed *= parameters.HeavySpeedMultiplier
 		}
 	}
-	s.BoostMultiplier = BoostMultiplier * (1 + b(BoostPerk) + b(OverdrivePerk))
-	s.BoostCost = BoostMPPerSecond * (1 + PerkPenalty(OverdrivePerk, s.Perks[OverdrivePerk]))
+	s.BoostMultiplier = BoostMultiplier * (1 + b(BoostPerk))
+	s.BoostCost = BoostMPPerSecond * (1 + PerkPenalty(BoostPerk, s.Perks[BoostPerk]))
 }
 
 func perkOffer(stats Stats) []PerkCard {

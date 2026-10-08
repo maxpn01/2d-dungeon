@@ -180,10 +180,12 @@ player. Respawn preserves the rest of the world.
 Perk tuning lives in `internal/parameters/parameters.go`: `PerkRankWeights`,
 `PerkBonuses`, and `PerkPenalties`. Rank columns are E, D, C, B, A, S. Family rows
 are damage, attack rate, MP capacity, HP capacity, movement speed, Shift boost,
-Heavy Hand, and Overdrive. Percentage values are fractions of the base stat;
-HP/MP capacity values are flat bonuses. Each rank replaces the previous rank's
-effect rather than adding another copy. Heavy Hand adds damage and subtracts
-movement speed; Overdrive adds boost strength and increases boost MP cost.
+Heavy Hand, MP recovery, HP recovery, and projectile size. Percentage values
+are fractions of the base stat; HP/MP capacity values are flat bonuses. Each
+rank replaces the previous rank's effect rather than adding another copy.
+Speed increases base movement speed without an additional MP cost. Boost
+increases the Shift boost multiplier by 10-65% and boost MP drain by 5-30%.
+Heavy Hand adds damage and subtracts movement speed.
 
 ## Connections, gates, and portals
 
