@@ -23,7 +23,7 @@ const (
 	StepSeconds  = 1.0 / TickRate
 	PlayerSize   = ActorSize
 	SpeedScale   = 100.0
-	BaseSpeed    = 5.5
+	BaseSpeed    = 5.0
 	MapMin       = float64(SurfaceMin)
 	MapMax       = float64(SurfaceMax)
 	MinPosition  = MapMin
@@ -129,8 +129,8 @@ const (
 	HeavyMeleeDuration             = 0.9
 	HeavyMeleeDamageMultiplier     = 1.5
 	HeavyDodgeChanceMultiplier     = 0.4
-	AIShotDodgeChance              = 0.5
-	AIShotDodgeLookahead           = 0.3
+	AIShotDodgeChance              = 0.25
+	AIShotDodgeLookahead           = 0.2
 	AIShotDodgeReactionTicks       = TickRate / 10
 	AIShotDodgeDurationTicks       = TickRate / 5
 	AIShotDodgeCooldownTicks       = TickRate * 3 / 5
@@ -153,9 +153,9 @@ const (
 	DamagePerLevelIncrease     = 0.25
 	BaseAttackRate             = 4.0
 	AttackRatePerLevelIncrease = 0.25
-	MobDamageMultiplier        = 0.8
-	MobAttackRateMultiplier    = 1
-	MobMovementSpeedMultiplier = 1
+	MobDamageMultiplier        = 0.7
+	MobAttackRateMultiplier    = 0.9
+	MobMovementSpeedMultiplier = 0.9
 	MobAimAccuracy             = 0.9
 	ShotSpeed                  = 1400.0
 	ShotSize                   = 10.0
