@@ -78,7 +78,6 @@ func (w *World) TestingWarp(id, roomID string) bool {
 	}
 	at := room.WorldCell(worldmap.At(room.Area.Width/2, room.Area.Height/2))
 	if roomID == worldmap.OrbVault {
-		delete(w.sentinelTactics, roomID)
 		at, _ = worldmap.Default().VaultApproach()
 		for i := range w.ais {
 			ai := &w.ais[i]

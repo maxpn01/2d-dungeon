@@ -18,7 +18,10 @@ func drawMobWeapon(center rl.Vector2, size float32, c simulation.CombatState, ki
 	}
 	attack := simulation.MobMelee(kind)
 	facing := c.Facing
-	if c.SwordRemaining > 0 {
+	lunging := kind == simulation.Sentinel && (c.Phase == simulation.DashWinding || c.Phase == simulation.DashRushing || c.Attack)
+	if lunging {
+		facing = c.Direction
+	} else if c.SwordRemaining > 0 {
 		facing = c.SwordDirection
 	}
 	angle := math.Atan2(facing.Y, facing.X)
@@ -29,7 +32,16 @@ func drawMobWeapon(center rl.Vector2, size float32, c simulation.CombatState, ki
 		tint, accent, grip = rl.Green, rl.Lime, rl.DarkGreen
 		warning = rl.Green
 	}
-	if c.SwordRemaining > 0 {
+	if lunging {
+		base := float32(angle * 180 / math.Pi)
+		if c.Phase == simulation.DashWinding {
+			progress := float32(1 - c.Remaining/simulation.DashWindup)
+			rl.DrawCircleSector(center, float32(attack.Reach), base-25, base+25, 16, rl.Fade(warning, .12+.18*progress))
+			rl.DrawCircleSectorLines(center, float32(attack.Reach), base-25, base+25, 16, rl.Fade(warning, .5+.5*progress))
+		} else {
+			rl.DrawRing(center, float32(attack.Reach)-8, float32(attack.Reach)+2, base-25, base+25, 16, rl.Fade(tint, .6))
+		}
+	} else if c.SwordRemaining > 0 {
 		elapsed := attack.Duration - c.SwordRemaining
 		if elapsed < attack.Windup {
 			progress := float32(elapsed / attack.Windup)

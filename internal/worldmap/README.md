@@ -118,14 +118,17 @@ ordinary guards. Awakening at a higher level grants all reached milestones.
 The first threshold is configurable through `SentinelFirstPerkLevel`; the
 interval uses `AIPerkLevelInterval`.
 Sentinels intercept observed player movement rather than orbiting their current
-position. The nearest ready sentinel leads pursuit, with up to
-`SentinelConcurrentAttackers` (default 2) attacking together; nearby flankers
-can strike without waiting for their turn. They charge across clear ground
-for up to `SentinelDashBurst` (default 0.28 seconds), shortening the charge
-to stop near their predicted target. Charges have a separate cooldown from
-swords, allowing melee follow-ups. `SentinelAttackPrediction` (default 0.75)
-controls how much observed movement they anticipate.
-Sword strikes have a 0.3-second windup and a short forward arc. Sentinels
+position. The nearest ready sentinels pursue together, with up to
+`SentinelConcurrentAttackers` (default 3) attacking concurrently. Pursuing
+guards keep separation, while remaining guards flank. Sentinel movement uses
+`SentinelSpeedMultiplier` (default 1.15) on top of ordinary mob speed.
+They charge across clear ground for up to `SentinelDashBurst` (default 0.28
+seconds), shortening the charge to stop near their predicted target. The
+forward sword deals damage along its swept path during a charge, once per
+target per charge. Charges also set the sword cooldown.
+`SentinelAttackPrediction` (default 0.75) controls how much observed movement
+they anticipate. Sword strikes have a 0.2-second windup, a 0.4-second total
+duration, and a short forward arc. Sentinels
 advance at `SentinelSwordAdvanceMultiplier` (default 0.8) during windup,
 adjusting aim for only the first `SentinelSwordTrackingDuration` (default
 0.18 seconds), with turning limited by `SentinelSwordTurnRate` (default 2.5

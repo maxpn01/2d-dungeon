@@ -118,6 +118,8 @@ func (s *Stats) rebuildPerks() {
 	s.Speed = speed * movementSpeedMultiplier * (1 + b(SpeedPerk) - PerkPenalty(HeavyPerk, s.Perks[HeavyPerk]))
 	if s.Mob {
 		switch s.MobType {
+		case Sentinel:
+			s.Speed *= parameters.SentinelSpeedMultiplier
 		case DungeonPursuer:
 			s.Speed *= parameters.PursuerSpeedMultiplier
 		case DungeonHeavy:

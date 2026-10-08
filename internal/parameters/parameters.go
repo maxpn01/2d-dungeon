@@ -97,7 +97,8 @@ const (
 	SentinelSwordTrackingDuration  = 0.18
 	SentinelSwordTurnRate          = 2.5
 	SentinelSwordAdvanceMultiplier = 0.8
-	SentinelConcurrentAttackers    = 2
+	SentinelConcurrentAttackers    = 3
+	SentinelSpeedMultiplier        = 1.15
 	ShooterStrafeTurnCooldownTicks = TickRate / 2
 	SentinelFirstPerkLevel         = 14
 	ShooterMinimumDistance         = 260.0
@@ -122,11 +123,11 @@ const (
 	HeavySpeedMultiplier           = 0.8
 	HeavyHealthMultiplier          = 1.6
 	PursuerMeleeReach              = 55.0
-	PursuerMeleeWindup             = 0.2
-	PursuerMeleeDuration           = 0.45
+	PursuerMeleeWindup             = 0.15
+	PursuerMeleeDuration           = 0.35
 	HeavyMeleeReach                = 80.0
-	HeavyMeleeWindup               = 0.5
-	HeavyMeleeDuration             = 0.9
+	HeavyMeleeWindup               = 0.4
+	HeavyMeleeDuration             = 0.75
 	HeavyMeleeDamageMultiplier     = 1.5
 	HeavyDodgeChanceMultiplier     = 0.4
 	AIShotDodgeChance              = 0.25

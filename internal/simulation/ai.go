@@ -39,6 +39,7 @@ type AI struct {
 }
 
 type aiState struct {
+	sentinelDashHits             map[string]bool
 	sentinelMoveX, sentinelMoveY float64
 	shotTargetID                 string
 	aimTargetID                  string

@@ -10,8 +10,8 @@ import (
 
 const (
 	SentinelSwordReach    = AISize/2 + 48.0
-	SentinelSwordWindup   = 0.3
-	SentinelSwordDuration = 0.55
+	SentinelSwordWindup   = 0.2
+	SentinelSwordDuration = 0.4
 )
 
 func sentinelIntercept(target *playerState, seconds float64) physics.Vector {
@@ -108,8 +108,10 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 		limit, _ := geometry.MovementLimit(ai.X, ai.Y, sx*travel, sy*travel, AISize, AISize)
 		if limit >= 1-1e-6 && geometry.RoomContains(ai.den.RoomID, physics.Square(ex, ey, AISize)) {
 			d.AimX, d.AimY, d.Dash = sx, sy, true
+			ai.sentinelDashHits = nil
 			ai.Combat.dashDuration = travel / speed
 			ai.mobChargeCooldown = int(math.Ceil((DashWindup + ai.Combat.dashDuration + DashRecovery + .35) * TickRate))
+			ai.attackCooldown = ai.mobChargeCooldown
 			ai.Behavior = "charging"
 		}
 	}
@@ -120,25 +122,46 @@ func (w *World) advanceMobMelee(actors []eater) {
 	for i := range w.ais {
 		ai := &w.ais[i]
 		attack := MobMelee(ai.Type)
-		if attack.Duration == 0 || ai.respawnTick != 0 || ai.Stats.HP <= 0 || ai.Combat.SwordRemaining <= 0 {
+		dashAttack := ai.Type == Sentinel && ai.Combat.Attack && ai.Combat.Phase != DashBumped
+		if attack.Duration == 0 || ai.respawnTick != 0 || ai.Stats.HP <= 0 || !dashAttack && ai.Combat.SwordRemaining <= 0 {
 			continue
 		}
-		before := ai.Combat.SwordRemaining
-		ai.Combat.SwordRemaining = max(0, before-StepSeconds)
-		impact := attack.Duration - attack.Windup
-		if before <= impact || ai.Combat.SwordRemaining > impact {
-			continue
+		start := position{ai.X, ai.Y}
+		if dashAttack {
+			for _, actor := range actors {
+				if actor.ai == ai && actor.cell == nil {
+					start = actor.start
+					break
+				}
+			}
+		} else {
+			before := ai.Combat.SwordRemaining
+			ai.Combat.SwordRemaining = max(0, before-StepSeconds)
+			impact := attack.Duration - attack.Windup
+			if before <= impact || ai.Combat.SwordRemaining > impact {
+				continue
+			}
 		}
 		for _, target := range actors {
 			if target.player == nil || target.dead() || target.protectedAt(1, w.safeZones) {
 				continue
 			}
-			dx := target.end.x + target.size/2 - ai.X - AISize/2
-			dy := target.end.y + target.size/2 - ai.Y - AISize/2
-			distance := math.Hypot(dx, dy)
-			facing := ai.Combat.SwordDirection
-			if distance > attack.Reach+target.size/2 || (dx*facing.X+dy*facing.Y)/max(1, distance) < math.Cos(math.Pi/3) || !w.aiCanSeePlayer(ai, target.player, attack.Reach+target.size) {
-				continue
+			if dashAttack {
+				if ai.sentinelDashHits[target.id] || !w.sentinelDashContact(ai, start, target) {
+					continue
+				}
+				if ai.sentinelDashHits == nil {
+					ai.sentinelDashHits = make(map[string]bool)
+				}
+				ai.sentinelDashHits[target.id] = true
+			} else {
+				dx := target.end.x + target.size/2 - ai.X - AISize/2
+				dy := target.end.y + target.size/2 - ai.Y - AISize/2
+				distance := math.Hypot(dx, dy)
+				facing := ai.Combat.SwordDirection
+				if distance > attack.Reach+target.size/2 || (dx*facing.X+dy*facing.Y)/max(1, distance) < math.Cos(math.Pi/3) || !w.aiCanSeePlayer(ai, target.player, attack.Reach+target.size) {
+					continue
+				}
 			}
 			hp := target.stats.HP
 			target.stats.HP = max(0, hp-ai.Stats.Damage*attack.DamageMultiplier)
@@ -149,4 +172,30 @@ func (w *World) advanceMobMelee(actors []eater) {
 			}
 		}
 	}
+}
+
+func (w *World) sentinelDashContact(ai *aiState, start position, target eater) bool {
+	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	facing := ai.Combat.Direction
+	const bladeWidth = 16.0
+	root := float64(AISize)/2 + 7
+	steps := int(math.Ceil((SentinelSwordReach - root) / (bladeWidth * .75)))
+	for i := 0; i <= steps; i++ {
+		distance := root + (SentinelSwordReach-root)*float64(i)/float64(steps)
+		offsetX := AISize/2 + facing.X*distance - bladeWidth/2
+		offsetY := AISize/2 + facing.Y*distance - bladeWidth/2
+		from := position{start.x + offsetX, start.y + offsetY}
+		to := position{ai.X + offsetX, ai.Y + offsetY}
+		fraction, hit := eatingContact(from, to, bladeWidth, target.start, target.end, target.size)
+		if !hit {
+			continue
+		}
+		x, y := start.x+(ai.X-start.x)*fraction+AISize/2, start.y+(ai.Y-start.y)*fraction+AISize/2
+		tx := target.start.x + (target.end.x-target.start.x)*fraction + target.size/2
+		ty := target.start.y + (target.end.y-target.start.y)*fraction + target.size/2
+		if geometry.Visible(x, y, tx, ty) {
+			return true
+		}
+	}
+	return false
 }

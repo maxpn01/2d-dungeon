@@ -87,7 +87,6 @@ type playerState struct {
 }
 
 type World struct {
-	sentinelTactics   map[string]*sentinelTactic
 	vaultArrowStarted uint64
 	vaultFire         [1]VaultFire
 	vaultFireHits     [1]map[string]bool
