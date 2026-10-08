@@ -177,6 +177,12 @@ unavailable to everyone when one player selects a card. That player's death or
 departure releases their claimed statues, allowing a fresh offer for either
 player. Respawn preserves the rest of the world.
 
+Statue offers use fixed rank odds regardless of owned perks: E 40%, D 28%,
+C 16%, B 9%, A 5%, S 2%. Each offer has three distinct perk families. Equal
+and lower ranks remain visible but cannot be selected. Reopening a statue
+preserves that player's offer for the current cycle. Bot perk milestones
+continue to draw only upgrades.
+
 Perk tuning lives in `internal/parameters/parameters.go`: `PerkRankWeights`,
 `PerkBonuses`, and `PerkPenalties`. Rank columns are E, D, C, B, A, S. Family rows
 are damage, attack rate, MP capacity, HP capacity, movement speed, Shift boost,

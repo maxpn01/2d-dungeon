@@ -170,6 +170,9 @@ func (p *PerkPanel) Draw(active string, statues []simulation.StatueState, stats 
 		}
 		if !enabled {
 			label = "ALREADY OWNED"
+			if card.Rank < owned {
+				label = "HIGHER RANK OWNED"
+			}
 		}
 		primitives.DrawText(label, x, cy+253, 16, rl.Gray)
 		if enabled {

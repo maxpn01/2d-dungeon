@@ -26,7 +26,7 @@ func (w *World) respawnDenAI(previous aiState) aiState {
 
 func (ai *aiState) grantPerkMilestones(milestones int) {
 	for ; ai.perkMilestones < milestones; ai.perkMilestones++ {
-		cards := perkOffer(ai.Stats)
+		cards := perkUpgradeOffer(ai.Stats)
 		if len(cards) > 0 {
 			ai.Stats.ApplyPerk(cards[rand.IntN(len(cards))])
 		}

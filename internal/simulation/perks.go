@@ -127,11 +127,19 @@ func (s *Stats) rebuildPerks() {
 	s.BoostCost = BoostMPPerSecond * (1 + PerkPenalty(BoostPerk, s.Perks[BoostPerk]))
 }
 
-func perkOffer(stats Stats) []PerkCard {
+func perkOffer() []PerkCard {
+	return generatePerkOffer([PerkFamilyCount]int{})
+}
+
+func perkUpgradeOffer(stats Stats) []PerkCard {
+	return generatePerkOffer(stats.Perks)
+}
+
+func generatePerkOffer(minimumRanks [PerkFamilyCount]int) []PerkCard {
 	families := rand.Perm(int(PerkFamilyCount))
 	cards := make([]PerkCard, 0, 3)
 	for _, f := range families {
-		owned := stats.Perks[f]
+		owned := minimumRanks[f]
 		total := 0
 		for rank := owned; rank < MaxPerkRank; rank++ {
 			total += max(0, parameters.PerkRankWeights[rank])

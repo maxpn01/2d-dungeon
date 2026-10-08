@@ -53,15 +53,8 @@ func (w *World) interactStatue(p *playerState) bool {
 		if s.offers == nil {
 			s.offers = make(map[string][]PerkCard)
 		}
-		refresh := s.offers[p.ID] == nil
-		for _, card := range s.offers[p.ID] {
-			if card.Rank <= p.Stats.Perks[card.Family] {
-				refresh = true
-				break
-			}
-		}
-		if refresh {
-			s.offers[p.ID] = perkOffer(p.Stats)
+		if s.offers[p.ID] == nil {
+			s.offers[p.ID] = perkOffer()
 			if s.offers[p.ID] == nil {
 				s.offers[p.ID] = []PerkCard{}
 			}
