@@ -48,7 +48,7 @@ func drawPlayer(p playerView, windowWidth int32) {
 
 	barWidth := width - 24
 	hpLabel, mpLabel := "HP", "MP"
-	hpTint, mpTint := color.RGBA{230, 0, 18, 255}, rl.SkyBlue
+	hpTint, mpTint := color.RGBA{230, 0, 18, 255}, rendering.ManaFoodColor
 	if p.HP > 0 && p.HP <= p.MaxHP*.25 {
 		hpLabel = "HP / LOW"
 		hpTint = rl.Fade(rl.Red, float32(.65+.35*math.Sin(rl.GetTime()*9)))

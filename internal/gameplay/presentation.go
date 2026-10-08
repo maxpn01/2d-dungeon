@@ -80,8 +80,12 @@ func (p *presentation) drawRadar(width, height int32, scene rendering.Scene) {
 	}
 	markers := make([]maprender.Marker, 0, len(snapshot.Fruits)+len(ais)+len(players))
 	for _, fruit := range snapshot.Fruits {
+		tint := rendering.HealthFoodColor
+		if fruit.MP > 0 {
+			tint = rendering.ManaFoodColor
+		}
 		markers = append(markers, maprender.Marker{
-			Center: rl.NewVector2(float32(fruit.X+fruit.Size/2), float32(fruit.Y+fruit.Size/2)), Radius: 2, Tint: rendering.EnergyColor,
+			Center: rl.NewVector2(float32(fruit.X+fruit.Size/2), float32(fruit.Y+fruit.Size/2)), Radius: 2, Tint: tint,
 		})
 	}
 	for _, ai := range ais {
