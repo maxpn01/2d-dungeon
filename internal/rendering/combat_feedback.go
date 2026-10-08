@@ -3,7 +3,6 @@ package rendering
 import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"math"
-	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
@@ -36,7 +35,7 @@ func (f *Feedback) CheckCombatInput(now time.Time, input protocol.Direction, pla
 	if player.Dead {
 		return
 	}
-	failed := input.Shoot && player.Stats.MP < parameters.ShotMPCost
+	failed := input.Shoot && player.Stats.MP < player.Stats.ShotMPCost()
 	if input.Boost && (input.X != 0 || input.Y != 0 || player.HasWings) {
 		failed = failed || player.Stats.MP <= 1e-6 || player.HasWings && player.Stats.MP < simulation.WingMPPerSecond*simulation.StepSeconds
 	}
@@ -72,7 +71,7 @@ func (f *Feedback) DrawCombatOverlay(now time.Time, player protocol.Player, widt
 	}
 	if now.Sub(f.manaAt) >= 0 && now.Sub(f.manaAt) < 800*time.Millisecond {
 		warning("NOT ENOUGH MANA", height-105, rl.SkyBlue)
-	} else if player.Stats.MP < parameters.ShotMPCost {
+	} else if player.Stats.MP < player.Stats.ShotMPCost() {
 		warning("LOW MANA / Cannot shoot", height-105, rl.SkyBlue)
 	}
 }

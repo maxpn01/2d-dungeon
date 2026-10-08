@@ -5,7 +5,6 @@ import (
 	"image/color"
 	"math"
 
-	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/rendering"
 	"raylib-2d-sandbox/internal/rendering/primitives"
@@ -15,6 +14,7 @@ import (
 )
 
 type playerView struct {
+	ShotMPCost                       float32
 	Perks                            [simulation.PerkFamilyCount]int
 	Character                        simulation.Character
 	Name                             string
@@ -53,7 +53,7 @@ func drawPlayer(p playerView, windowWidth int32) {
 		hpLabel = "HP / LOW"
 		hpTint = rl.Fade(rl.Red, float32(.65+.35*math.Sin(rl.GetTime()*9)))
 	}
-	if p.MP < parameters.ShotMPCost {
+	if p.MP < p.ShotMPCost {
 		mpLabel = "MP / LOW"
 		mpTint = rl.Orange
 	}
@@ -103,7 +103,7 @@ func playerDetails(player protocol.Player) playerView {
 		Level: stats.Level, MaxLevel: simulation.MaxLevel, HP: hp, MaxHP: float32(stats.MaxHP()),
 		MP: float32(stats.MP), MaxMP: float32(stats.MaxMP()), XP: float32(stats.XP), NextXP: float32(simulation.XPForNextLevel(stats.Level)),
 		Speed:  float32(simulation.PlayerMovementSpeed(player.Character, stats.Speed, stats.HP, player.Split)),
-		Damage: float32(stats.Damage), AttackRate: float32(stats.AttackRate), Boost: float32(stats.BoostMultiplier),
+		Damage: float32(stats.Damage), ShotMPCost: float32(stats.ShotMPCost()), AttackRate: float32(stats.AttackRate), Boost: float32(stats.BoostMultiplier),
 	}
 }
 

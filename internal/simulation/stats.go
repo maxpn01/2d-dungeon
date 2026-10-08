@@ -67,7 +67,7 @@ func XPForNextLevel(level int) float64 {
 		return 0
 	}
 	levelsGained := float64(max(1, level) - 1)
-	return parameters.XPFirstLevelCost + parameters.XPLevelCostGrowth*levelsGained*(levelsGained+1)
+	return parameters.XPFirstLevelCost + parameters.XPLevelCostGrowth*levelsGained
 }
 
 func (s *Stats) GainXP(amount float64) {
@@ -162,4 +162,8 @@ func (s Stats) HPRecoveryPerSecond() float64 {
 
 func (s Stats) ShotSize() float64 {
 	return parameters.ShotSize * (1 + PerkBonus(ShotSizePerk, s.Perks[ShotSizePerk]))
+}
+
+func (s Stats) ShotMPCost() float64 {
+	return parameters.ShotMPCost * s.ShotSize() / parameters.ShotSize
 }

@@ -85,7 +85,7 @@ func (c PerkCard) Description() string {
 	case HealthRecoveryPerk:
 		return fmt.Sprintf("Recover %.2f HP per second", b)
 	case ShotSizePerk:
-		return fmt.Sprintf("+%.0f%% projectile diameter", b*100)
+		return fmt.Sprintf("+%.0f%% shot diameter / +%.0f%% shot MP cost", b*100, b*100)
 	}
 	return ""
 }
@@ -114,7 +114,8 @@ func (s *Stats) rebuildPerks() {
 	damage += parameters.DamagePerLevelIncrease * float64(max(1, min(MaxLevel, s.Level))-1)
 	s.Damage = damage * (1 + b(DamagePerk) + b(HeavyPerk))
 	s.AttackRate = attackRateForLevel(s.Level, attackRateMultiplier) * (1 + b(AttackRatePerk))
-	s.Speed = BaseSpeed * movementSpeedMultiplier * (1 + b(SpeedPerk) - PerkPenalty(HeavyPerk, s.Perks[HeavyPerk]))
+	speed := BaseSpeed + parameters.SpeedPerLevelIncrease*float64(max(1, min(MaxLevel, s.Level))-1)
+	s.Speed = speed * movementSpeedMultiplier * (1 + b(SpeedPerk) - PerkPenalty(HeavyPerk, s.Perks[HeavyPerk]))
 	if s.Mob {
 		switch s.MobType {
 		case DungeonPursuer:

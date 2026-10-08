@@ -180,7 +180,12 @@ func validStats(stats PlayerStats, baseSpeed float64) bool {
 	if stats.MP < 0 || stats.MP > stats.MaxMP() {
 		return false
 	}
-	if stats.Level < 1 || stats.Level > simulation.MaxLevel || stats.XP < 0 || stats.HP < 0 || stats.HP > stats.MaxHP() || stats.Speed <= 0 || stats.Speed > baseSpeed*2 || stats.Damage <= 0 || stats.Damage > max(100, (parameters.ShotDamage+parameters.DamagePerLevelIncrease*float64(simulation.MaxLevel-1))*(1+simulation.PerkBonus(simulation.DamagePerk, simulation.MaxPerkRank)+simulation.PerkBonus(simulation.HeavyPerk, simulation.MaxPerkRank))) || stats.AttackRate <= 0 || stats.AttackRate > max(simulation.TickRate, simulation.AttackRateForLevel(stats.Level)*(1+simulation.PerkBonus(simulation.AttackRatePerk, simulation.MaxPerkRank))) || stats.BoostMultiplier < 1 || stats.BoostMultiplier > 10 || stats.BoostCost <= 0 || stats.BoostCost > 10 {
+	speedIncrease := parameters.SpeedPerLevelIncrease * float64(max(0, stats.Level-1))
+	if stats.Mob {
+		speedIncrease *= parameters.MobMovementSpeedMultiplier
+	}
+	maximumSpeed := (baseSpeed + speedIncrease) * 2
+	if stats.Level < 1 || stats.Level > simulation.MaxLevel || stats.XP < 0 || stats.HP < 0 || stats.HP > stats.MaxHP() || stats.Speed <= 0 || stats.Speed > maximumSpeed || stats.Damage <= 0 || stats.Damage > max(100, (parameters.ShotDamage+parameters.DamagePerLevelIncrease*float64(simulation.MaxLevel-1))*(1+simulation.PerkBonus(simulation.DamagePerk, simulation.MaxPerkRank)+simulation.PerkBonus(simulation.HeavyPerk, simulation.MaxPerkRank))) || stats.AttackRate <= 0 || stats.AttackRate > max(simulation.TickRate, simulation.AttackRateForLevel(stats.Level)*(1+simulation.PerkBonus(simulation.AttackRatePerk, simulation.MaxPerkRank))) || stats.BoostMultiplier < 1 || stats.BoostMultiplier > 10 || stats.BoostCost <= 0 || stats.BoostCost > 10 {
 		return false
 	}
 	if stats.Level == simulation.MaxLevel {

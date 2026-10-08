@@ -122,7 +122,7 @@ func perkPreview(stats simulation.Stats, card simulation.PerkCard) string {
 	case simulation.HealthRecoveryPerk:
 		return fmt.Sprintf("HP/sec %.2f -> %.2f", stats.HPRecoveryPerSecond(), next.HPRecoveryPerSecond())
 	case simulation.ShotSizePerk:
-		return fmt.Sprintf("Shot diameter %.1f -> %.1f", stats.ShotSize(), next.ShotSize())
+		return fmt.Sprintf("Diameter %.1f -> %.1f. MP/shot %.3f -> %.3f.", stats.ShotSize(), next.ShotSize(), stats.ShotMPCost(), next.ShotMPCost())
 	}
 	return ""
 }

@@ -34,10 +34,10 @@ func ProjectileWallBody(shot Projectile) physics.Rect {
 
 func PrepareShot(p *Player, input Direction) bool {
 	defer func() { p.ShotCooldown = max(0, p.ShotCooldown) }()
-	if p.Combat.StunRemaining > 0 || p.Combat.StompRemaining > 0 || p.Dead || !worldmap.Default().WithSecrets(p.OpenSecrets).Walkable(p.X, p.Y, PlayerSize, PlayerSize) || worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, PlayerSize)) || !input.Valid() || !input.Shoot || p.ShotCooldown > 1e-9 || p.Stats.MP < parameters.ShotMPCost || math.Hypot(input.AimX, input.AimY) == 0 {
+	if p.Combat.StunRemaining > 0 || p.Combat.StompRemaining > 0 || p.Dead || !worldmap.Default().WithSecrets(p.OpenSecrets).Walkable(p.X, p.Y, PlayerSize, PlayerSize) || worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, PlayerSize)) || !input.Valid() || !input.Shoot || p.ShotCooldown > 1e-9 || p.Stats.MP < p.Stats.ShotMPCost() || math.Hypot(input.AimX, input.AimY) == 0 {
 		return false
 	}
-	p.Stats.MP -= parameters.ShotMPCost
+	p.Stats.MP -= p.Stats.ShotMPCost()
 	p.ShotCooldown += 1 / p.Stats.AttackRate
 	return true
 }
