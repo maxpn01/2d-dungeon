@@ -30,7 +30,7 @@ func (w *World) advanceHeavyStomps() {
 		w.nextProjectile++
 		w.projectiles = append(w.projectiles, Projectile{
 			Kind: "shockwave", ID: fmt.Sprintf("stomp-%d", w.nextProjectile), Owner: ai.ID,
-			X: x, Y: y, originX: x, originY: y, mobOwned: true,
+			X: x, Y: y, originX: x, originY: y, MobOwned: true,
 			Direction: ai.Combat.StompDirection, Size: size,
 			Remaining: parameters.HeavyStompWaveLifetime, Damage: ai.Stats.Damage * parameters.HeavyStompDamageMultiplier,
 		})

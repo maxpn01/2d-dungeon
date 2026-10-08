@@ -94,7 +94,7 @@ func (w *World) incomingPlayerShot(ai *aiState, input Direction, geometry *world
 	var selected Projectile
 	soonest := math.Inf(1)
 	for _, shot := range w.projectiles {
-		if shot.mobOwned || shot.Kind != "" || w.players[shot.Owner] == nil || math.Hypot(shot.X+shot.Size/2-ai.X-AISize/2, shot.Y+shot.Size/2-ai.Y-AISize/2) > AIDetectionRadius {
+		if shot.MobOwned || shot.Kind != "" || w.players[shot.Owner] == nil || math.Hypot(shot.X+shot.Size/2-ai.X-AISize/2, shot.Y+shot.Size/2-ai.Y-AISize/2) > AIDetectionRadius {
 			continue
 		}
 		if !geometry.Visible(ai.X+AISize/2, ai.Y+AISize/2, shot.X+shot.Size/2, shot.Y+shot.Size/2) {

@@ -63,6 +63,11 @@ func drawVaultArrow(center rl.Vector2, shot simulation.Projectile) {
 }
 
 func drawMagicBall(center rl.Vector2, shot simulation.Projectile) {
+	tint, trailTint := rl.Violet, rl.Purple
+	if !shot.MobOwned {
+		tint = rl.NewColor(255, 128, 77, 255)
+		trailTint = rl.NewColor(204, 75, 40, 255)
+	}
 	radius := float32(shot.Size * .65)
 	age := max(0, parameters.ShotLifetime-shot.Remaining)
 	tailLength := float32(min(64, age*parameters.ShotSpeed))
@@ -74,15 +79,15 @@ func drawMagicBall(center rl.Vector2, shot simulation.Projectile) {
 		fade := (1 - fraction) * (1 - fraction)
 		point := rl.NewVector2(center.X-direction.X*tailLength*fraction, center.Y-direction.Y*tailLength*fraction)
 		width := radius * (1 - .8*fraction)
-		rl.DrawCircleGradient(point, width*1.9, rl.Fade(rl.Violet, .45*fade), rl.Fade(rl.Violet, 0))
-		rl.DrawCircleV(point, width, rl.Fade(rl.Purple, .7*fade))
+		rl.DrawCircleGradient(point, width*1.9, rl.Fade(tint, .45*fade), rl.Fade(tint, 0))
+		rl.DrawCircleV(point, width, rl.Fade(trailTint, .7*fade))
 		rl.DrawCircleV(point, width*.5, rl.Fade(rl.RayWhite, .65*fade))
 	}
-	rl.DrawCircleGradient(center, radius*2.9*pulse, rl.Fade(rl.Violet, .5), rl.Fade(rl.Violet, 0))
-	rl.DrawCircleGradient(center, radius*1.8*pulse, rl.Fade(rl.Violet, .85), rl.Fade(rl.Purple, 0))
+	rl.DrawCircleGradient(center, radius*2.9*pulse, rl.Fade(tint, .5), rl.Fade(tint, 0))
+	rl.DrawCircleGradient(center, radius*1.8*pulse, rl.Fade(tint, .85), rl.Fade(trailTint, 0))
 	rl.EndBlendMode()
-	rl.DrawCircleV(center, radius, rl.Violet)
-	rl.DrawCircleGradient(center, radius, rl.RayWhite, rl.Violet)
+	rl.DrawCircleV(center, radius, tint)
+	rl.DrawCircleGradient(center, radius, rl.RayWhite, tint)
 	rl.DrawCircleV(center, radius*.48, rl.RayWhite)
 }
 

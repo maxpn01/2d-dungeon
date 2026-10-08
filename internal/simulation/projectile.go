@@ -11,7 +11,7 @@ import (
 )
 
 type Projectile struct {
-	mobOwned         bool
+	MobOwned         bool   `json:"mob_owned,omitempty"`
 	Kind             string `json:"kind,omitempty"`
 	originX, originY float64
 	ID               string    `json:"id"`
@@ -57,7 +57,7 @@ func (w *World) fire(p *Player, input Direction) {
 	size := p.Stats.ShotSize()
 	w.nextProjectile++
 	w.projectiles = append(w.projectiles, Projectile{
-		ID: fmt.Sprintf("shot-%d", w.nextProjectile), Owner: p.ID, originX: p.X, originY: p.Y, mobOwned: p.Stats.Mob,
+		ID: fmt.Sprintf("shot-%d", w.nextProjectile), Owner: p.ID, originX: p.X, originY: p.Y, MobOwned: p.Stats.Mob,
 		X: p.X + (PlayerSize-size)/2, Y: p.Y + (PlayerSize-size)/2,
 		Direction: direction, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage, Size: size,
 	})
@@ -108,7 +108,7 @@ func (w *World) advanceProjectiles(actors []eater) {
 			shot.X, shot.Y = end.x, end.y
 			if winner >= 0 {
 				target := actors[winner]
-				if shot.mobOwned && target.ai != nil {
+				if shot.MobOwned && target.ai != nil {
 					alive = false
 					break
 				}
