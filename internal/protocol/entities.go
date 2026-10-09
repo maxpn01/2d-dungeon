@@ -5,6 +5,7 @@ import "raylib-2d-sandbox/internal/simulation"
 type PlayerStats = simulation.Stats
 
 type Player struct {
+	VaultGateOpen     float64                      `json:"vault_gate_open"`
 	LobbyReady        bool                         `json:"lobby_ready"`
 	EntranceID        string                       `json:"entrance_id"`
 	HasWings          bool                         `json:"has_wings"`

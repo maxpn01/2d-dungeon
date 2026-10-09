@@ -16,7 +16,7 @@ func (w *World) frenzyPosition(ai *aiState, carrier *playerState) physics.Vector
 	}
 	angle := float64(slot%8) * math.Pi / 4
 	radius := 160.0 + float64(slot%3)*30
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	for _, turn := range []float64{0, .35, -.35, .7, -.7} {
 		point := physics.Vector{X: carrier.X + math.Cos(angle+turn)*radius, Y: carrier.Y + math.Sin(angle+turn)*radius}
 		if geometry.CanOccupy(physics.Square(point.X, point.Y, AISize)) && geometry.FloorAt(point.X+AISize/2, point.Y+AISize/2) == worldmap.FirstFloor && !geometry.PrivateGateCrossed(carrier.X, carrier.Y, point.X, point.Y, AISize) {

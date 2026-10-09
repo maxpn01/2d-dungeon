@@ -45,20 +45,23 @@ type PortalPoint struct {
 func (p PortalPoint) Position() physics.Vector { return p.At.World() }
 
 type Map struct {
-	dungeonLayout  string
-	secretVariants sync.Map
-	layout         Layout
-	floors         map[[2]int]int
-	flightCells    map[[2]int]bool
-	cover          map[[2]int]bool
-	passages       []CellRect
-	pools          []Pool
-	patches        []FeedingPatch
-	dens           []Den
-	gates          map[string]GateBounds
-	portals        []PortalPoint
-	statues        []StatuePoint
-	collisionWorld physics.World
+	dungeonLayout   string
+	secretVariants  sync.Map
+	vaultGateOnce   sync.Once
+	closedVaultGate *Map
+	vaultGateClosed bool
+	layout          Layout
+	floors          map[[2]int]int
+	flightCells     map[[2]int]bool
+	cover           map[[2]int]bool
+	passages        []CellRect
+	pools           []Pool
+	patches         []FeedingPatch
+	dens            []Den
+	gates           map[string]GateBounds
+	portals         []PortalPoint
+	statues         []StatuePoint
+	collisionWorld  physics.World
 }
 
 var defaultMap = mustBuild(DefaultLayout())

@@ -10,7 +10,7 @@ import (
 func (w *World) advanceHeavyStomps() {
 	for i := range w.ais {
 		ai := &w.ais[i]
-		if ai.Type != DungeonHeavy || ai.respawnTick != 0 || ai.Stats.HP <= 0 || ai.Combat.StompRemaining <= 0 {
+		if !ai.Type.IsHeavy() || ai.respawnTick != 0 || ai.Stats.HP <= 0 || ai.Combat.StompRemaining <= 0 {
 			continue
 		}
 		before := ai.Combat.StompRemaining
@@ -24,7 +24,7 @@ func (w *World) advanceHeavyStomps() {
 		}
 		size := parameters.HeavyStompWaveSize
 		x, y := ai.X+(AISize-size)/2, ai.Y+(AISize-size)/2
-		if !worldmap.Default().WithSecrets(w.openSecrets).CanOccupy(ProjectileWallBody(Projectile{Kind: "shockwave", X: x, Y: y, Size: size})) {
+		if !worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen).CanOccupy(ProjectileWallBody(Projectile{Kind: "shockwave", X: x, Y: y, Size: size})) {
 			continue
 		}
 		w.nextProjectile++

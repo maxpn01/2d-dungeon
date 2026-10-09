@@ -209,6 +209,19 @@ func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker,
 	}
 	v.bossMarker(snapshot.Boss)
 	v.statueMarkers(snapshot.Statues)
+	if m.floor == mapdata.FirstFloor {
+		gate, ok := m.world.Gate(mapdata.VaultGate)
+		center := rl.NewVector2(float32(gate.Left+gate.Right)/2, float32(gate.Y))
+		if ok && v.Exploration.Explored(explorationCell(center)) {
+			point := v.point(center)
+			tint := astralGold
+			if snapshot.Orb.GateOpen >= .95 {
+				tint = astralViolet
+			}
+			rl.DrawRectangleRec(rl.NewRectangle(point.X-7, point.Y-5, 14, 10), rl.Black)
+			rl.DrawRectangleLinesEx(rl.NewRectangle(point.X-6, point.Y-4, 12, 8), 2, tint)
+		}
+	}
 	if !snapshot.Orb.Consumed && snapshot.Orb.Carrier == "" {
 		center := rl.NewVector2(float32(snapshot.Orb.X), float32(snapshot.Orb.Y))
 		if v.Exploration.Explored(explorationCell(center)) {

@@ -13,6 +13,9 @@ func mobTint(t simulation.MobType) color.RGBA {
 	if t == simulation.Sentinel {
 		return primitives.CharacterColor(simulation.Triangle)
 	}
+	if t == simulation.GateHeavy {
+		return rl.NewColor(93, 138, 111, 255)
+	}
 	return rl.Green
 }
 
@@ -22,6 +25,8 @@ func mobName(t simulation.MobType) string {
 		return "SHOOTER"
 	case simulation.DungeonPursuer:
 		return "PURSUER"
+	case simulation.GateHeavy:
+		return "GATE WARDEN"
 	case simulation.DungeonHeavy:
 		return "HEAVY GUARD"
 	case simulation.Sentinel:
@@ -57,11 +62,20 @@ func drawMobMark(t simulation.MobType, r rl.Rectangle) {
 	case simulation.DungeonShooter, simulation.DungeonPursuer:
 		drawSymbol(stroke+border*2, outline)
 		drawSymbol(stroke, tint)
-	case simulation.DungeonHeavy:
+	case simulation.DungeonHeavy, simulation.GateHeavy:
 		rl.DrawRectangleLinesEx(r, max(float32(2), r.Width*.08), rl.DarkGreen)
 		block := rl.NewRectangle(center.X-size*.8, center.Y-size*.8, size*1.6, size*1.6)
 		rl.DrawRectangleRec(rl.NewRectangle(block.X-border, block.Y-border, block.Width+border*2, block.Height+border*2), outline)
 		rl.DrawRectangleRec(block, tint)
+		if t == simulation.GateHeavy {
+			gold := rl.NewColor(223, 186, 106, 255)
+			rl.DrawRectangleLinesEx(r, max(float32(2), r.Width*.07), gold)
+			rl.DrawPoly(center, 4, size, 0, gold)
+			rl.DrawPoly(center, 4, size*.55, 0, outline)
+			for _, offset := range []float32{-size * .8, 0, size * .8} {
+				rl.DrawPoly(rl.NewVector2(center.X+offset, r.Y+size*.35), 3, size*.26, 0, gold)
+			}
+		}
 	case simulation.SpawnGuard:
 		radius := max(float32(2), size*.35)
 		rl.DrawCircleV(center, radius+border, outline)

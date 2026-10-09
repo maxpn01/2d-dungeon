@@ -133,10 +133,26 @@ advance at `SentinelSwordAdvanceMultiplier` (default 0.8) during windup,
 adjusting aim for only the first `SentinelSwordTrackingDuration` (default
 0.18 seconds), with turning limited by `SentinelSwordTurnRate` (default 2.5
 radians per second). The final 0.12 seconds commit to the telegraphed direction,
-followed by stationary swing recovery. Defeating all four unlocks the orb,
+followed by stationary swing recovery. Each defeated sentinel lights its own
+astral seal around the pedestal. Defeating all four unlocks the orb,
 and they stay defeated for the match. Frenzy raises ordinary guards to at
 least `AIFrenzyLevel` while preserving their HP/MP percentages, then restores
 their original level when the hunt ends. Higher-level guards are not weakened.
+
+The orb vault has a fixed approach from the East Gallery, with a stone-paved corridor and sparse astral
+sigils near the gate. The lower eastern rooms have no vault signs or runners. In multiplayer,
+the northern East Gallery joins the same approach and shared gate courtyard.
+Two larger level-10 gate wardens use heavy-guard attacks, with 20% more HP and
+10% more damage than ordinary heavies at the same level. Both stay defeated
+for the match. Defeating them unlocks the grand gate; pressing E opens it
+permanently. The gate blocks movement, flight, and projectiles until open.
+The gate opens directly into the vault without an intermediate hallway.
+Three subtle pressure tiles in the approach corridor trigger fire across its width.
+The four stone sentinels, arrow trap, and orb escape remain inside.
+World rendering uses the same 400-unit sight range and line of sight as map
+exploration. Smooth grey magical fog with drifting violet wisps hides everything outside
+current sight; unopened vaults and secrets do not reveal their interiors.
+The vault is not a secret; library and wing-room placement still varies.
 
 Taking the orb starts a five-second warning before guardians enter frenzy.
 The awakening announcement lasts seven seconds, with a three-second camera
@@ -206,7 +222,8 @@ passage and down for a horizontal one. Room moves update referenced endpoints;
 if they no longer align, validation asks you to adjust the connection.
 
 Gates use a room-relative tile-boundary position and a width in tiles. The game
-currently operates one interactive gate, identified by `EntranceGate`.
+operates private entrance gates identified by `EntranceGate` and its northern
+counterpart, plus the shared, permanent `VaultGate`.
 
 Portals use a room-relative tile-boundary position and a destination portal ID.
 Moving a portal moves its drawing and teleport destination. Adding a linked

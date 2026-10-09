@@ -54,7 +54,7 @@ func (w *World) ToggleTestingWings(id string) {
 	if p == nil || !p.testing {
 		return
 	}
-	if p.HasWings && !worldmap.Default().WithSecrets(w.openSecrets).Walkable(p.X, p.Y, PlayerSize, PlayerSize) {
+	if p.HasWings && !worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen).Walkable(p.X, p.Y, PlayerSize, PlayerSize) {
 		return
 	}
 	p.HasWings = !p.HasWings
@@ -77,11 +77,31 @@ func (w *World) TestingWarp(id, roomID string) bool {
 		}
 	}
 	at := room.WorldCell(worldmap.At(room.Area.Width/2, room.Area.Height/2))
-	if roomID == worldmap.OrbVault {
-		at, _ = worldmap.Default().VaultApproach()
+	if roomID == worldmap.OrbVault || roomID == worldmap.VaultCourt {
+		if roomID == worldmap.OrbVault {
+			at, _ = worldmap.Default().VaultApproach()
+		}
 		for i := range w.ais {
 			ai := &w.ais[i]
-			if ai.den.RoomID == roomID {
+			if ai.Type != GateHeavy {
+				continue
+			}
+			if roomID == worldmap.VaultCourt {
+				oldID := ai.ID
+				*ai = w.newDenAI(ai.den)
+				ai.ID = oldID
+			} else {
+				ai.Stats.HP, ai.respawnTick = 0, w.tick+1
+			}
+		}
+		w.orb.GateActivated = roomID == worldmap.OrbVault
+		w.orb.GateOpen = 0
+		if w.orb.GateActivated {
+			w.orb.GateOpen = 1
+		}
+		for i := range w.ais {
+			ai := &w.ais[i]
+			if ai.den.RoomID == worldmap.OrbVault {
 				oldID := ai.ID
 				*ai = w.newDenAI(ai.den)
 				ai.ID = oldID
@@ -91,7 +111,7 @@ func (w *World) TestingWarp(id, roomID string) bool {
 		for _, fruit := range w.fruits {
 			vaultLoot := false
 			for _, ai := range w.ais {
-				if ai.den.RoomID == roomID && fruit.Source == ai.ID {
+				if (ai.den.RoomID == worldmap.OrbVault || ai.Type == GateHeavy) && fruit.Source == ai.ID {
 					vaultLoot = true
 					break
 				}
@@ -101,9 +121,9 @@ func (w *World) TestingWarp(id, roomID string) bool {
 			}
 		}
 		w.fruits = remaining
-		w.vaultFire = [1]VaultFire{}
+		w.vaultFire = [worldmap.VaultFireTrapCount]VaultFire{}
 		w.vaultArrowStarted = 0
-		w.vaultFireHits = [1]map[string]bool{}
+		w.vaultFireHits = [worldmap.VaultFireTrapCount]map[string]bool{}
 		w.releaseOrb(id)
 		w.orb.Unlocked = false
 		w.orb.Consumed = false
@@ -120,7 +140,7 @@ func (w *World) TestingWarp(id, roomID string) bool {
 		w.orb.FrenzyAt = w.tick + OrbFrenzyDelayTicks
 	}
 	x, y := worldmap.CellPosition(at.X, at.Y, PlayerSize)
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	if !geometry.CanOccupy(physics.Square(x, y, PlayerSize)) {
 		return false
 	}
@@ -129,6 +149,7 @@ func (w *World) TestingWarp(id, roomID string) bool {
 	p.ActiveStatue, p.TeleportCharge, p.portalCooldown = "", 0, 0
 	p.direction, p.commands = Direction{}, nil
 	p.velocityX, p.velocityY = 0, 0
+	p.VaultGateOpen = w.orb.GateOpen
 	p.OpenSecrets = w.openSecrets
 	p.Escaped, p.GatesClosed, p.InArena = false, false, false
 	w.winnerID, w.finishedTick = "", 0

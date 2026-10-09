@@ -87,4 +87,8 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 	}
 	scene.Feedback.Draw(time.Now(), &scene.Map.Exploration)
 	rl.EndMode2D()
+	scene.Map.DrawFog(ctx)
+	rl.BeginMode2D(ctx.Camera)
+	scene.Map.DrawVisibleVaultGate(scene.Orb, scene.Local)
+	rl.EndMode2D()
 }

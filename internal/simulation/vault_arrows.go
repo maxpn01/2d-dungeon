@@ -30,7 +30,7 @@ func (w *World) advanceVaultArrows(actors []eater) {
 	if age >= VaultArrowDurationTicks || age < VaultArrowIntervalTicks || age%VaultArrowIntervalTicks != 0 {
 		return
 	}
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	ports := geometry.VaultArrowPorts()
 	for _, actor := range actors {
 		if actor.player == nil || actor.cell != nil || actor.dead() || !geometry.RoomContains(worldmap.OrbVault, physics.Square(actor.end.x, actor.end.y, actor.size)) {

@@ -6,7 +6,7 @@ import (
 )
 
 func predictPlayer(player *protocol.Player, input protocol.Direction, zones []simulation.SafeZone) {
-	p := simulation.Player{EntranceID: player.EntranceID, HasWings: player.HasWings, Flight: player.Flight, NorthWingDoorOpen: player.NorthWingDoorOpen, WingDoorOpen: player.WingDoorOpen, OpenSecrets: player.OpenSecrets, HasOrb: player.HasOrb, Escaped: player.Escaped, EntranceGate: player.EntranceGate, ShotCooldown: player.ShotCooldown, EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split.Clone(), GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: player.Stats}
+	p := simulation.Player{VaultGateOpen: player.VaultGateOpen, EntranceID: player.EntranceID, HasWings: player.HasWings, Flight: player.Flight, NorthWingDoorOpen: player.NorthWingDoorOpen, WingDoorOpen: player.WingDoorOpen, OpenSecrets: player.OpenSecrets, HasOrb: player.HasOrb, Escaped: player.Escaped, EntranceGate: player.EntranceGate, ShotCooldown: player.ShotCooldown, EjectCooldown: player.EjectCooldown, Character: player.Character, Split: player.Split.Clone(), GatesClosed: player.GatesClosed, InArena: player.InArena, X: player.X, Y: player.Y, Dead: player.Dead, Combat: player.Combat, Stats: player.Stats}
 	d := input.Simulation()
 	simulation.AdvancePlayer(&p, d, simulation.StepSeconds, zones)
 	player.X, player.Y, player.Combat, player.Stats.HP = p.X, p.Y, p.Combat, p.Stats.HP

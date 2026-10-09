@@ -24,7 +24,17 @@ func (m *Map) OverlapsCover(body physics.Rect) bool {
 	return false
 }
 func (m *Map) Opaque(x, y int) bool {
+	if m.vaultGateClosed && Cells(x, y, 1, 1).Bounds().Overlaps(m.VaultGateBarrier()) {
+		return true
+	}
 	return (!m.SanctuaryCell(x, y) && m.Cell(x, y) == 0) || m.Cover(x, y)
+}
+
+func (m *Map) fogOpaque(x, y int) bool {
+	if m.vaultGateClosed && Cells(x, y, 1, 1).Bounds().Overlaps(m.VaultGateBarrier()) {
+		return true
+	}
+	return m.Cell(x, y) == 0 && !m.SanctuaryCell(x, y) && !m.Pool(x, y)
 }
 func CellPosition(x, y int, size float64) (float64, float64) {
 	return float64(x*Tile) + (Tile-size)/2, float64(y*Tile) + (Tile-size)/2

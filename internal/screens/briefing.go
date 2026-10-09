@@ -88,10 +88,10 @@ func (b *Briefing) Draw(width, height int32) Action {
 	line(490, 174, 570, 174, rl.Fade(gold, .25))
 	text("Something stirs beneath these ancient halls.", 248, 23, rl.RayWhite)
 	if b.Multiplayer {
-		text("You are not alone - and the way forward must be discovered.", 280, 23, muted)
+		text("Find the guarded orb vault within the dungeon.", 280, 23, muted)
 		text("Explore, grow stronger, and reach the next floor before your rival.", 333, 23, gold)
 	} else {
-		text("Forgotten paths beckon, but their secrets will not reveal themselves easily.", 280, 23, muted)
+		text("Find the guarded orb vault within the dungeon.", 280, 23, muted)
 		text("Explore, grow stronger, and discover the way to the next floor.", 333, 23, gold)
 	}
 	line(64, 383, 776, 383, rl.Fade(gold, .2))

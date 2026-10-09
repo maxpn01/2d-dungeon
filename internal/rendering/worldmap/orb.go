@@ -38,7 +38,7 @@ func drawOrbPedestal(orb simulation.OrbState, local protocol.Player, exploration
 			rl.DrawCircleV(pos, 2, rl.Gold)
 		}
 		rl.DrawEllipseLines(int32(orbCenter.X), int32(orbCenter.Y), 24, 10, rl.Fade(tint, .65))
-		label = fmt.Sprintf("SEALED / %d SENTINELS REMAIN", orb.GuardsRemaining)
+		label = fmt.Sprintf("SEALED / %d OF 4 SEALS LIT", 4-orb.GuardsRemaining)
 		if orb.Unlocked {
 			label = "[E] TAKE THE ORB"
 		}

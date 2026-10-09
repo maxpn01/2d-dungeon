@@ -18,6 +18,11 @@ func DrawLocation(x, y float32, width, height int32) {
 		if ok && passage.ContainsWorld(float64(x), float64(y)) {
 			name, hint = "I / ENTRANCE HALL", "The provision hall opens to the north."
 		}
+		for _, id := range []string{"vault-processional", "north-vault-processional", "vault-court-entrance", "vault-gallery-approach", "north-vault-gallery-approach"} {
+			if route, found := worldmap.Default().Passage(id); found && route.ContainsWorld(float64(x), float64(y)) {
+				name, hint = "I / THE ASTRAL APPROACH", "Explore the passage beyond the eastern gallery."
+			}
+		}
 		for _, r := range worldmap.Default().Rooms() {
 			if x >= float32(r.Area.X*40) && x < float32((r.Area.X+r.Area.Width)*40) && y >= float32(r.Area.Y*40) && y < float32((r.Area.Y+r.Area.Height)*40) {
 				name = floorLabel(r.Floor) + " / " + r.Name
@@ -39,8 +44,11 @@ func DrawLocation(x, y float32, width, height int32) {
 				if len(r.Portals) > 0 {
 					hint = "Press E inside the circle to interact."
 				}
+				if r.ID == worldmap.VaultCourt {
+					hint = "Defeat both level-10 gate wardens, then press E at the grand gate."
+				}
 				if r.ID == worldmap.OrbVault {
-					hint = "Defeat the level-5 sentinels, then press E at the pedestal."
+					hint = "Defeat the four sentinels to light their seals, then press E at the orb."
 				}
 				break
 			}

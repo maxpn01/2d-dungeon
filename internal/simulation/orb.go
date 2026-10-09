@@ -9,17 +9,22 @@ import (
 )
 
 type OrbState struct {
-	Consumed        bool    `json:"consumed,omitempty"`
-	FrenzyAt        uint64  `json:"frenzy_at,omitempty"`
-	X               float64 `json:"x"`
-	Y               float64 `json:"y"`
-	Unlocked        bool    `json:"unlocked"`
-	Carrier         string  `json:"carrier,omitempty"`
-	GuardsRemaining int     `json:"guards_remaining"`
+	Seals               [4]bool `json:"seals"`
+	GateGuardsRemaining int     `json:"gate_guards_remaining"`
+	GateUnlocked        bool    `json:"gate_unlocked"`
+	GateActivated       bool    `json:"gate_activated"`
+	GateOpen            float64 `json:"gate_open"`
+	Consumed            bool    `json:"consumed,omitempty"`
+	FrenzyAt            uint64  `json:"frenzy_at,omitempty"`
+	X                   float64 `json:"x"`
+	Y                   float64 `json:"y"`
+	Unlocked            bool    `json:"unlocked"`
+	Carrier             string  `json:"carrier,omitempty"`
+	GuardsRemaining     int     `json:"guards_remaining"`
 }
 
 func (w *World) revealSecret(x, y, dx, dy, size float64) {
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	fraction, blocked := geometry.MovementLimit(x, y, dx, dy, size, size)
 	if !blocked {
 		return
@@ -39,12 +44,25 @@ func (w *World) revealSecret(x, y, dx, dy, size float64) {
 }
 
 func (w *World) updateOrb() {
-	remaining := 0
+	remaining, gateRemaining := 0, 0
+	room, _ := worldmap.Default().Room(worldmap.OrbVault)
 	for _, ai := range w.ais {
+		if ai.Type == GateHeavy && ai.respawnTick == 0 && ai.Stats.HP > 0 {
+			gateRemaining++
+		}
+		if ai.den.RoomID == worldmap.OrbVault {
+			for i, encounter := range room.FeedingAreas {
+				if encounter.ID == ai.den.ID {
+					w.orb.Seals[i] = ai.respawnTick != 0 || ai.Stats.HP <= 0
+				}
+			}
+		}
 		if ai.den.RoomID == worldmap.OrbVault && ai.respawnTick == 0 && ai.Stats.HP > 0 {
 			remaining++
 		}
 	}
+	w.orb.GateGuardsRemaining = gateRemaining
+	w.orb.GateUnlocked = gateRemaining == 0
 	w.orb.GuardsRemaining = remaining
 	if remaining == 0 {
 		w.orb.Unlocked = true
@@ -71,7 +89,7 @@ func (w *World) interactObjective(p *playerState) bool {
 	if p.Dead || p.Flight.Flying {
 		return false
 	}
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	x, y := p.X+PlayerSize/2, p.Y+PlayerSize/2
 	if !w.orb.Consumed && math.Hypot(x-w.orb.X, y-w.orb.Y) <= 85 && geometry.Visible(x, y, w.orb.X, w.orb.Y) {
 		if w.orb.Unlocked && w.orb.Carrier == "" && !p.HasOrb {

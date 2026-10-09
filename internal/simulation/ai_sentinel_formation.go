@@ -48,7 +48,7 @@ func (w *World) sentinelFormation(ai *aiState, target *playerState) (bool, physi
 		b := physics.Square(point.X, point.Y, AISize).ClampedTo(room.Bounds().Expanded(-AISize))
 		point.X, point.Y = b.X, b.Y
 	}
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	if !geometry.CanOccupy(physics.Square(point.X, point.Y, AISize)) {
 		point = physics.Vector{X: target.X, Y: target.Y}
 	}

@@ -37,21 +37,23 @@ type feedbackEffect struct {
 }
 
 type Feedback struct {
-	observed   time.Time
-	secrets    map[string]bool
-	wallHits   map[string]int
-	walls      []wallBreak
-	spawns     map[string]time.Time
-	actors     map[string]feedbackActor
-	drops      map[string]bool
-	effects    []feedbackEffect
-	hits       map[string]time.Time
-	hurtAt     time.Time
-	manaAt     time.Time
-	lowHP      bool
-	localID    string
-	celebrated bool
-	vaultFire  [1]uint64
+	observed      time.Time
+	secrets       map[string]bool
+	wallHits      map[string]int
+	walls         []wallBreak
+	spawns        map[string]time.Time
+	actors        map[string]feedbackActor
+	drops         map[string]bool
+	effects       []feedbackEffect
+	hits          map[string]time.Time
+	hurtAt        time.Time
+	manaAt        time.Time
+	lowHP         bool
+	localID       string
+	celebrated    bool
+	vaultGateOpen float64
+	vaultSeals    [4]bool
+	vaultFire     [worldmap.VaultFireTrapCount]uint64
 }
 
 func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruits []protocol.Fruit) {
@@ -188,6 +190,18 @@ func (f *Feedback) Observe(now time.Time, snapshot protocol.Snapshot, localID st
 			}
 		}
 	}
+	if !f.observed.IsZero() {
+		local := actors[localID]
+		if snapshot.Orb.GateOpen > 0 && f.vaultGateOpen == 0 && simulation.NearVaultGate(local.x, local.y, local.size) {
+			playFeedbackSound("gate")
+		}
+		for i, lit := range snapshot.Orb.Seals {
+			if lit && !f.vaultSeals[i] && worldmap.Default().RoomContains(worldmap.OrbVault, physics.Square(local.x, local.y, local.size)) {
+				playFeedbackSound("seal")
+			}
+		}
+	}
+	f.vaultGateOpen, f.vaultSeals = snapshot.Orb.GateOpen, snapshot.Orb.Seals
 	f.observeWalls(now, snapshot, localID)
 	f.observe(now, actors, snapshot.Fruits)
 	for _, p := range snapshot.Players {

@@ -35,9 +35,9 @@ func (ai *aiState) grantPerkMilestones(milestones int) {
 
 func (w *World) averageDungeonGuardLevel() int {
 	total, count := 0, 0
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	for _, ai := range w.ais {
-		if ai.den.ID == "" || ai.den.RoomID == worldmap.OrbVault || geometry.Cell(ai.den.At.X, ai.den.At.Y) == 0 {
+		if ai.den.ID == "" || ai.den.RoomID == worldmap.OrbVault || ai.Type == GateHeavy || geometry.Cell(ai.den.At.X, ai.den.At.Y) == 0 {
 			continue
 		}
 		room, ok := geometry.Room(ai.den.RoomID)

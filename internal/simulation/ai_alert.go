@@ -19,7 +19,7 @@ func (w *World) alertAI(ai *aiState, shot Projectile) {
 }
 
 func (w *World) aiCanSeePlayer(ai *aiState, p *playerState, radius float64) bool {
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	return !p.Dead && math.Hypot(p.X-ai.X, p.Y-ai.Y) <= radius &&
 		!geometry.OverlapsCover(physics.Square(p.X, p.Y, PlayerSize)) &&
 		geometry.Visible(ai.X+AISize/2, ai.Y+AISize/2, p.X+PlayerSize/2, p.Y+PlayerSize/2) &&
@@ -29,7 +29,7 @@ func (w *World) aiCanSeePlayer(ai *aiState, p *playerState, radius float64) bool
 
 func (w *World) aiWithinTerritory(ai *aiState) bool {
 	geometry := worldmap.Default()
-	body := physics.Square(ai.X, ai.Y, AISize)
+	body := MobBody(ai.Type, ai.X, ai.Y)
 	if w.orbTarget(ai) != nil {
 		return ai.Y < 0 && geometry.FloorAt(ai.X+AISize/2, ai.Y+AISize/2) == worldmap.FirstFloor
 	}
@@ -44,7 +44,7 @@ func (w *World) aiWithinTerritory(ai *aiState) bool {
 }
 
 func (w *World) investigateAI(ai *aiState) (Direction, bool) {
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	if !ai.returning && ai.aggressorID != "" && w.tick < ai.alertUntil {
 		ai.Behavior = "investigating"
 		if math.Hypot(ai.X-ai.alertX, ai.Y-ai.alertY) > 24 {
@@ -75,7 +75,7 @@ func (ai *aiState) navigateMap(geometry *worldmap.Map, x, y float64) Direction {
 		return geometry.CanOccupy(body) && (!avoidCover || !geometry.OverlapsCover(body))
 	}, MaxStep: worldmap.Tile / 5}
 	clear := func(tx, ty float64) bool {
-		_, blocked := terrain.MovementLimit(physics.Square(ai.X, ai.Y, AISize), physics.Vector{X: tx - ai.X, Y: ty - ai.Y})
+		_, blocked := terrain.MovementLimit(MobBody(ai.Type, ai.X, ai.Y), physics.Vector{X: tx - ai.X, Y: ty - ai.Y})
 		return !blocked
 	}
 	if clear(x, y) {
@@ -91,7 +91,10 @@ func (ai *aiState) navigateMap(geometry *worldmap.Map, x, y float64) Direction {
 	if avoidCover {
 		nextStep = geometry.NextStepOutsideCover
 	}
-	nx, ny, ok := nextStep(ai.X, ai.Y, x, y, AISize)
+	body := MobBody(ai.Type, ai.X, ai.Y)
+	offset := ai.X - body.X
+	nx, ny, ok := nextStep(body.X, body.Y, x-offset, y-offset, body.W)
+	nx, ny = nx+offset, ny+offset
 	if !ok {
 		return Direction{}
 	}

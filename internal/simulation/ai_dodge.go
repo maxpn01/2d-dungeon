@@ -19,7 +19,7 @@ func (w *World) avoidPlayerShots(ai *aiState, input Direction) Direction {
 		ai.shotDodgeReactionTicks--
 		return input
 	}
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	if ai.evadeTicks > 0 {
 		ai.evadeTicks--
 		if !w.shotDodgeFits(ai, geometry, ai.evadeDirection, StepSeconds) {
@@ -40,7 +40,7 @@ func (w *World) avoidPlayerShots(ai *aiState, input Direction) Direction {
 	}
 	ai.shotDodgeCooldown = parameters.AIShotDodgeCooldownTicks
 	chance := parameters.AIShotDodgeChance
-	if ai.Type == DungeonHeavy {
+	if ai.Type.IsHeavy() {
 		chance *= parameters.HeavyDodgeChanceMultiplier
 	}
 	if rand.Float64() >= chance {
@@ -73,7 +73,9 @@ func (w *World) avoidPlayerShots(ai *aiState, input Direction) Direction {
 func (w *World) shotDodgeFits(ai *aiState, geometry *worldmap.Map, d Direction, duration float64) bool {
 	distance := ai.Stats.MovementSpeed() * SpeedScale * duration
 	x, y := ai.X+d.X*distance, ai.Y+d.Y*distance
-	mx, my := geometry.Move(ai.X, ai.Y, d.X*distance, d.Y*distance, AISize, AISize)
+	body := MobBody(ai.Type, ai.X, ai.Y)
+	motion := geometry.MoveBody(body, physics.Vector{X: d.X * distance, Y: d.Y * distance})
+	mx, my := motion.Bounds.X+ai.X-body.X, motion.Bounds.Y+ai.Y-body.Y
 	if math.Hypot(mx-x, my-y) > .1 || geometry.PrivateGateCrossed(ai.X, ai.Y, x, y, AISize) {
 		return false
 	}
@@ -109,7 +111,11 @@ func (w *World) incomingPlayerShot(ai *aiState, input Direction, geometry *world
 		end := position{shot.X + shot.Direction.X*travel, shot.Y + shot.Direction.Y*travel}
 		speed := ai.Stats.MovementSpeed() * SpeedScale
 		targetEnd := position{ai.X + input.X*speed*duration, ai.Y + input.Y*speed*duration}
-		fraction, hit := eatingContact(start, end, shot.Size, position{ai.X, ai.Y}, targetEnd, AISize)
+		body := MobBody(ai.Type, ai.X, ai.Y)
+		offset := ai.X - body.X
+		targetEnd.x -= offset
+		targetEnd.y -= offset
+		fraction, hit := eatingContact(start, end, shot.Size, position{body.X, body.Y}, targetEnd, body.W)
 		if !hit || fraction*duration >= soonest {
 			continue
 		}

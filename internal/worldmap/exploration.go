@@ -7,6 +7,7 @@ type Exploration struct {
 	radius   int
 	explored map[[2]int]bool
 	visible  map[[2]int]bool
+	walls    map[[2]int]bool
 	origin   [2]int
 }
 
@@ -35,6 +36,7 @@ func (e *Exploration) Reveal(position physics.Vector) {
 	}
 	e.origin = origin
 	e.visible = make(map[[2]int]bool)
+	e.walls = make(map[[2]int]bool)
 	for y := max(MinCellY, origin[1]-e.radius); y <= min(MaxCellY-1, origin[1]+e.radius); y++ {
 		for x := max(MinCellX, origin[0]-e.radius); x <= min(MaxCellX-1, origin[0]+e.radius); x++ {
 			dx, dy := x-origin[0], y-origin[1]
@@ -42,22 +44,39 @@ func (e *Exploration) Reveal(position physics.Vector) {
 				continue
 			}
 			cell := [2]int{x, y}
-			if e.world.CellFloor(x, y) == e.world.CellFloor(origin[0], origin[1]) && e.world.Trace(origin, cell) {
+			if traceCells(origin, cell, e.world.fogOpaque) {
 				e.visible[cell] = true
 				e.explored[cell] = true
 			}
 		}
 	}
+	for cell := range e.visible {
+		if e.world.fogOpaque(cell[0], cell[1]) {
+			continue
+		}
+		for _, offset := range steps {
+			wall := [2]int{cell[0] + offset[0], cell[1] + offset[1]}
+			if e.world.fogOpaque(wall[0], wall[1]) {
+				e.walls[wall] = true
+			}
+		}
+	}
+	for wall := range e.walls {
+		e.visible[wall] = true
+		e.explored[wall] = true
+	}
 }
+
+func (e *Exploration) WallVisible(cell [2]int) bool { return e.walls[cell] }
 
 func (e *Exploration) Explored(cell [2]int) bool {
 	return e.explored[cell] && e.world.CellFloor(cell[0], cell[1]) == e.world.CellFloor(e.origin[0], e.origin[1])
 }
 func (e *Exploration) Visible(cell [2]int) bool {
-	return e.visible[cell] && e.world.CellFloor(cell[0], cell[1]) == e.world.CellFloor(e.origin[0], e.origin[1])
+	return e.visible[cell]
 }
 func (e *Exploration) ActorVisible(body physics.Rect) bool {
 	center := body.Center()
 	cell := WorldCell(center.X, center.Y)
-	return e.Visible(cell) && e.world.Sight(e.origin, cell)
+	return e.Visible(cell) && !e.world.fogOpaque(cell[0], cell[1]) && traceCells(e.origin, cell, e.world.fogOpaque)
 }

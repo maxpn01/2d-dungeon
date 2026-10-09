@@ -17,7 +17,7 @@ type FlightState struct {
 }
 
 func advanceWingPlayer(p *Player, input Direction, dt float64) {
-	geometry := worldmap.Default().WithSecrets(p.OpenSecrets)
+	geometry := worldmap.Default().WithSecrets(p.OpenSecrets).WithVaultGate(p.VaultGateOpen)
 	grounded := geometry.Walkable(p.X, p.Y, PlayerSize, PlayerSize)
 	f := &p.Flight
 	if grounded {

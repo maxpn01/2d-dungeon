@@ -406,7 +406,7 @@ func validateObjective(snapshot Snapshot) error {
 	if snapshot.VaultArrowStarted > snapshot.Tick {
 		return errors.New("server sent invalid vault arrow timing")
 	}
-	if len(snapshot.VaultFire) != 1 {
+	if len(snapshot.VaultFire) != worldmap.VaultFireTrapCount {
 		return errors.New("server sent invalid vault traps")
 	}
 	for _, fire := range snapshot.VaultFire {
@@ -449,8 +449,23 @@ func validateObjective(snapshot Snapshot) error {
 	if orb.X != position.X || orb.Y != position.Y || orb.GuardsRemaining < 0 || orb.GuardsRemaining > 4 || orb.Unlocked != (orb.GuardsRemaining == 0) || orb.Consumed && (!orb.Unlocked || orb.Carrier != "") {
 		return errors.New("server sent invalid orb state")
 	}
+	if math.IsNaN(orb.GateOpen) || math.IsInf(orb.GateOpen, 0) || orb.GateOpen < 0 || orb.GateOpen > 1 || orb.GateGuardsRemaining < 0 || orb.GateGuardsRemaining > 2 || orb.GateUnlocked != (orb.GateGuardsRemaining == 0) || orb.GateActivated && !orb.GateUnlocked || !orb.GateActivated && orb.GateOpen != 0 {
+		return errors.New("server sent invalid vault gate state")
+	}
+	litSeals := 0
+	for _, lit := range orb.Seals {
+		if lit {
+			litSeals++
+		}
+	}
+	if litSeals != 4-orb.GuardsRemaining {
+		return errors.New("server sent inconsistent vault seals")
+	}
 	carrierFound := orb.Carrier == ""
 	for _, player := range snapshot.Players {
+		if player.VaultGateOpen != orb.GateOpen {
+			return errors.New("server sent inconsistent vault gate animation")
+		}
 		if player.WingDoorOpen != snapshot.WingDoorOpen || player.NorthWingDoorOpen != snapshot.NorthWingDoorOpen {
 			return errors.New("server sent inconsistent secret door animation")
 		}
@@ -486,7 +501,7 @@ func validateFlight(p Player) error {
 		return errors.New("server sent invalid flight state")
 	}
 	if f.Flying {
-		geometry := worldmap.Default().WithSecrets(p.OpenSecrets)
+		geometry := worldmap.Default().WithSecrets(p.OpenSecrets).WithVaultGate(p.VaultGateOpen)
 		if !geometry.CanFly(physics.Square(p.X, p.Y, simulation.PlayerSize)) || !geometry.Walkable(f.LandingX, f.LandingY, simulation.PlayerSize, simulation.PlayerSize) {
 			return errors.New("server sent flight outside the map")
 		}

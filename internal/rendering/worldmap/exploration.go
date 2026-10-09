@@ -8,20 +8,41 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-const entityDetectionRadius = parameters.EntityDetectionRadius
-
 type Exploration struct {
-	world *mapdata.Map
-	state *mapdata.Exploration
-	focus rl.Vector2
+	world       *mapdata.Map
+	state       *mapdata.Exploration
+	focus       rl.Vector2
+	hiddenAreas []physics.Rect
+	fogLight    map[[2]int]float64
+	fogFocus    rl.Vector2
 }
 
 func explorationCell(p rl.Vector2) [2]int {
 	return mapdata.WorldCell(float64(p.X), float64(p.Y))
 }
 
-func (e *Exploration) SetSecrets(open []string) {
-	e.world = mapdata.Default().WithSecrets(open)
+func (e *Exploration) SetSecrets(open []string, gateOpen ...float64) {
+	openGate := 0.0
+	if len(gateOpen) > 0 {
+		openGate = gateOpen[0]
+	}
+	world := mapdata.Default().WithSecrets(open).WithVaultGate(openGate)
+	if e.world != world {
+		e.hiddenAreas = nil
+		for _, door := range world.SecretDoors() {
+			if world.Cell(door.Area.X, door.Area.Y) == 0 {
+				if room, ok := world.Room(door.RoomID); ok {
+					e.hiddenAreas = append(e.hiddenAreas, room.Bounds())
+				}
+			}
+		}
+		if openGate < .95 {
+			if room, ok := world.Room(mapdata.OrbVault); ok {
+				e.hiddenAreas = append(e.hiddenAreas, room.Bounds())
+			}
+		}
+	}
+	e.world = world
 	if e.state != nil {
 		e.state.SetWorld(e.world)
 	}
@@ -51,8 +72,7 @@ func (e *Exploration) Visible(cell [2]int) bool {
 }
 
 func (e *Exploration) EntityVisible(x, y, size float64) bool {
-	center := physics.Square(x, y, size).Center()
-	return e.world != nil && e.world.FloorAt(center.X, center.Y) == e.world.FloorAt(float64(e.focus.X), float64(e.focus.Y)) && !e.world.SecretHidden(center.X, center.Y) && center.DistanceSquared(physics.Vector{X: float64(e.focus.X), Y: float64(e.focus.Y)}) <= entityDetectionRadius*entityDetectionRadius
+	return e.ActorVisible(x, y, size)
 }
 
 func (e *Exploration) PlayerVisible(x, y, size float64) bool {

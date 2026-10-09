@@ -130,7 +130,7 @@ func (m *Motion) Advance(target protocol.Player, dt float64) {
 		m.local.Split = target.Split.Clone()
 		return
 	}
-	geometry := worldmap.Default().WithSecrets(target.OpenSecrets)
+	geometry := worldmap.Default().WithSecrets(target.OpenSecrets).WithVaultGate(target.VaultGateOpen)
 	x, y := geometry.Move(m.local.X, m.local.Y, dx/distance*speed*dt, dy/distance*speed*dt, simulation.PlayerSize, simulation.PlayerSize)
 	if target.Flight.Flying || m.local.Flight.Flying {
 		x, y = geometry.MoveFlying(m.local.X, m.local.Y, dx/distance*speed*dt, dy/distance*speed*dt, simulation.PlayerSize)
@@ -167,7 +167,7 @@ func (m *Motion) Players(now time.Time) []protocol.Player {
 				oldX, oldY := player.X, player.Y
 				oldSplit := player.Split
 				if player.Flight.Flying || next.Flight.Flying {
-					player.X, player.Y = worldmap.Default().WithSecrets(next.OpenSecrets).MoveFlying(player.X, player.Y, (next.X-player.X)*alpha, (next.Y-player.Y)*alpha, simulation.PlayerSize)
+					player.X, player.Y = worldmap.Default().WithSecrets(next.OpenSecrets).WithVaultGate(next.VaultGateOpen).MoveFlying(player.X, player.Y, (next.X-player.X)*alpha, (next.Y-player.Y)*alpha, simulation.PlayerSize)
 				} else {
 					player.X, player.Y = interpolatePosition(player.X, player.Y, next.X, next.Y, alpha)
 				}

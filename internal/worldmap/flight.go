@@ -7,6 +7,12 @@ import (
 )
 
 func (m *Map) CanFly(body physics.Rect) bool {
+	if m.vaultGateClosed {
+		room, ok := m.Room(OrbVault)
+		if body.Overlaps(m.VaultGateBarrier()) || ok && body.Overlaps(room.Bounds().Expanded(Tile)) {
+			return false
+		}
+	}
 	if !body.Valid() || body.X < MinCellX*Tile || body.X+body.W > MaxCellX*Tile || body.Y < North || body.Y+body.H > MaxCellY*Tile {
 		return false
 	}

@@ -30,17 +30,3 @@ func drawPossession(ai Actor) {
 		}
 	}
 }
-
-func drawPossessedEyes(bounds rl.Rectangle) {
-	tint := rl.NewColor(196, 92, 255, 255)
-	width, height := max(4, bounds.Width*.22), max(2, bounds.Height*.1)
-	y := bounds.Y + bounds.Height*.36
-	for _, offset := range []float32{.25, .75} {
-		x := bounds.X + bounds.Width*offset
-		center := rl.NewVector2(x, y)
-		rl.DrawRectangleRec(rl.NewRectangle(x-width/2-1, y-height/2-1, width+2, height+2), rl.NewColor(35, 15, 46, 255))
-		rl.DrawCircleGradient(center, width*1.2, rl.Fade(tint, .5), rl.Blank)
-		rl.DrawRectangleRec(rl.NewRectangle(x-width/2, y-height/2, width, height), tint)
-		rl.DrawRectangleRec(rl.NewRectangle(x-width*.32, y-height/2, width*.64, max(1, height*.35)), rl.NewColor(237, 190, 255, 255))
-	}
-}

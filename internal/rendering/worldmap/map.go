@@ -45,6 +45,8 @@ func NewMap() *Map {
 }
 
 func (m *Map) Draw(ctx primitives.Context, snapshot protocol.Snapshot, local protocol.Player) {
+	m.Exploration.SetSecrets(snapshot.OpenSecrets, snapshot.Orb.GateOpen)
+	m.Exploration.Reveal(rl.NewVector2(float32(local.X+local.Size/2), float32(local.Y+local.Size/2)))
 	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
 	m.wallHits = snapshot.SecretWallHits
 	m.safeZones, m.gate = snapshot.SafeZones, local.EntranceGate
@@ -63,6 +65,9 @@ func (m *Map) Draw(ctx primitives.Context, snapshot protocol.Snapshot, local pro
 		m.drawSanctuaryAltar(ctx)
 	}
 	m.drawDungeon(ctx)
+	m.drawAstralRoute()
+	m.drawVaultGate(snapshot.Orb, local)
+	m.drawVaultSeals(snapshot.Orb)
 	m.drawVaultTraps(snapshot)
 	m.drawWingDoor(snapshot)
 	drawOrbPedestal(snapshot.Orb, local, &m.Exploration)

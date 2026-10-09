@@ -138,7 +138,7 @@ func (w *World) updateAIs() {
 		if ai.respawnTick != 0 {
 			continue
 		}
-		if worldmap.Default().WithSecrets(w.openSecrets).Cell(ai.den.At.X, ai.den.At.Y) == 0 && ai.den.ID != "" {
+		if worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen).Cell(ai.den.At.X, ai.den.At.Y) == 0 && ai.den.ID != "" {
 			continue
 		}
 		if ai.Stone {
@@ -150,7 +150,7 @@ func (w *World) updateAIs() {
 			continue
 		}
 		ai.mobChargeCooldown = max(0, ai.mobChargeCooldown-1)
-		if ai.Type == DungeonPursuer || ai.Type == DungeonHeavy {
+		if ai.Type == DungeonPursuer || ai.Type.IsHeavy() {
 			ai.attackCooldown = max(0, ai.attackCooldown-1)
 		}
 		ai.setFrenzy(w.orbTarget(ai) != nil)
@@ -163,7 +163,7 @@ func (w *World) updateAIs() {
 			input = w.steerShooter(ai, input)
 		}
 		oldX, oldY := ai.X, ai.Y
-		actor := Player{OpenSecrets: w.openSecrets, ID: ai.ID, ShotCooldown: ai.shotCooldown, X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character, Split: ai.Split}
+		actor := Player{VaultGateOpen: w.orb.GateOpen, OpenSecrets: w.openSecrets, ID: ai.ID, ShotCooldown: ai.shotCooldown, X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character, Split: ai.Split}
 		actor.GatesClosed = w.boss.Phase == "fighting"
 		AdvancePlayer(&actor, input, StepSeconds, w.safeZones)
 		w.fire(&actor, input)
@@ -188,7 +188,7 @@ func (w *World) aiIntent(ai *aiState) Direction {
 		return w.meleeGuardInput(ai, nil)
 	}
 	if carrier := w.orbTarget(ai); carrier != nil {
-		if ai.Type == DungeonPursuer || ai.Type == DungeonHeavy {
+		if ai.Type == DungeonPursuer || ai.Type.IsHeavy() {
 			return w.meleeGuardInput(ai, carrier)
 		}
 		d := w.huntOrb(ai, carrier)
@@ -207,7 +207,7 @@ func (w *World) aiIntent(ai *aiState) Direction {
 		}
 	}
 	if target := w.rangedTarget(ai); target != nil {
-		if ai.Type == DungeonPursuer || ai.Type == DungeonHeavy {
+		if ai.Type == DungeonPursuer || ai.Type.IsHeavy() {
 			return w.meleeGuardInput(ai, target)
 		}
 		if ai.Type == DungeonShooter {
@@ -220,7 +220,7 @@ func (w *World) aiIntent(ai *aiState) Direction {
 		ai.Behavior = "attacking"
 		if ai.den.ID == "" && length > parameters.AIFiringDistance {
 			ai.Behavior = "pursuing"
-			movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets), target.X, target.Y)
+			movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), target.X, target.Y)
 			d.X, d.Y = movement.X, movement.Y
 		} else if ai.aggressorID != "" && w.tick < ai.alertUntil {
 			movement, _ := w.investigateAI(ai)
@@ -231,7 +231,7 @@ func (w *World) aiIntent(ai *aiState) Direction {
 	if ai.Type == DungeonShooter && w.tick < ai.shooterSightUntil {
 		input := ai.shooterLastInput
 		input.Shoot = false
-		if !w.shotDodgeFits(ai, worldmap.Default().WithSecrets(w.openSecrets), input, StepSeconds) {
+		if !w.shotDodgeFits(ai, worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), input, StepSeconds) {
 			input.X, input.Y = 0, 0
 		}
 		ai.Behavior = "repositioning"
@@ -241,7 +241,7 @@ func (w *World) aiIntent(ai *aiState) Direction {
 		return d
 	}
 	if ai.den.ID != "" {
-		return ai.patrolInput(worldmap.Default().WithSecrets(w.openSecrets))
+		return ai.patrolInput(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen))
 	}
 	if ai.settleTicks > 0 {
 		ai.settleTicks--
@@ -308,7 +308,7 @@ func (ai *aiState) choosePatrolTarget(geometry *worldmap.Map) {
 	for range 24 {
 		x := left + rand.Float64()*(right-left)
 		y := top + rand.Float64()*(bottom-top)
-		body := physics.Square(x, y, AISize)
+		body := MobBody(ai.Type, x, y)
 		if math.Hypot(x-ai.X, y-ai.Y) < minimumDistance || !geometry.RoomContains(ai.den.RoomID, body) || !geometry.CanOccupy(body) || ai.Type == DungeonShooter && geometry.OverlapsCover(body) {
 			continue
 		}
@@ -323,7 +323,7 @@ func (ai *aiState) choosePatrolTarget(geometry *worldmap.Map) {
 func (w *World) respawnEntranceGuards() {
 	for i := range w.ais {
 		ai := &w.ais[i]
-		if ai.den.RoomID == worldmap.OrbVault || ai.den.ID == "" || ai.respawnTick == 0 || w.tick < ai.respawnTick {
+		if ai.den.RoomID == worldmap.OrbVault || ai.Type == GateHeavy || ai.den.ID == "" || ai.respawnTick == 0 || w.tick < ai.respawnTick {
 			continue
 		}
 		x, y := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, AISize)

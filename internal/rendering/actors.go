@@ -47,8 +47,12 @@ func DrawAIActor(ai Actor, exploration Visibility, feedback *Feedback) {
 	if ai.Dead {
 		return
 	}
-	if ai.Type == simulation.DungeonHeavy {
-		size := ai.Size * parameters.HeavySizeMultiplier
+	if ai.Type.IsHeavy() {
+		multiplier := parameters.HeavySizeMultiplier
+		if ai.Type == simulation.GateHeavy {
+			multiplier = parameters.GateHeavySizeMultiplier
+		}
+		size := ai.Size * multiplier
 		ai.X -= (size - ai.Size) / 2
 		ai.Y -= (size - ai.Size) / 2
 		ai.Size = size
@@ -64,7 +68,7 @@ func DrawAIActor(ai Actor, exploration Visibility, feedback *Feedback) {
 		}
 		bounds := DrawActor(ai.X, ai.Y, ai.Size, ai.HP, ai.Combat, ai.Tint, ai.Character)
 		drawMobMark(ai.Type, bounds)
-		if ai.Type == simulation.DungeonPursuer || ai.Type == simulation.DungeonHeavy {
+		if ai.Type == simulation.DungeonPursuer || ai.Type.IsHeavy() {
 			drawMobWeapon(rl.NewVector2(bounds.X+bounds.Width/2, bounds.Y+bounds.Height/2), bounds.Width, ai.Combat, ai.Type)
 		}
 		feedback.DrawHit(ai.ID, bounds, ai.Character)
@@ -72,9 +76,6 @@ func DrawAIActor(ai Actor, exploration Visibility, feedback *Feedback) {
 			center := rl.NewVector2(bounds.X+bounds.Width/2, bounds.Y+bounds.Height/2)
 			radius := max(bounds.Width, bounds.Height)*.75 + 4
 			rl.DrawRing(center, radius, radius+2, 0, 360, 32, rl.Orange)
-		}
-		if ai.Frenzied {
-			drawPossessedEyes(bounds)
 		}
 		primitives.DrawTextAt(ai.Label, rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
 	}

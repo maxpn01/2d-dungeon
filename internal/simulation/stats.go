@@ -53,8 +53,11 @@ func NewMobStatsAtLevel(level int) Stats {
 
 func (s Stats) MaxHP() float64 {
 	hp := MaxHPForLevel(s.Level) + PerkBonus(HealthPerk, s.Perks[HealthPerk])
-	if s.Mob && s.MobType == DungeonHeavy {
+	if s.Mob && s.MobType.IsHeavy() {
 		hp *= parameters.HeavyHealthMultiplier
+	}
+	if s.Mob && s.MobType == GateHeavy {
+		hp *= parameters.GateHeavyHealthMultiplier
 	}
 	return hp
 }

@@ -139,7 +139,7 @@ func (m *Multiplayer) ReadInput(dt float32, mapOpen bool, camera rl.Camera2D) {
 	if m.view.Ready && !m.view.Local.Dead && m.errorText == "" {
 		for _, player := range m.rendered {
 			if player.ID == m.view.PlayerID {
-				m.gameMap.Exploration.SetSecrets(m.view.OpenSecrets)
+				m.gameMap.Exploration.SetSecrets(m.view.OpenSecrets, m.view.Orb.GateOpen)
 				m.gameMap.Exploration.Reveal(rl.NewVector2(float32(player.X+player.Size/2), float32(player.Y+player.Size/2)))
 				break
 			}

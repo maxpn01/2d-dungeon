@@ -22,6 +22,8 @@ const (
 	EastGallery     = "east-gallery"
 	SecretLibrary   = "secret-library"
 	OrbVault        = "orb-vault"
+	VaultCourt      = "vault-court"
+	VaultGate       = "vault-gate"
 	WingChamber     = "wing-chamber"
 	WingDoor        = "wing-door"
 	WingStatue      = "wing-statue"
@@ -42,13 +44,13 @@ func DefaultLayout() Layout {
 			sideRoom(EastArmory, "THE BROKEN ARMORY", Cells(48, -112, 20, 20), "armory-inscription"),
 			sideRoom(EastGallery, "THE EAST GALLERY", Cells(48, -140, 20, 20), ""),
 			{ID: SecretLibrary, Name: "THE FORGOTTEN LIBRARY", Area: Cells(-47, -103, 14, 17), Floor: FirstFloor, Statues: []Statue{{ID: "secret-inscription", At: At(6, 6)}}, FeedingAreas: []FeedingArea{{ID: "library-rest", At: At(6, 12), Radius: 2, Food: FoodSource{Capacity: 12, Respawn: 30 * time.Second}}}},
+			vaultCourt(),
 			orbVault(),
 			{ID: WingChamber, Name: "THE SEALED AERIE", Area: Cells(-15, SurfaceCells-9, 14, 8), Floor: FirstFloor, Statues: []Statue{{ID: WingStatue, At: At(2, 3)}}},
 		},
 		SecretDoors: []SecretDoor{
 			{ID: WingDoor, RoomID: WingChamber, Area: Cells(-1, SurfaceCells-6, 1, 2), Interactable: true},
 			{ID: "library-wall", RoomID: SecretLibrary, Area: Cells(-33, -89, 1, 2)},
-			{ID: "vault-wall", RoomID: OrbVault, Area: Cells(68, -132, 1, 3)},
 		},
 		Passages: []Passage{
 			{ID: "aerie-entrance", From: Location{At: At(-1, SurfaceCells-6)}, To: Location{At: At(-1, SurfaceCells-5)}, Width: 1},
@@ -59,7 +61,10 @@ func DefaultLayout() Layout {
 			{ID: "east-loop", From: Location{At: At(56, -120)}, To: Location{At: At(56, -112)}, Width: 4},
 			{ID: "east-crown", From: Location{At: At(30, -128)}, To: Location{At: At(48, -128)}, Width: 4},
 			{ID: "library-secret", From: Location{At: At(-33, -89)}, To: Location{At: At(-32, -89)}, Width: 2},
-			{ID: "vault-secret", From: Location{At: At(68, -132)}, To: Location{At: At(69, -132)}, Width: 3},
+			{ID: "vault-gallery-approach", From: Location{At: At(68, -128)}, To: Location{At: At(78, -128)}, Width: 5},
+			{ID: "vault-processional", From: Location{At: At(74, -164)}, To: Location{At: At(74, -128)}, Width: 5},
+			{ID: "vault-court-entrance", From: Location{At: At(74, -164)}, To: Location{At: At(80, -164)}, Width: 5},
+			{ID: "vault-entrance", From: Location{At: At(90, -178)}, To: Location{At: At(90, -177)}, Width: 7},
 			{
 				ID:    "surface-entrance",
 				From:  Location{Room: ProvisionCourt, At: At(13, 32)},
@@ -225,9 +230,20 @@ func sideRoom(id, name string, area CellRect, statue string) Room {
 	return r
 }
 
+func vaultCourt() Room {
+	r := Room{ID: VaultCourt, Name: "THE ASTRAL GATE", Area: Cells(80, -177, 27, 34), Floor: FirstFloor, Gates: []Gate{{ID: VaultGate, At: At(10, 0), Width: 7}}}
+	for i, at := range []Cell{At(7, 7), At(19, 7)} {
+		encounter := dungeonEncounter([]string{"vault-gate-west", "vault-gate-east"}[i], at, 2, 0)
+		encounter.Guard.Type = GateHeavy
+		encounter.Guard.Level = 10
+		r.FeedingAreas = append(r.FeedingAreas, encounter)
+	}
+	return r
+}
+
 func orbVault() Room {
-	r := Room{ID: OrbVault, Name: "THE ASTRAL ORB VAULT", Area: Cells(69, -150, 27, 38), Floor: FirstFloor}
-	for i, cell := range vaultSentinels(r, At(r.Area.X, r.Area.Y+r.Area.Height/2)) {
+	r := Room{ID: OrbVault, Name: "THE ASTRAL ORB VAULT", Area: Cells(80, -216, 27, 38), Floor: FirstFloor}
+	for i, cell := range vaultSentinels(r, At(r.Area.X+r.Area.Width/2, r.Area.Bottom()-3)) {
 		at := At(cell.X-r.Area.X, cell.Y-r.Area.Y)
 		encounter := dungeonEncounter([]string{"vault-sentinel-west-north", "vault-sentinel-west-south", "vault-sentinel-east-north", "vault-sentinel-east-south"}[i], at, 2, 0)
 		encounter.Guard.Type = Sentinel

@@ -70,34 +70,13 @@ func (m *Map) drawVaultBorder(room mapdata.Room, rune rl.Color) {
 	line := func(x, y, ex, ey float32) {
 		rl.DrawLineEx(rl.NewVector2(x, y), rl.NewVector2(ex, ey), 2, rl.Fade(rune, .4))
 	}
-	for _, door := range m.world.SecretDoors() {
-		if door.RoomID != room.ID {
-			continue
-		}
-		d := door.Area.Bounds()
-		if door.Area.Width > 1 {
-			y := top
-			other := bottom
-			if d.Y >= b.Y+b.H {
-				y, other = bottom, top
-			}
-			line(left, other, right, other)
-			line(left, top, left, bottom)
-			line(right, top, right, bottom)
-			line(left, y, float32(d.X)-8, y)
-			line(float32(d.X+d.W)+8, y, right, y)
-		} else {
-			x, other := left, right
-			if d.X >= b.X+b.W {
-				x, other = right, left
-			}
-			line(other, top, other, bottom)
-			line(left, top, right, top)
-			line(left, bottom, right, bottom)
-			line(x, top, x, float32(d.Y)-8)
-			line(x, float32(d.Y+d.H)+8, x, bottom)
-		}
-		rl.DrawRectangleRec(rl.NewRectangle(float32(d.X), float32(d.Y), float32(d.W), float32(d.H)), rl.NewColor(39, 43, 60, 255))
+	gate, ok := m.world.Gate(mapdata.VaultGate)
+	if !ok {
 		return
 	}
+	line(left, top, right, top)
+	line(left, top, left, bottom)
+	line(right, top, right, bottom)
+	line(left, bottom, float32(gate.Left)-8, bottom)
+	line(float32(gate.Right)+8, bottom, right, bottom)
 }

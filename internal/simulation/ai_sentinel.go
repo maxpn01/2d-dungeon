@@ -61,7 +61,7 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 		if d, investigating := w.investigateAI(ai); investigating {
 			return d
 		}
-		return ai.patrolInput(worldmap.Default().WithSecrets(w.openSecrets))
+		return ai.patrolInput(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen))
 	}
 	ai.alertX, ai.alertY = target.X, target.Y
 	ai.aggressorID, ai.alertUntil = target.ID, w.tick+3*TickRate
@@ -69,7 +69,7 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 	distance := math.Hypot(dx, dy)
 	d := Direction{AimX: dx / max(1, distance), AimY: dy / max(1, distance)}
 	attacking, flank := w.sentinelFormation(ai, target)
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	if attacking && ai.Combat.Phase == DashIdle && ai.attackCooldown == 0 && distance <= SentinelSwordReach+PlayerSize/2+16 {
 		intercept := sentinelIntercept(target, SentinelSwordWindup)
 		sx, sy := intercept.X-ai.X, intercept.Y-ai.Y
@@ -175,7 +175,7 @@ func (w *World) advanceMobMelee(actors []eater) {
 }
 
 func (w *World) sentinelDashContact(ai *aiState, start position, target eater) bool {
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	facing := ai.Combat.Direction
 	const bladeWidth = 16.0
 	root := float64(AISize)/2 + 7

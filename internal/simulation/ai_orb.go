@@ -40,7 +40,7 @@ func (w *World) huntOrb(ai *aiState, carrier *playerState) Direction {
 		d.AimX, d.AimY, d.Shoot = sx/max(1, length), sy/max(1, length), true
 	}
 	ai.Behavior = "hunting orb"
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	targetX, targetY := carrier.X, carrier.Y
 	if carrier.Flight.Flying && !geometry.CanOccupy(physics.Square(targetX, targetY, AISize)) {
 		targetX, targetY = carrier.Flight.LandingX, carrier.Flight.LandingY

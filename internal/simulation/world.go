@@ -45,6 +45,7 @@ type Player struct {
 	HasWings          bool
 	Flight            FlightState
 	WingDoorOpen      float64
+	VaultGateOpen     float64
 	NorthWingDoorOpen float64
 	OpenSecrets       []string
 	HasOrb            bool
@@ -88,8 +89,8 @@ type playerState struct {
 
 type World struct {
 	vaultArrowStarted uint64
-	vaultFire         [1]VaultFire
-	vaultFireHits     [1]map[string]bool
+	vaultFire         [worldmap.VaultFireTrapCount]VaultFire
+	vaultFireHits     [worldmap.VaultFireTrapCount]map[string]bool
 	dungeonLayout     string
 	wingDoorOpen      float64
 	northWingDoorOpen float64
@@ -232,6 +233,9 @@ func moveByMotion(x, y float64, d Direction, distance float64) physics.Motion {
 func (w *World) Step(now time.Time) {
 	w.tick++
 	w.advanceWingDoor()
+	if w.orb.GateActivated {
+		w.orb.GateOpen = min(1, w.orb.GateOpen+StepSeconds*.65)
+	}
 	for id, until := range w.protectedUntil {
 		if w.tick >= until {
 			delete(w.protectedUntil, id)
@@ -273,10 +277,11 @@ func (w *World) Step(now time.Time) {
 				player.InputSeq = next.sequence
 			}
 		}
+		player.VaultGateOpen = w.orb.GateOpen
 		player.OpenSecrets = w.openSecrets
 		player.WingDoorOpen = w.wingDoorOpen
 		player.NorthWingDoorOpen = w.northWingDoorOpen
-		if direction.Interact && (w.interactSecret(player) || w.interactObjective(player) || w.interactStatue(player)) {
+		if direction.Interact && (w.interactVaultGate(player) || w.interactSecret(player) || w.interactObjective(player) || w.interactStatue(player)) {
 			direction.Interact = false
 		}
 		AdvancePlayer(&player.Player, direction, StepSeconds, w.safeZones)
@@ -314,7 +319,8 @@ func (w *World) Step(now time.Time) {
 		} else if e.player != nil {
 			e.end = position{e.player.X, e.player.Y}
 		} else {
-			e.end = position{e.ai.X, e.ai.Y}
+			body := MobBody(e.ai.Type, e.ai.X, e.ai.Y)
+			e.end = position{body.X, body.Y}
 		}
 	}
 	w.consumeFruits(eaters)
@@ -365,6 +371,7 @@ func (w *World) Snapshot() Snapshot {
 	players := make([]Player, 0, len(w.players))
 	for _, player := range w.players {
 		state := player.Player
+		state.VaultGateOpen = w.orb.GateOpen
 		state.WingDoorOpen = w.wingDoorOpen
 		state.NorthWingDoorOpen = w.northWingDoorOpen
 		state.OpenSecrets = append([]string(nil), w.openSecrets...)

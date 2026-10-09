@@ -39,7 +39,7 @@ func SnapshotFromSimulation(state simulation.Snapshot, names map[string]string) 
 	}
 	for _, p := range state.Players {
 		snapshot.Players = append(snapshot.Players, Player{
-			EntranceID: p.EntranceID, HasWings: p.HasWings, Flight: p.Flight, NorthWingDoorOpen: p.NorthWingDoorOpen, WingDoorOpen: p.WingDoorOpen, OpenSecrets: p.OpenSecrets, HasOrb: p.HasOrb, Escaped: p.Escaped, ActiveStatue: p.ActiveStatue, EntranceGate: p.EntranceGate,
+			VaultGateOpen: p.VaultGateOpen, EntranceID: p.EntranceID, HasWings: p.HasWings, Flight: p.Flight, NorthWingDoorOpen: p.NorthWingDoorOpen, WingDoorOpen: p.WingDoorOpen, OpenSecrets: p.OpenSecrets, HasOrb: p.HasOrb, Escaped: p.Escaped, ActiveStatue: p.ActiveStatue, EntranceGate: p.EntranceGate,
 			ShotCooldown: p.ShotCooldown, EjectCooldown: p.EjectCooldown,
 			Character: p.Character, Split: p.Split, GatesClosed: p.GatesClosed,
 			InArena: p.InArena, TeleportCharge: p.TeleportCharge, Combat: p.Combat,

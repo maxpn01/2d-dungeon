@@ -1,6 +1,9 @@
 package worldmap
 
-import "slices"
+import (
+	"slices"
+	"strings"
+)
 
 const MirrorAxis = -160
 const NorthSanctuary = "north-sanctuary"
@@ -35,9 +38,7 @@ func MultiplayerLayout() Layout {
 			room.Area = Cells(70, -350, 24, 24)
 			layout.SetRoom(room)
 			continue
-		case OrbVault:
-			room.Area = Cells(24, -180, 27, 38)
-			layout.SetRoom(room)
+		case OrbVault, VaultCourt:
 			continue
 		}
 		if room.HasRole(BossArena) {
@@ -67,21 +68,12 @@ func MultiplayerLayout() Layout {
 		layout.Rooms = append(layout.Rooms, room)
 	}
 	layout.Rooms = append(layout.Rooms, Room{ID: NorthSanctuary, Name: "THE NORTHERN SANCTUARY", Area: Cells(0, 2*MirrorAxis-SurfaceCells, SurfaceCells, SurfaceCells), Floor: FirstFloor})
-	for i := range layout.SecretDoors {
-		if layout.SecretDoors[i].RoomID == OrbVault {
-			layout.SecretDoors[i].Area = Cells(23, -162, 1, 3)
-		}
-	}
 	for _, door := range original.SecretDoors {
-		if door.RoomID == OrbVault {
-			continue
-		}
 		door.ID, door.RoomID, door.Area = NorthID(door.ID), NorthID(door.RoomID), mirrorArea(door.Area)
 		layout.SecretDoors = append(layout.SecretDoors, door)
 	}
-	layout.RemovePassage("vault-secret")
 	for _, passage := range original.Passages {
-		if passage.ID == "vault-secret" {
+		if strings.HasPrefix(passage.ID, "vault-") && passage.ID != "vault-gallery-approach" {
 			continue
 		}
 		area, _ := original.passageArea(passage)
@@ -93,7 +85,7 @@ func MultiplayerLayout() Layout {
 		layout.Passages = append(layout.Passages, Passage{ID: NorthID(passage.ID), From: Location{At: from}, To: Location{At: to}, Width: width})
 	}
 	layout.Passages = append(layout.Passages,
-		Passage{ID: "vault-secret", From: Location{At: At(23, -162)}, To: Location{At: At(24, -162)}, Width: 3},
+		Passage{ID: "north-vault-processional", From: Location{At: At(74, -196)}, To: Location{At: At(74, -164)}, Width: 5},
 	)
 	layout.SetPassage(Passage{ID: "sanctum-entrance", From: Location{Room: TeleportSanctum, At: At(4, 22)}, To: Location{Room: CrownArena, At: At(10, -1)}, Width: 4})
 	layout.SetPassage(Passage{ID: NorthID("sanctum-entrance"), From: Location{Room: NorthID(CrownArena), At: At(10, 30)}, To: Location{Room: TeleportSanctum, At: At(4, -1)}, Width: 4})

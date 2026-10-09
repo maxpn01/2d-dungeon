@@ -7,7 +7,7 @@ import "time"
 const (
 	Tile         = 40
 	MinCellX     = -49
-	MaxCellX     = 100
+	MaxCellX     = 112
 	MinCellY     = -358
 	SurfaceCells = 36
 	MaxCellY     = SurfaceCells
@@ -120,6 +120,9 @@ const (
 	HeavyStompDamageMultiplier     = 1.5
 	PursuerSpeedMultiplier         = 1.35
 	HeavySizeMultiplier            = 1.2
+	GateHeavySizeMultiplier        = 1.65
+	GateHeavyHealthMultiplier      = 1.2
+	GateHeavyDamageMultiplier      = 1.1
 	HeavySpeedMultiplier           = 0.8
 	HeavyHealthMultiplier          = 1.6
 	PursuerMeleeReach              = 55.0

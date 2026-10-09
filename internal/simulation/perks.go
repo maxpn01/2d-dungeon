@@ -122,9 +122,12 @@ func (s *Stats) rebuildPerks() {
 			s.Speed *= parameters.SentinelSpeedMultiplier
 		case DungeonPursuer:
 			s.Speed *= parameters.PursuerSpeedMultiplier
-		case DungeonHeavy:
+		case DungeonHeavy, GateHeavy:
 			s.Speed *= parameters.HeavySpeedMultiplier
 		}
+	}
+	if s.Mob && s.MobType == GateHeavy {
+		s.Damage *= parameters.GateHeavyDamageMultiplier
 	}
 	s.BoostMultiplier = BoostMultiplier * (1 + b(BoostPerk))
 	s.BoostCost = BoostMPPerSecond * (1 + PerkPenalty(BoostPerk, s.Perks[BoostPerk]))

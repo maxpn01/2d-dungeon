@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 
 	"raylib-2d-sandbox/internal/parameters"
+	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/worldmap"
 )
 
@@ -15,8 +16,18 @@ const (
 	DungeonShooter = worldmap.DungeonShooter
 	DungeonPursuer = worldmap.DungeonPursuer
 	DungeonHeavy   = worldmap.DungeonHeavy
+	GateHeavy      = worldmap.GateHeavy
 	Sentinel       = worldmap.Sentinel
 )
+
+func MobBody(t MobType, x, y float64) physics.Rect {
+	size := float64(AISize)
+	if t == GateHeavy {
+		size *= parameters.GateHeavySizeMultiplier
+	}
+	offset := (size - AISize) / 2
+	return physics.Square(x-offset, y-offset, size)
+}
 
 type MobMeleeAttack struct {
 	Reach, Windup, Duration, DamageMultiplier float64
@@ -26,7 +37,7 @@ func MobMelee(t MobType) MobMeleeAttack {
 	switch t {
 	case DungeonPursuer:
 		return MobMeleeAttack{parameters.PursuerMeleeReach, parameters.PursuerMeleeWindup, parameters.PursuerMeleeDuration, 1}
-	case DungeonHeavy:
+	case DungeonHeavy, GateHeavy:
 		return MobMeleeAttack{parameters.HeavyMeleeReach, parameters.HeavyMeleeWindup, parameters.HeavyMeleeDuration, parameters.HeavyMeleeDamageMultiplier}
 	case Sentinel:
 		return MobMeleeAttack{SentinelSwordReach, SentinelSwordWindup, SentinelSwordDuration, 1}
@@ -48,7 +59,7 @@ func (w *World) shooterInput(ai *aiState, target *playerState) (input Direction)
 		ai.shooterSightUntil = w.tick + parameters.ShooterLostSightTicks
 	}()
 	ai.patrolTicks, ai.patrolPause = 0, 0
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	dx, dy := target.X-ai.X, target.Y-ai.Y
 	distance := math.Hypot(dx, dy)
 	d := Direction{AimX: dx / max(1, distance), AimY: dy / max(1, distance), Shoot: true}
@@ -128,7 +139,7 @@ func (w *World) steerShooter(ai *aiState, input Direction) Direction {
 	ai.shooterMoveX += dx
 	ai.shooterMoveY += dy
 	input.X, input.Y = ai.shooterMoveX, ai.shooterMoveY
-	if math.Hypot(input.X, input.Y) < .01 || !w.shotDodgeFits(ai, worldmap.Default().WithSecrets(w.openSecrets), input, StepSeconds) {
+	if math.Hypot(input.X, input.Y) < .01 || !w.shotDodgeFits(ai, worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), input, StepSeconds) {
 		input.X, input.Y = 0, 0
 		ai.shooterMoveX, ai.shooterMoveY = 0, 0
 	}
@@ -178,12 +189,12 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 	if ai.attackCooldown > 0 {
 		ai.Behavior = "recovering strike"
 		if distance > attack.Reach+PlayerSize/2 {
-			movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets), target.X, target.Y)
+			movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), target.X, target.Y)
 			d.X, d.Y = movement.X*.5, movement.Y*.5
 		}
 		return d
 	}
-	if ai.Type == DungeonHeavy && ai.mobChargeCooldown == 0 && ai.Stats.MP >= parameters.HeavyStompCost && distance <= parameters.HeavyStompReach+PlayerSize/2 && w.aiCanSeePlayer(ai, target, parameters.HeavyStompReach+PlayerSize) {
+	if ai.Type.IsHeavy() && ai.mobChargeCooldown == 0 && ai.Stats.MP >= parameters.HeavyStompCost && distance <= parameters.HeavyStompReach+PlayerSize/2 && w.aiCanSeePlayer(ai, target, parameters.HeavyStompReach+PlayerSize) {
 		ai.Stats.MP -= parameters.HeavyStompCost
 		ai.Combat.StompRemaining = parameters.HeavyStompDuration
 		ai.Combat.StompDirection = Direction{X: d.AimX, Y: d.AimY}
@@ -200,7 +211,7 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 		ai.Behavior = "winding strike"
 		return d
 	}
-	movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets), target.X, target.Y)
+	movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), target.X, target.Y)
 	d.X, d.Y = movement.X, movement.Y
 	ai.Behavior = "pursuing"
 	return d

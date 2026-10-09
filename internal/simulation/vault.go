@@ -17,7 +17,10 @@ type VaultFire struct {
 }
 
 func (w *World) awakenVaultSentinels() {
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	if w.orb.GateOpen < .95 {
+		return
+	}
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	for _, p := range w.players {
 		if p.Dead {
 			continue
@@ -46,7 +49,7 @@ func (w *World) awakenVaultSentinels() {
 }
 
 func (w *World) advanceVaultTraps(actors []eater) {
-	geometry := worldmap.Default().WithSecrets(w.openSecrets)
+	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	for i, trap := range geometry.VaultTraps() {
 		if geometry.Cell(trap.Tile.X, trap.Tile.Y) == 0 {
 			continue

@@ -76,10 +76,17 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 	if p.Dead || !input.Valid() || dt <= 0 {
 		return
 	}
-	geometry := worldmap.Default().WithSecrets(p.OpenSecrets)
+	geometry := worldmap.Default().WithSecrets(p.OpenSecrets).WithVaultGate(p.VaultGateOpen)
 	move := func(d Direction, distance float64) physics.Motion {
 		delta := (physics.Vector{X: d.X, Y: d.Y}).Normalized().Scale(distance)
-		return geometry.MoveBody(physics.Square(p.X, p.Y, PlayerSize), delta)
+		body := physics.Square(p.X, p.Y, PlayerSize)
+		if p.Stats.Mob {
+			body = MobBody(p.Stats.MobType, p.X, p.Y)
+		}
+		motion := geometry.MoveBody(body, delta)
+		motion.Bounds.X += p.X - body.X
+		motion.Bounds.Y += p.Y - body.Y
+		return motion
 	}
 	c.HitGrace = max(0, c.HitGrace-dt)
 	pressed := input.Dash && !c.Held
@@ -97,7 +104,7 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 		c.Facing.X = 1
 	}
 	if c.Phase == DashIdle {
-		if pressed && p.Stats.MP >= DashCost && !(p.Stats.Mob && p.Stats.MobType == DungeonHeavy) {
+		if pressed && p.Stats.MP >= DashCost && !(p.Stats.Mob && p.Stats.MobType.IsHeavy()) {
 			p.Stats.MP -= DashCost
 			c.Direction = c.Facing
 			c.Phase, c.Remaining = DashWinding, DashWindup

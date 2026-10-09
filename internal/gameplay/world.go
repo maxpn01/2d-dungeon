@@ -34,7 +34,7 @@ func NewWorld() *World {
 	w := &World{simulation: simulation.NewWorld(), presentation: newPresentation()}
 	w.simulation.Join(localPlayerID)
 	w.syncSimulation()
-	w.gameMap.Exploration.SetSecrets(w.snapshot.OpenSecrets)
+	w.gameMap.Exploration.SetSecrets(w.snapshot.OpenSecrets, w.snapshot.Orb.GateOpen)
 	w.gameMap.Exploration.Reveal(w.Center())
 	return w
 }
@@ -50,7 +50,7 @@ func (w *World) Update(dt float32) {
 		w.syncSimulation()
 	}
 	w.interpolateActors()
-	w.gameMap.Exploration.SetSecrets(w.snapshot.OpenSecrets)
+	w.gameMap.Exploration.SetSecrets(w.snapshot.OpenSecrets, w.snapshot.Orb.GateOpen)
 	w.gameMap.Exploration.Reveal(w.Center())
 }
 

@@ -2,6 +2,8 @@ package worldmap
 
 import "raylib-2d-sandbox/internal/physics"
 
+const VaultFireTrapCount = 3
+
 type VaultTrap struct {
 	Tile Cell
 	Lane physics.Rect
@@ -12,34 +14,12 @@ func (m *Map) VaultApproach() (Cell, Cell) {
 	if !ok {
 		return Cell{}, Cell{}
 	}
-	return vaultApproach(room, m.SecretDoors())
+	return vaultApproach(room)
 }
 
-func vaultApproach(room Room, doors []SecretDoor) (Cell, Cell) {
-	center := room.WorldCell(At(room.Area.Width/2, room.Area.Height/2))
-	for _, door := range doors {
-		if door.RoomID != OrbVault {
-			continue
-		}
-		if door.Area.Width == 1 {
-			x := room.Area.X
-			startX := room.Area.X + 2
-			if door.Area.X >= room.Area.Right() {
-				x = room.Area.Right() - 1
-				startX = room.Area.Right() - 3
-			}
-			entry := At(x, door.Area.Y+door.Area.Height/2)
-			return At(startX, entry.Y), entry
-		}
-		y := room.Area.Y + 2
-		entryY := room.Area.Y
-		if door.Area.Y >= room.Area.Bottom() {
-			y = room.Area.Bottom() - 3
-			entryY = room.Area.Bottom() - 1
-		}
-		return At(center.X, y), At(door.Area.X+door.Area.Width/2, entryY)
-	}
-	return center, center
+func vaultApproach(room Room) (Cell, Cell) {
+	center := room.Area.X + room.Area.Width/2
+	return At(center, room.Area.Bottom()-3), At(center, room.Area.Bottom()-1)
 }
 
 func vaultOrbCell(room Room) Cell {
@@ -89,18 +69,35 @@ func (m *Map) VaultArrowPorts() []physics.Vector {
 }
 
 func (m *Map) VaultTraps() []VaultTrap {
-	room, ok := m.Room(OrbVault)
+	passage, ok := m.Passage("vault-processional")
 	if !ok {
 		return nil
 	}
-	start, _ := m.VaultApproach()
-	center := m.VaultOrbCell()
-	if start.X != center.X {
-		cell := At(start.X+int(float64(center.X-start.X)*.6), center.Y)
-		lane := physics.Rect{X: float64(cell.X*Tile - 8), Y: float64(room.Area.Y * Tile), W: Tile + 16, H: float64(room.Area.Height * Tile)}
-		return []VaultTrap{{Tile: cell, Lane: lane}}
+	traps := make([]VaultTrap, 0, VaultFireTrapCount)
+	for i, offset := range []int{8, 18, 28} {
+		cell := At(passage.X+1+i, passage.Y+offset)
+		lane := physics.Rect{X: float64(passage.X * Tile), Y: float64(cell.Y*Tile - 8), W: float64(passage.Width * Tile), H: Tile + 16}
+		traps = append(traps, VaultTrap{Tile: cell, Lane: lane})
 	}
-	cell := At(center.X, start.Y+int(float64(center.Y-start.Y)*.6))
-	lane := physics.Rect{X: float64(room.Area.X * Tile), Y: float64(cell.Y*Tile - 8), W: float64(room.Area.Width * Tile), H: Tile + 16}
-	return []VaultTrap{{Tile: cell, Lane: lane}}
+	return traps
+}
+
+func (m *Map) VaultGateBarrier() physics.Rect {
+	gate, ok := m.Gate(VaultGate)
+	if !ok {
+		return physics.Rect{}
+	}
+	return physics.Rect{X: float64(gate.Left), Y: float64(gate.Y - 20), W: float64(gate.Right - gate.Left), H: 40}
+}
+
+func (m *Map) WithVaultGate(open float64) *Map {
+	if open >= .95 {
+		return m
+	}
+	m.vaultGateOnce.Do(func() {
+		variant := &Map{dungeonLayout: m.dungeonLayout, layout: m.layout, floors: m.floors, flightCells: m.flightCells, cover: m.cover, passages: m.passages, pools: m.pools, patches: m.patches, dens: m.dens, gates: m.gates, portals: m.portals, statues: m.statues, vaultGateClosed: true}
+		variant.collisionWorld = physics.World{CanOccupy: variant.CanOccupy, MaxStep: Tile / 5}
+		m.closedVaultGate = variant
+	})
+	return m.closedVaultGate
 }

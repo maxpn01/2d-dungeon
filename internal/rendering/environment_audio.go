@@ -36,6 +36,9 @@ func environmentWave(kind string, duration float64) []byte {
 				sample += noise * .65 * math.Exp(-(p-.72)*8)
 			}
 		}
+		if kind == "gate" {
+			sample = filtered*3 + math.Sin(t*math.Pi*2*46)*.22 + noise*.25*math.Pow(math.Sin(t*29), 10)
+		}
 		if kind == "rumble" {
 			envelope = math.Min(1, t/.06) * math.Pow(1-p, 2)
 			pulse := .8 + .2*math.Sin(t*13)

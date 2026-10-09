@@ -52,5 +52,5 @@ func moveBoostPlayer(p *Player, input Direction, dt, speed float64) (float64, fl
 	if p.Stats.Mob {
 		distance *= min(1, length)
 	}
-	return worldmap.Default().WithSecrets(p.OpenSecrets).Move(p.X, p.Y, input.X/length*distance, input.Y/length*distance, PlayerSize, PlayerSize)
+	return worldmap.Default().WithSecrets(p.OpenSecrets).WithVaultGate(p.VaultGateOpen).Move(p.X, p.Y, input.X/length*distance, input.Y/length*distance, PlayerSize, PlayerSize)
 }

@@ -24,7 +24,10 @@ const SpawnAltarCenter = SurfaceCells * Tile / 2
 const SpawnAltarRadius = 49
 
 func (m *Map) PrivateGateCrossed(fromX, fromY, toX, toY, size float64) bool {
-	for _, gate := range m.gates {
+	for id, gate := range m.gates {
+		if id != EntranceGate && id != NorthID(EntranceGate) {
+			continue
+		}
 		fromCenter, toCenter := fromY+size/2, toY+size/2
 		if (fromCenter < float64(gate.Y)) == (toCenter < float64(gate.Y)) {
 			continue
@@ -83,6 +86,9 @@ func (m *Map) Bounds() (left, top, right, bottom int) {
 }
 
 func (m *Map) Walkable(x, y, w, h float64) bool {
+	if m.vaultGateClosed && (physics.Rect{X: x, Y: y, W: w, H: h}).Overlaps(m.VaultGateBarrier()) {
+		return false
+	}
 	return m.walkableLayout(x, y, w, h)
 }
 

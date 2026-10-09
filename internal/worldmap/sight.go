@@ -18,6 +18,10 @@ func (m *Map) Sight(from, to [2]int) bool {
 }
 
 func (m *Map) Trace(from, to [2]int) bool {
+	return traceCells(from, to, m.Opaque)
+}
+
+func traceCells(from, to [2]int, opaque func(int, int) bool) bool {
 	x, y := from[0], from[1]
 	dx, dy := to[0]-x, to[1]-y
 	nx, ny := int(math.Abs(float64(dx))), int(math.Abs(float64(dy)))
@@ -31,7 +35,7 @@ func (m *Map) Trace(from, to [2]int) bool {
 	for ix, iy := 0, 0; ix < nx || iy < ny; {
 		decision := (1+2*ix)*ny - (1+2*iy)*nx
 		if decision == 0 {
-			if m.Opaque(x+sx, y) || m.Opaque(x, y+sy) {
+			if opaque(x+sx, y) || opaque(x, y+sy) {
 				return false
 			}
 			x += sx
@@ -48,7 +52,7 @@ func (m *Map) Trace(from, to [2]int) bool {
 		if x == to[0] && y == to[1] {
 			return true
 		}
-		if m.Opaque(x, y) {
+		if opaque(x, y) {
 			return false
 		}
 	}

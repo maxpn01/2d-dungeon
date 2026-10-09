@@ -24,14 +24,12 @@ func secretBase(multiplayer bool) Layout {
 	layout.RemoveRoom(NorthID(WingChamber))
 	layout.RemovePassage("aerie-entrance")
 	layout.RemovePassage(NorthID("aerie-entrance"))
-	layout.RemoveRoom(OrbVault)
 	layout.RemoveRoom(SecretLibrary)
 	layout.RemoveRoom(NorthID(SecretLibrary))
-	layout.RemovePassage("vault-secret")
 	layout.RemovePassage("library-secret")
 	layout.RemovePassage(NorthID("library-secret"))
 	layout.SecretDoors = slices.DeleteFunc(layout.SecretDoors, func(door SecretDoor) bool {
-		return door.RoomID == WingChamber || door.RoomID == NorthID(WingChamber) || door.RoomID == OrbVault || door.RoomID == SecretLibrary || door.RoomID == NorthID(SecretLibrary)
+		return door.RoomID == WingChamber || door.RoomID == NorthID(WingChamber) || door.RoomID == SecretLibrary || door.RoomID == NorthID(SecretLibrary)
 	})
 	return layout
 }
@@ -65,9 +63,6 @@ func secretPlacements(layout Layout, room Room, span int, side string) []secretP
 		}
 		for wall := range 4 {
 			width, height := room.Area.Width, room.Area.Height
-			if room.ID == OrbVault && wall < 2 {
-				width, height = height, width
-			}
 			length := host.Area.Height
 			if wall >= 2 {
 				length = host.Area.Width
@@ -148,13 +143,6 @@ func placeSecret(layout *Layout, room Room, doorID, passageID string, placement 
 	layout.SetRoom(room)
 	door := placement.door
 	layout.SecretDoors = append(layout.SecretDoors, SecretDoor{ID: doorID, RoomID: room.ID, Area: door})
-	if room.ID == OrbVault {
-		start, _ := vaultApproach(room, layout.SecretDoors)
-		for i, cell := range vaultSentinels(room, start) {
-			room.FeedingAreas[i].At = At(cell.X-room.Area.X, cell.Y-room.Area.Y)
-		}
-		layout.SetRoom(room)
-	}
 	layout.SetPassage(Passage{ID: passageID, From: Location{At: door.Origin()}, To: Location{At: At(door.Right()-1, door.Bottom()-1)}, Width: 1})
 }
 
@@ -198,7 +186,7 @@ func dungeonLayout(multiplayer bool, id string) (Layout, string, error) {
 		if len(parts) == 5 {
 			parts = append(parts, "0000000000000000")
 		}
-		if len(parts) != 6 || parts[0] == "" || parts[2] == "" || parts[3] == "" || parts[4] == "" || multiplayer && (parts[1] == "" || parts[1] == "-" || parts[4] == "-") || !multiplayer && (parts[1] != "-" || parts[4] != "-") {
+		if len(parts) != 6 || parts[0] == "" || parts[2] != "astral-gate-v2" || parts[3] == "" || parts[4] == "" || multiplayer && (parts[1] == "" || parts[1] == "-" || parts[4] == "-") || !multiplayer && (parts[1] != "-" || parts[4] != "-") {
 			return Layout{}, "", fmt.Errorf("invalid dungeon layout %q", id)
 		}
 	}
@@ -236,10 +224,7 @@ func dungeonLayout(multiplayer bool, id string) (Layout, string, error) {
 	} else {
 		parts[1] = "-"
 	}
-	layout, parts[2], err = secretRoom(layout, OrbVault, "vault-wall", "vault-secret", "", parts[2], 3)
-	if err != nil {
-		return Layout{}, "", err
-	}
+	parts[2] = "astral-gate-v2"
 	return layout, strings.Join(parts, "|"), nil
 }
 

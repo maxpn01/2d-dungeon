@@ -76,7 +76,10 @@ func (w *World) eaters(previous map[string]position) []eater {
 		if ai.respawnTick != 0 {
 			continue
 		}
-		eaters = append(eaters, eater{id: ai.ID, start: previous[ai.ID], end: position{ai.X, ai.Y}, size: AISize, stats: &ai.Stats, ai: ai})
+		body := MobBody(ai.Type, ai.X, ai.Y)
+		old := previous[ai.ID]
+		start := MobBody(ai.Type, old.x, old.y)
+		eaters = append(eaters, eater{id: ai.ID, start: position{start.X, start.Y}, end: position{body.X, body.Y}, size: body.W, stats: &ai.Stats, ai: ai})
 		for j := range ai.Split {
 			cell := &ai.Split[j]
 			if !cell.Active {

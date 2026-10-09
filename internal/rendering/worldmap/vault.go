@@ -48,12 +48,15 @@ func (m *Map) drawVault() {
 }
 
 func (m *Map) drawVaultTraps(snapshot protocol.Snapshot) {
-	room, ok := m.world.Room(mapdata.OrbVault)
-	if !ok || room.Floor != m.floor || m.world.Cell(room.Area.X, room.Area.Y) == 0 {
+	if m.floor != mapdata.FirstFloor {
 		return
 	}
 	rune := rl.NewColor(156, 128, 227, 255)
 	for i, trap := range m.world.VaultTraps() {
+		p := trap.Tile.World()
+		dungeonRect(int(p.X)+3, int(p.Y)+3, 34, 34, rl.NewColor(42, 44, 52, 255))
+		rl.DrawRectangleLinesEx(rl.NewRectangle(float32(p.X+5), float32(p.Y+5), 30, 30), 1, rl.NewColor(48, 50, 57, 255))
+		rl.DrawLineEx(rl.NewVector2(float32(p.X+7), float32(p.Y+34)), rl.NewVector2(float32(p.X+33), float32(p.Y+34)), 2, rl.NewColor(29, 31, 38, 255))
 		if i >= len(snapshot.VaultFire) {
 			continue
 		}
@@ -61,9 +64,6 @@ func (m *Map) drawVaultTraps(snapshot protocol.Snapshot) {
 		if state.TriggeredTick == 0 || snapshot.Tick < state.TriggeredTick || snapshot.Tick-state.TriggeredTick >= simulation.VaultTrapWarningTicks+simulation.VaultTrapFireTicks {
 			continue
 		}
-		p := trap.Tile.World()
-		dungeonRect(int(p.X)+2, int(p.Y)+2, 36, 36, rl.NewColor(55, 57, 76, 255))
-		rl.DrawRectangleLinesEx(rl.NewRectangle(float32(p.X+4), float32(p.Y+4), 32, 32), 1, rl.NewColor(70, 70, 87, 255))
 		for _, vent := range vaultVents(trap) {
 			rl.DrawPoly(vent, 6, 22, 30, stone)
 			rl.DrawPolyLines(vent, 6, 22, 30, paleStone)
@@ -71,6 +71,7 @@ func (m *Map) drawVaultTraps(snapshot protocol.Snapshot) {
 			rl.DrawLineEx(rl.NewVector2(vent.X-8, vent.Y-14), rl.NewVector2(vent.X+8, vent.Y-14), 3, rune)
 		}
 	}
+
 	if snapshot.VaultArrowStarted == 0 || snapshot.Tick < snapshot.VaultArrowStarted || snapshot.Tick-snapshot.VaultArrowStarted >= simulation.VaultArrowDurationTicks {
 		return
 	}
