@@ -281,7 +281,7 @@ func (w *World) Step(now time.Time) {
 		player.OpenSecrets = w.openSecrets
 		player.WingDoorOpen = w.wingDoorOpen
 		player.NorthWingDoorOpen = w.northWingDoorOpen
-		if direction.Interact && (w.interactVaultGate(player) || w.interactSecret(player) || w.interactObjective(player) || w.interactStatue(player)) {
+		if direction.Interact && (w.interactLibrary(player, direction) || w.interactVaultGate(player) || w.interactSecret(player) || w.interactObjective(player) || w.interactStatue(player)) {
 			direction.Interact = false
 		}
 		AdvancePlayer(&player.Player, direction, StepSeconds, w.safeZones)
@@ -308,6 +308,7 @@ func (w *World) Step(now time.Time) {
 	w.advanceMobMelee(eaters)
 	w.advanceHeavyStomps()
 	w.advanceVaultTraps(eaters)
+	w.advanceLibraries()
 	for id, p := range w.players {
 		old := previous[id]
 		ConstrainArena(&p.Player, old.x, old.y)

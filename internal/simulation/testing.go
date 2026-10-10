@@ -76,6 +76,15 @@ func (w *World) TestingWarp(id, roomID string) bool {
 			w.openSecrets = append(w.openSecrets, door.ID)
 		}
 	}
+	if roomID == worldmap.SecretLibrary {
+		for i := range w.statues {
+			if IsLibraryBook(w.statues[i].ID) && LibraryRoom(w.statues[i].ID) == roomID {
+				w.statues[i].Library = LibraryState{}
+				w.statues[i].ClaimedBy = ""
+			}
+		}
+		p.Stats.SpectralShots = false
+	}
 	at := room.WorldCell(worldmap.At(room.Area.Width/2, room.Area.Height/2))
 	if roomID == worldmap.OrbVault || roomID == worldmap.VaultCourt {
 		if roomID == worldmap.OrbVault {

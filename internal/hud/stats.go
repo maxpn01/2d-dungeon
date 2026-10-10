@@ -24,6 +24,9 @@ func DrawStats(player protocol.Player, width, height int32) {
 	if len(owned) > 0 {
 		blessingsHeight = int32(len(owned)) * 56
 	}
+	if p.SpectralShots {
+		blessingsHeight += 56
+	}
 	panelHeight := int32(422) + blessingsHeight
 	x, y := (width-panelWidth)/2, (height-panelHeight)/2
 	muted := color.RGBA{160, 170, 180, 255}
@@ -54,7 +57,7 @@ func DrawStats(player protocol.Player, width, height int32) {
 	}
 	rl.DrawLine(left, y+330, right, y+330, divider)
 	primitives.DrawText("BLESSINGS", left, y+349, 14, primitives.RuneColor)
-	if len(owned) == 0 {
+	if len(owned) == 0 && !p.SpectralShots {
 		primitives.DrawText("No blessings yet", left, y+378, 18, muted)
 	}
 	for i, card := range owned {
@@ -63,6 +66,11 @@ func DrawStats(player protocol.Player, width, height int32) {
 		label := fmt.Sprintf("%s %s", simulation.PerkName(card.Family), simulation.RankName(card.Rank))
 		primitives.DrawText(label, left, rowY, 18, tint)
 		primitives.DrawText(card.Description(), left, rowY+24, 16, tint)
+	}
+	if p.SpectralShots {
+		rowY := y + 378 + int32(len(owned))*56
+		primitives.DrawText("Spectral Shots", left, rowY, 18, primitives.RuneColor)
+		primitives.DrawText("Shots release an echo. MP cost +25%.", left, rowY+24, 16, primitives.RuneColor)
 	}
 	footer := "[P] / [Esc] Close"
 	primitives.DrawText(footer, x+(panelWidth-primitives.MeasureText(footer, 16))/2, y+panelHeight-27, 16, muted)

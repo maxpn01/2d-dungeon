@@ -41,7 +41,7 @@ func ValidateSnapshot(snapshot Snapshot, localID string) error {
 	if err := validateAIs(snapshot.AIs); err != nil {
 		return err
 	}
-	if err := validateStatues(snapshot.Statues); err != nil {
+	if err := validateStatues(snapshot.Statues, snapshot.Tick); err != nil {
 		return err
 	}
 	if len(snapshot.SafeZones) > simulation.SafeZoneCount {
@@ -338,7 +338,7 @@ func validateProjectiles(shots []simulation.Projectile) error {
 	}
 	ids := make(map[string]bool, len(shots))
 	for _, shot := range shots {
-		if shot.Kind != "" && shot.Kind != "arrow" && shot.Kind != "shockwave" || shot.Kind == "arrow" && shot.Owner != "vault arrows" {
+		if shot.Kind != "" && shot.Kind != "arrow" && shot.Kind != "shockwave" && shot.Kind != "spectral" || shot.Kind == "arrow" && shot.Owner != "vault arrows" {
 			return errors.New("server sent invalid projectile kind")
 		}
 		if shot.ID == "" || shot.Owner == "" || ids[shot.ID] || !shot.Direction.Valid() {
@@ -369,7 +369,7 @@ func validateProjectiles(shots []simulation.Projectile) error {
 	return nil
 }
 
-func validateStatues(statues []simulation.StatueState) error {
+func validateStatues(statues []simulation.StatueState, tick uint64) error {
 	points := worldmap.Default().Statues()
 	if len(statues) != len(points) {
 		return errors.New("server sent invalid statue count")
@@ -379,6 +379,27 @@ func validateStatues(statues []simulation.StatueState) error {
 		if seen[s.ID] || s.Cycle == 0 || len(s.Cards) > 3 || math.IsNaN(s.RechargeRemaining) || math.IsInf(s.RechargeRemaining, 0) || s.RechargeRemaining < 0 || s.RechargeRemaining > parameters.StatueRechargeSeconds || s.RechargeRemaining > 0 && (s.ClaimedBy == "" || worldmap.IsWingStatue(s.ID)) {
 			return errors.New("server sent invalid statue")
 		}
+		if s.Library.StartedTick > tick || s.Library.CompletedTick > tick || s.Library.RecallTick > tick || s.Library.NudgeTick > tick || s.Library.Bound >= 1<<simulation.LibraryTomeCount || s.Library.Completed && (s.Library.Bound != (1<<simulation.LibraryTomeCount)-1 || s.ClaimedBy == "" || s.Library.CompletedTick == 0) || !simulation.IsLibraryBook(s.ID) && s.Library != (simulation.LibraryState{}) {
+			return errors.New("server sent invalid haunted library state")
+		}
+		for tome := 0; tome < simulation.LibraryTomeCount; tome++ {
+			if !s.Library.Positions[tome].Valid() || !s.Library.Velocities[tome].Valid() || !s.Library.RecallFrom[tome].Valid() || math.Hypot(s.Library.Velocities[tome].X, s.Library.Velocities[tome].Y) > simulation.LibraryStrikeSpeed+1 || s.Library.HitTicks[tome] > tick || s.Library.BounceTicks[tome] > tick || s.Library.BoundTicks[tome] > tick {
+				return errors.New("server sent invalid enchanted tome")
+			}
+			if simulation.IsLibraryBook(s.ID) && s.Library.StartedTick != 0 {
+				bounds := simulation.LibraryArena(s)
+				at := s.Library.Positions[tome]
+				if at.X < bounds.X-1 || at.X > bounds.X+bounds.W+1 || at.Y < bounds.Y-1 || at.Y > bounds.Y+bounds.H+1 {
+					return errors.New("server sent tome outside library")
+				}
+				for _, shelf := range simulation.LibraryShelves(s) {
+					if !simulation.LibraryRecalling(s, tick) && physics.Square(at.X-simulation.LibraryTomeRadius, at.Y-simulation.LibraryTomeRadius, simulation.LibraryTomeRadius*2).Overlaps(shelf) {
+						return errors.New("server sent tome inside bookshelf")
+					}
+				}
+			}
+		}
+
 		seen[s.ID] = true
 		found := false
 		for _, point := range points {

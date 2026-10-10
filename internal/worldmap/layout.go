@@ -26,6 +26,7 @@ const (
 type PropKind string
 
 const CoverProp PropKind = "cover"
+const BookshelfProp PropKind = "bookshelf"
 
 type FeedingStyle string
 

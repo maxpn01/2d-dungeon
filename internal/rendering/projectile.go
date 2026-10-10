@@ -68,6 +68,9 @@ func drawMagicBall(center rl.Vector2, shot simulation.Projectile) {
 		tint = rl.NewColor(255, 128, 77, 255)
 		trailTint = rl.NewColor(204, 75, 40, 255)
 	}
+	if shot.Kind == "spectral" {
+		tint, trailTint = rl.NewColor(192, 211, 255, 255), rl.NewColor(132, 105, 219, 255)
+	}
 	radius := float32(shot.Size * .65)
 	age := max(0, parameters.ShotLifetime-shot.Remaining)
 	tailLength := float32(min(64, age*parameters.ShotSpeed))

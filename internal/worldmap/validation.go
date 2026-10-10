@@ -53,7 +53,7 @@ func validateLayout(layout Layout) error {
 			if err := uniqueID(propIDs, prop.ID, "room "+room.ID+" prop"); err != nil {
 				return err
 			}
-			if prop.Kind != CoverProp {
+			if prop.Kind != CoverProp && prop.Kind != BookshelfProp {
 				return fmt.Errorf("room %s has unknown prop kind %q", room.ID, prop.Kind)
 			}
 			if !local.ContainsArea(prop.Area) {

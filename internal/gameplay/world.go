@@ -139,7 +139,7 @@ func (w *World) Start(name string) {
 func (w *World) scene() rendering.Scene {
 	return rendering.Scene{
 		Snapshot: w.snapshot, Local: w.snapshot.Players[0], RenderedPlayers: []protocol.Player{w.player}, RenderedAIs: w.ais,
-		PreviousProjectiles: w.previousSnapshot.Projectiles, ProjectileAlpha: w.accumulator / simulation.StepSeconds,
+		PreviousStatues: w.previousSnapshot.Statues, PreviousTick: w.previousSnapshot.Tick, PreviousProjectiles: w.previousSnapshot.Projectiles, ProjectileAlpha: w.accumulator / simulation.StepSeconds,
 	}
 }
 

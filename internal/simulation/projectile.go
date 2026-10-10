@@ -44,7 +44,11 @@ func PrepareShot(p *Player, input Direction) bool {
 
 func (w *World) fire(p *Player, input Direction) {
 	defer func() { p.ShotCooldown = max(0, p.ShotCooldown) }()
-	if len(w.projectiles) >= parameters.MaxProjectiles || InSafeZone(p.X, p.Y, PlayerSize, p.Stats.HP, w.safeZones) || !PrepareShot(p, input) {
+	slots := 1
+	if p.Stats.SpectralShots {
+		slots = 2
+	}
+	if len(w.projectiles)+slots > parameters.MaxProjectiles || InSafeZone(p.X, p.Y, PlayerSize, p.Stats.HP, w.safeZones) || !PrepareShot(p, input) {
 		return
 	}
 	length := math.Hypot(input.AimX, input.AimY)
@@ -61,6 +65,14 @@ func (w *World) fire(p *Player, input Direction) {
 		X: p.X + (PlayerSize-size)/2, Y: p.Y + (PlayerSize-size)/2,
 		Direction: direction, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage, Size: size,
 	})
+	if p.Stats.SpectralShots && len(w.projectiles) < parameters.MaxProjectiles {
+		w.nextProjectile++
+		w.projectiles = append(w.projectiles, Projectile{
+			ID: fmt.Sprintf("echo-%d", w.nextProjectile), Owner: p.ID, Kind: "spectral",
+			originX: p.X, originY: p.Y, X: p.X + (PlayerSize-size)/2 - direction.Y*16, Y: p.Y + (PlayerSize-size)/2 + direction.X*16,
+			Direction: direction, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage * .6, Size: size,
+		})
+	}
 }
 
 func (w *World) advanceProjectiles(actors []eater) {
@@ -86,6 +98,14 @@ func (w *World) advanceProjectiles(actors []eater) {
 			body := ProjectileWallBody(shot)
 			wallFraction, wallBlocked := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen).MovementLimit(body.X, body.Y, end.x-start.x, end.y-start.y, body.W, body.H)
 			if worldmap.Default().PrivateGateCrossed(body.X, body.Y, body.X+end.x-start.x, body.Y+end.y-start.y, body.W) {
+				alive = false
+				break
+			}
+			limit := math.Inf(1)
+			if wallBlocked {
+				limit = wallFraction
+			}
+			if w.hitLibraryTome(shot, start, end, limit) {
 				alive = false
 				break
 			}

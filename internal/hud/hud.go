@@ -14,6 +14,7 @@ import (
 )
 
 type playerView struct {
+	SpectralShots                    bool
 	ShotMPCost                       float32
 	Perks                            [simulation.PerkFamilyCount]int
 	Character                        simulation.Character
@@ -33,6 +34,9 @@ func drawPlayer(p playerView, windowWidth int32) {
 	}
 	background := rl.Fade(rl.Black, .8)
 	height := int32(220)
+	if p.SpectralShots {
+		height += 25
+	}
 	rl.DrawRectangle(x, y, width, height, background)
 
 	rl.DrawRectangle(x+12, y+10, 36, 36, color.RGBA{48, 48, 48, 255})
@@ -75,6 +79,9 @@ func drawPlayer(p playerView, windowWidth int32) {
 	}
 	primitives.DrawText("[P] Stats  [F8] Sound: "+sound, x+12, y+195, 16, muted)
 
+	if p.SpectralShots {
+		primitives.DrawText("SPECTRAL SHOTS / +25% MP", x+12, y+222, 16, rl.NewColor(177, 163, 236, 255))
+	}
 }
 
 func drawHUDMeter(x, y, width int32, label, value string, current, maximum float32, tint color.RGBA) {
@@ -99,7 +106,7 @@ func playerDetails(player protocol.Player) playerView {
 		hp = 0
 	}
 	return playerView{
-		Perks: stats.Perks, Character: player.Character, Name: player.Name, Avatar: primitives.CharacterColor(player.Character),
+		SpectralShots: stats.SpectralShots, Perks: stats.Perks, Character: player.Character, Name: player.Name, Avatar: primitives.CharacterColor(player.Character),
 		Level: stats.Level, MaxLevel: simulation.MaxLevel, HP: hp, MaxHP: float32(stats.MaxHP()),
 		MP: float32(stats.MP), MaxMP: float32(stats.MaxMP()), XP: float32(stats.XP), NextXP: float32(simulation.XPForNextLevel(stats.Level)),
 		Speed:  float32(simulation.PlayerMovementSpeed(player.Character, stats.Speed, stats.HP, player.Split)),

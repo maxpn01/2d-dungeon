@@ -33,6 +33,8 @@ func (w *World) ReadTestingInput() bool {
 		w.simulation.CycleTestingLevel(localPlayerID)
 	case rl.IsKeyPressed(rl.KeyF8):
 		w.simulation.TestingWarp(localPlayerID, worldmap.VaultCourt)
+	case rl.IsKeyPressed(rl.KeyF9):
+		w.simulation.TestingWarp(localPlayerID, worldmap.SecretLibrary)
 	case rl.IsKeyPressed(rl.KeyF7):
 		w.simulation.ToggleTestingWings(localPlayerID)
 	default:
@@ -63,10 +65,10 @@ func (w *World) drawTesting(width, height int32) {
 	if w.simulation.GodMode(localPlayerID) {
 		state = "ON"
 	}
-	x, y := int32(18), height-201
-	rl.DrawRectangle(x-8, y-8, 405, 157, rl.Fade(rl.NewColor(12, 17, 27, 255), .9))
+	x, y := int32(18), height-223
+	rl.DrawRectangle(x-8, y-8, 405, 179, rl.Fade(rl.NewColor(12, 17, 27, 255), .9))
 	primitives.DrawText(fmt.Sprintf("TESTING / F1 God: %s / Lv.%d", state, w.player.Stats.Level), x, y, 18, rl.Gold)
-	for i, line := range []string{"F2 Reset + enter orb vault", "F8 Reset + enter gate courtyard", "F3 Dungeon   F4 Descent + orb   F5 Floor 2", "F6 Cycle level   F7 Toggle wings", "God mode: no damage, unlimited mana"} {
+	for i, line := range []string{"F2 Reset + enter orb vault", "F8 Reset + enter gate courtyard", "F9 Reset + enter haunted library", "F3 Dungeon   F4 Descent + orb   F5 Floor 2", "F6 Cycle level   F7 Toggle wings", "God mode: no damage, unlimited mana"} {
 		primitives.DrawText(line, x, y+29+int32(i)*22, 16, rl.LightGray)
 	}
 }

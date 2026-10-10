@@ -17,19 +17,20 @@ type edgePos struct {
 }
 
 type Map struct {
-	wallHits    map[string]int
-	world       *mapdata.Map
-	gate        simulation.EntranceGateState
-	floor       mapdata.Floor
-	gatePrompt  bool
-	nearGateID  string
-	safeZones   []simulation.SafeZone
-	Exploration Exploration
-	sizeInCells rl.Vector2
-	cellSize    rl.Vector2
-	size        rl.Vector2
-	edgePosX    edgePos
-	edgePosY    edgePos
+	libraryFrame libraryRenderFrame
+	wallHits     map[string]int
+	world        *mapdata.Map
+	gate         simulation.EntranceGateState
+	floor        mapdata.Floor
+	gatePrompt   bool
+	nearGateID   string
+	safeZones    []simulation.SafeZone
+	Exploration  Exploration
+	sizeInCells  rl.Vector2
+	cellSize     rl.Vector2
+	size         rl.Vector2
+	edgePosX     edgePos
+	edgePosY     edgePos
 }
 
 func NewMap() *Map {
@@ -69,6 +70,7 @@ func (m *Map) Draw(ctx primitives.Context, snapshot protocol.Snapshot, local pro
 	m.drawVaultGate(snapshot.Orb, local)
 	m.drawVaultSeals(snapshot.Orb)
 	m.drawVaultTraps(snapshot)
+	m.drawHauntedLibrary(snapshot, local)
 	m.drawWingDoor(snapshot)
 	drawOrbPedestal(snapshot.Orb, local, &m.Exploration)
 	drawStatues(snapshot.Statues, local.ActiveStatue, local.X, local.Y, local.Dead, &m.Exploration)

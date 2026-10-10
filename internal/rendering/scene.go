@@ -19,12 +19,22 @@ type Scene struct {
 	Local               protocol.Player
 	RenderedPlayers     []protocol.Player
 	RenderedAIs         []protocol.AI
+	PreviousStatues     []simulation.StatueState
+	PreviousTick        uint64
 	PreviousProjectiles []simulation.Projectile
 	ProjectileAlpha     float64
 	Feedback            *Feedback
 }
 
 func DrawScene(ctx primitives.Context, scene Scene) {
+	local := scene.Local
+	for _, player := range scene.RenderedPlayers {
+		if player.ID == local.ID {
+			local = player
+			break
+		}
+	}
+	scene.Map.PrepareLibraryFrame(scene.PreviousStatues, scene.PreviousTick, scene.Tick, scene.ProjectileAlpha, local)
 	rl.BeginMode2D(ctx.Camera)
 	scene.Map.Draw(ctx, scene.Snapshot, scene.Local)
 	scene.Map.DrawVaultArrowWarning(scene.Snapshot)
@@ -91,4 +101,5 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 	rl.BeginMode2D(ctx.Camera)
 	scene.Map.DrawVisibleVaultGate(scene.Orb, scene.Local)
 	rl.EndMode2D()
+	scene.Map.DrawLibraryHUD(ctx, scene.Snapshot, scene.Local)
 }

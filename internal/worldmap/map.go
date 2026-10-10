@@ -54,6 +54,7 @@ type Map struct {
 	floors          map[[2]int]int
 	flightCells     map[[2]int]bool
 	cover           map[[2]int]bool
+	solid           map[[2]int]bool
 	passages        []CellRect
 	pools           []Pool
 	patches         []FeedingPatch
@@ -99,7 +100,7 @@ func New(layout Layout) (*Map, error) {
 	if err := validateLayout(layout); err != nil {
 		return nil, err
 	}
-	m := &Map{layout: layout, cover: make(map[[2]int]bool), gates: make(map[string]GateBounds)}
+	m := &Map{layout: layout, cover: make(map[[2]int]bool), solid: make(map[[2]int]bool), gates: make(map[string]GateBounds)}
 	for _, passage := range layout.Passages {
 		area, err := layout.passageArea(passage)
 		if err != nil {
@@ -141,7 +142,11 @@ func New(layout Layout) (*Map, error) {
 			for y := area.Y; y < area.Bottom(); y++ {
 				for x := area.X; x < area.Right(); x++ {
 					if m.Cell(x, y) != 0 {
-						m.cover[[2]int{x, y}] = true
+						if prop.Kind == BookshelfProp {
+							m.solid[[2]int{x, y}] = true
+						} else {
+							m.cover[[2]int{x, y}] = true
+						}
 					}
 				}
 			}

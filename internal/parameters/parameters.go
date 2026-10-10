@@ -6,7 +6,7 @@ import "time"
 // derived world bounds used by both the client and server.
 const (
 	Tile         = 40
-	MinCellX     = -49
+	MinCellX     = -57
 	MaxCellX     = 112
 	MinCellY     = -358
 	SurfaceCells = 36

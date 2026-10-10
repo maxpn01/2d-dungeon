@@ -95,7 +95,7 @@ func (m *Map) WithVaultGate(open float64) *Map {
 		return m
 	}
 	m.vaultGateOnce.Do(func() {
-		variant := &Map{dungeonLayout: m.dungeonLayout, layout: m.layout, floors: m.floors, flightCells: m.flightCells, cover: m.cover, passages: m.passages, pools: m.pools, patches: m.patches, dens: m.dens, gates: m.gates, portals: m.portals, statues: m.statues, vaultGateClosed: true}
+		variant := &Map{dungeonLayout: m.dungeonLayout, layout: m.layout, floors: m.floors, flightCells: m.flightCells, cover: m.cover, solid: m.solid, passages: m.passages, pools: m.pools, patches: m.patches, dens: m.dens, gates: m.gates, portals: m.portals, statues: m.statues, vaultGateClosed: true}
 		variant.collisionWorld = physics.World{CanOccupy: variant.CanOccupy, MaxStep: Tile / 5}
 		m.closedVaultGate = variant
 	})

@@ -15,6 +15,9 @@ import (
 
 func drawStatues(statues []simulation.StatueState, active string, px, py float64, dead bool, exploration *Exploration) {
 	for _, s := range statues {
+		if simulation.IsLibraryBook(s.ID) {
+			continue
+		}
 		if !exploration.EntityVisible(s.X, s.Y, 0) {
 			continue
 		}

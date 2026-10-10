@@ -19,6 +19,7 @@ const (
 )
 
 type Stats struct {
+	SpectralShots   bool                 `json:"spectral_shots,omitempty"`
 	MobType         MobType              `json:"mob_type,omitempty"`
 	Mob             bool                 `json:"mob,omitempty"`
 	Level           int                  `json:"level"`
@@ -168,5 +169,9 @@ func (s Stats) ShotSize() float64 {
 }
 
 func (s Stats) ShotMPCost() float64 {
-	return parameters.ShotMPCost * s.ShotSize() / parameters.ShotSize
+	cost := parameters.ShotMPCost * s.ShotSize() / parameters.ShotSize
+	if s.SpectralShots {
+		cost *= 1.25
+	}
+	return cost
 }

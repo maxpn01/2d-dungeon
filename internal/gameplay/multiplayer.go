@@ -21,6 +21,8 @@ type Multiplayer struct {
 	presentation
 	lobbyStart          *screens.MenuButton
 	controls            controls
+	previousStatues     []simulation.StatueState
+	previousTick        uint64
 	previousProjectiles []simulation.Projectile
 	projectileInterval  float64
 	renderedAIs         []protocol.AI
@@ -67,11 +69,15 @@ func (m *Multiplayer) Poll() {
 			m.presentation = newPresentation()
 			m.motion = client.Motion{}
 			m.previousProjectiles = nil
+			m.previousStatues = nil
+			m.previousTick = 0
 			m.controls = controls{suppressShootUntilRelease: true}
 		}
 		m.feedback.Observe(time.Now(), update.Snapshot, update.PlayerID)
 		if update.RoundID == m.view.RoundID {
 			m.previousProjectiles = m.view.Projectiles
+			m.previousStatues = m.view.Statues
+			m.previousTick = m.view.Tick
 		}
 		m.projectileInterval = simulation.StepSeconds
 		if update.Tick > m.view.Tick && m.view.Ready {
@@ -160,8 +166,8 @@ func (m *Multiplayer) Follow(camera *rl.Camera2D) {
 func (m *Multiplayer) scene() rendering.Scene {
 	return rendering.Scene{
 		Snapshot: m.view.Snapshot, Local: m.view.Local, RenderedPlayers: m.rendered, RenderedAIs: m.renderedAIs,
-		PreviousProjectiles: m.previousProjectiles,
-		ProjectileAlpha:     time.Since(m.view.ReceivedAt).Seconds() / max(simulation.StepSeconds, m.projectileInterval),
+		PreviousStatues: m.previousStatues, PreviousTick: m.previousTick, PreviousProjectiles: m.previousProjectiles,
+		ProjectileAlpha: time.Since(m.view.ReceivedAt).Seconds() / max(simulation.StepSeconds, m.projectileInterval),
 	}
 }
 

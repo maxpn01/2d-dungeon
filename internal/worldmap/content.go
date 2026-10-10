@@ -27,7 +27,7 @@ func (m *Map) Opaque(x, y int) bool {
 	if m.vaultGateClosed && Cells(x, y, 1, 1).Bounds().Overlaps(m.VaultGateBarrier()) {
 		return true
 	}
-	return (!m.SanctuaryCell(x, y) && m.Cell(x, y) == 0) || m.Cover(x, y)
+	return (!m.SanctuaryCell(x, y) && m.Cell(x, y) == 0) || m.Cover(x, y) || m.solid[[2]int{x, y}]
 }
 
 func (m *Map) fogOpaque(x, y int) bool {
@@ -83,7 +83,7 @@ func (m *Map) Validate() error {
 	for cell := range m.floors {
 		x, y := CellPosition(cell[0], cell[1], ActorSize)
 		sanctuaryWall := m.SanctuaryCell(cell[0], cell[1]) && !m.Walkable(x, y, ActorSize, ActorSize)
-		if cell[1] < 0 && !seen[cell] && !sanctuaryWall {
+		if cell[1] < 0 && !seen[cell] && !sanctuaryWall && !m.solid[cell] {
 			return fmt.Errorf("unreachable floor cell %v", cell)
 		}
 	}

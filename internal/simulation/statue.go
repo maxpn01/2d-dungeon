@@ -11,6 +11,7 @@ import (
 const StatueInteractionRadius = 100.0
 
 type StatueState struct {
+	Library           LibraryState `json:"library,omitempty"`
 	rechargeUntil     uint64
 	offers            map[string][]PerkCard
 	RechargeRemaining float64    `json:"recharge_remaining,omitempty"`
@@ -49,6 +50,9 @@ func (w *World) interactStatue(p *playerState) bool {
 		return false
 	}
 	s := &w.statues[nearest]
+	if IsLibraryBook(s.ID) {
+		return w.startLibrary(s, p)
+	}
 	if !worldmap.IsWingStatue(s.ID) {
 		if s.offers == nil {
 			s.offers = make(map[string][]PerkCard)

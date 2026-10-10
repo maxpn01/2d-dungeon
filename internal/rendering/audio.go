@@ -34,7 +34,7 @@ func InitFeedbackAudio() {
 	for _, cue := range []struct {
 		name                 string
 		start, end, duration float64
-	}{{"hit", 950, 220, .075}, {"hurt", 180, 65, .18}, {"mana", 240, 170, .16}, {"low", 100, 75, .3}, {"stone", 130, 42, .14}, {"awaken", 0, 0, 3.0}, {"fire", 0, 0, .9}, {"rumble", 0, 0, DungeonAwakeningShakeDuration}, {"gate", 0, 0, 1.6}, {"seal", 330, 990, .45}, {"completion", 0, 0, 8}} {
+	}{{"hit", 950, 220, .075}, {"hurt", 180, 65, .18}, {"mana", 240, 170, .16}, {"low", 100, 75, .3}, {"stone", 130, 42, .14}, {"awaken", 0, 0, 3.0}, {"fire", 0, 0, .9}, {"rumble", 0, 0, DungeonAwakeningShakeDuration}, {"gate", 0, 0, 1.6}, {"seal", 330, 990, .45}, {"library-tap", 620, 380, .075}, {"library-bounce", 430, 280, .055}, {"library-bind", 440, 1100, .28}, {"library-done", 660, 1320, .6}, {"completion", 0, 0, 8}} {
 		var data []byte
 		if cue.name == "completion" {
 			data = assets.RoundComplete

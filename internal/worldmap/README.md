@@ -322,3 +322,19 @@ A rematch creates a fresh randomized dungeon, resets progression and objectives,
 and clears client exploration, effects, and interpolation while preserving player
 identities, characters, chat, and input sequence continuity. Leaving during the
 countdown cancels it and clears readiness. Solo results offer Play again.
+
+The secret library contains a haunted lectern and an optional spell-billiards encounter.
+Press E at the lectern to awaken three enchanted tomes. Launch each tome into its
+matching Moon, Sun, or Star rune alcove in any order. Spells set its direction;
+E near a tome nudges it without spending MP. Tomes glide, rebound from the room's
+runic rails, and are repelled by mismatched alcoves. The aiming preview uses the
+same movement rules as the simulation. The lectern recalls only unbound tomes.
+The library is 20 by 23 tiles, with four staggered freestanding shelf rows.
+Shelves block explorers and spells; tomes rebound from their faces. Each initial
+route to an alcove crosses a shelf, requiring repositioning or a bank shot.
+There is no countdown, forced capture order, or penalty for missed shots.
+Tome poses interpolate between snapshots in solo and multiplayer rendering.
+The explorer who starts the encounter receives the Spectral Shots perk on completion.
+Every shot releases a pale echo dealing 60% bonus damage, with 25% higher MP cost.
+The perk lasts for the run like other blessings, and each library can be completed
+once per match. The encounter never affects floor progression.

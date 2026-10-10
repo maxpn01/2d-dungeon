@@ -105,7 +105,7 @@ func (m *Map) walkableLayout(x, y, w, h float64) bool {
 	}
 	for cy := int(math.Floor(y / Tile)); cy <= int(math.Floor(math.Nextafter((y+h)/Tile, math.Inf(-1)))); cy++ {
 		for cx := int(math.Floor(x / Tile)); cx <= int(math.Floor(math.Nextafter((x+w)/Tile, math.Inf(-1)))); cx++ {
-			if m.Cell(cx, cy) == 0 {
+			if m.Cell(cx, cy) == 0 || m.solid[[2]int{cx, cy}] {
 				return false
 			}
 		}

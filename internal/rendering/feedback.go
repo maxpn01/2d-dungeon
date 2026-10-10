@@ -37,6 +37,7 @@ type feedbackEffect struct {
 }
 
 type Feedback struct {
+	libraryEvents map[string]simulation.LibraryState
 	observed      time.Time
 	secrets       map[string]bool
 	wallHits      map[string]int
@@ -160,6 +161,7 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 
 func (f *Feedback) Observe(now time.Time, snapshot protocol.Snapshot, localID string) {
 	f.localID = localID
+	f.observeLibraryAudio(snapshot, localID)
 	actors := make(map[string]feedbackActor)
 	for _, p := range snapshot.Players {
 		actors[p.ID] = feedbackActor{x: p.X, y: p.Y, size: p.Size, hp: p.Stats.HP + p.Split.Mass(), xp: p.Stats.XP, level: p.Stats.Level, tint: primitives.CharacterColor(p.Character), dead: p.Dead, hidden: p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, p.Size)), escaped: p.Escaped, recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP()}
@@ -369,4 +371,42 @@ func (f *Feedback) Spawn(id string, now time.Time) {
 		f.spawns = make(map[string]time.Time)
 	}
 	f.spawns[id] = now
+}
+
+func (f *Feedback) observeLibraryAudio(snapshot protocol.Snapshot, localID string) {
+	if f.libraryEvents == nil {
+		f.libraryEvents = make(map[string]simulation.LibraryState)
+	}
+	var local protocol.Player
+	for _, p := range snapshot.Players {
+		if p.ID == localID {
+			local = p
+			break
+		}
+	}
+	for _, book := range snapshot.Statues {
+		if !simulation.IsLibraryBook(book.ID) {
+			continue
+		}
+		before, known := f.libraryEvents[book.ID]
+		current := book.Library
+		audible := !local.Dead && worldmap.Default().WithSecrets(snapshot.OpenSecrets).RoomContains(simulation.LibraryRoom(book.ID), physics.Square(local.X, local.Y, local.Size))
+		if known && audible && current.StartedTick != 0 && before.StartedTick == current.StartedTick {
+			for tome := 0; tome < simulation.LibraryTomeCount; tome++ {
+				if current.HitTicks[tome] > before.HitTicks[tome] {
+					playFeedbackSound("library-tap")
+				}
+				if current.BounceTicks[tome] > before.BounceTicks[tome] {
+					playFeedbackSound("library-bounce")
+				}
+				if current.BoundTicks[tome] > before.BoundTicks[tome] {
+					playFeedbackSound("library-bind")
+				}
+			}
+			if current.Completed && !before.Completed {
+				playFeedbackSound("library-done")
+			}
+		}
+		f.libraryEvents[book.ID] = current
+	}
 }

@@ -34,7 +34,7 @@ func (m *Map) CanFly(body physics.Rect) bool {
 	last := WorldCell(math.Nextafter(body.X+body.W, math.Inf(-1)), math.Nextafter(body.Y+body.H, math.Inf(-1)))
 	for y := first[1]; y <= last[1]; y++ {
 		for x := first[0]; x <= last[0]; x++ {
-			if !m.flightCells[[2]int{x, y}] {
+			if !m.flightCells[[2]int{x, y}] || m.solid[[2]int{x, y}] {
 				return false
 			}
 		}
