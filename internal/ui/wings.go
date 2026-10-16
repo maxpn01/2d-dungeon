@@ -64,7 +64,7 @@ func (p *PerkPanel) drawWingOffer(width, height int32) {
 		rl.DrawRectangleLinesEx(rect, 1, rl.Fade(tint, .7))
 		primitives.DrawText(labels[i], int32(rect.X)+(int32(rect.Width)-primitives.MeasureText(labels[i], 16))/2, int32(rect.Y)+16, 16, tint)
 	}
-	footer := "Esc to leave / The world keeps moving"
+	footer := "Esc to leave / World paused"
 	if p.pending {
 		footer = "Listening to the guardian..."
 	}

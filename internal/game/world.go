@@ -40,15 +40,28 @@ func NewWorld() *World {
 	return w
 }
 
+func (w *World) Pause() {
+	w.direction = simulation.Direction{}
+	w.accumulator = 0
+	w.previousSnapshot = w.snapshot
+	w.player = w.snapshot.Players[0]
+	w.ais = append(w.ais[:0], w.snapshot.AIs...)
+	w.controls.suppressShootUntilRelease = true
+}
+
 func (w *World) Update(dt float32) {
 	w.accumulator += float64(min(dt, 0.25))
-	for w.accumulator >= simulation.StepSeconds && !w.Dead() && !w.ResultsOpen() {
+	for w.accumulator >= simulation.StepSeconds && !w.Dead() && !w.ResultsOpen() && !w.StatsOpen() && !w.PerksOpen() {
 		now := time.Now()
 		w.simulation.Input(localPlayerID, w.direction)
 		w.direction.Shoot, w.direction.Dash, w.direction.Interact = false, false, false
 		w.simulation.Step(now)
 		w.accumulator -= simulation.StepSeconds
 		w.syncSimulation()
+	}
+	if w.StatsOpen() || w.PerksOpen() {
+		w.Pause()
+		return
 	}
 	w.interpolateActors()
 	w.gameMap.Exploration.SetSecrets(w.snapshot.OpenSecrets, w.snapshot.Orb.GateOpen)

@@ -90,9 +90,16 @@ func (g *Game) run(testing bool) {
 		switch current {
 		case screenSinglePlayer:
 			if !g.world.Dead() && !g.world.ResultsOpen() && !mapOpen {
+				paused := g.world.StatsOpen() || g.world.PerksOpen() || !rl.IsWindowFocused()
 				g.world.ReadInput(g.camera, g.window.width, g.window.height)
-				g.world.Update(dt)
+				if paused || g.world.StatsOpen() || g.world.PerksOpen() {
+					g.world.Pause()
+				} else {
+					g.world.Update(dt)
+				}
 				g.cameraFollowPlayer()
+			} else {
+				g.world.Pause()
 			}
 		}
 

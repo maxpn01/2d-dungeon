@@ -72,6 +72,6 @@ func DrawStats(player simulation.Player, name string, width, height int32) {
 		primitives.DrawText("Spectral Shots", left, rowY, 18, primitives.RuneColor)
 		primitives.DrawText("Shots release an echo. MP cost +25%.", left, rowY+24, 16, primitives.RuneColor)
 	}
-	footer := "[P] / [Esc] Close"
+	footer := "[P] / [Esc] Close | World paused"
 	primitives.DrawText(footer, x+(panelWidth-primitives.MeasureText(footer, 16))/2, y+panelHeight-27, 16, muted)
 }

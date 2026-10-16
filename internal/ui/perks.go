@@ -179,7 +179,7 @@ func (p *PerkPanel) Draw(active string, statues []simulation.StatueState, stats 
 			primitives.DrawText(fmt.Sprintf("[%d] SELECT", i+1), x, cy+279, 18, tint)
 		}
 	}
-	footer := "1-3 or click | Esc to leave | The world keeps moving"
+	footer := "1-3 or click | Esc to leave | World paused"
 	useful := false
 	for _, card := range s.Cards {
 		if card.Rank > stats.Perks[card.Family] {
