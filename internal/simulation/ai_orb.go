@@ -89,7 +89,7 @@ func (w *World) orbShotTarget(ai *aiState, carrier *playerState) *playerState {
 	for _, p := range w.players {
 		radius := AIDetectionRadius
 		if p.ID == carrier.ID {
-			radius = parameters.ShotSpeed * parameters.ShotLifetime
+			radius = ProjectileSpeed(Projectile{MobOwned: true}) * parameters.ShotLifetime
 		}
 		if !w.aiCanSeePlayer(ai, p, radius) {
 			continue

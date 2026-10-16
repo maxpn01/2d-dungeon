@@ -20,6 +20,9 @@ func ProjectileSpeed(shot Projectile) float64 {
 	if shot.Kind == "shockwave" {
 		return parameters.HeavyStompWaveSpeed
 	}
+	if shot.MobOwned {
+		return parameters.ShotSpeed * parameters.MobShotSpeedMultiplier
+	}
 	return parameters.ShotSpeed
 }
 

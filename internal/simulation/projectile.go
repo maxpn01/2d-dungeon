@@ -68,7 +68,7 @@ func (w *World) fire(p *Player, input Direction) {
 	if p.Stats.SpectralShots && len(w.projectiles) < parameters.MaxProjectiles {
 		w.nextProjectile++
 		w.projectiles = append(w.projectiles, Projectile{
-			ID: fmt.Sprintf("echo-%d", w.nextProjectile), Owner: p.ID, Kind: "spectral",
+			ID: fmt.Sprintf("echo-%d", w.nextProjectile), Owner: p.ID, Kind: "spectral", MobOwned: p.Stats.Mob,
 			originX: p.X, originY: p.Y, X: p.X + (PlayerSize-size)/2 - direction.Y*16, Y: p.Y + (PlayerSize-size)/2 + direction.X*16,
 			Direction: direction, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage * .6, Size: size,
 		})

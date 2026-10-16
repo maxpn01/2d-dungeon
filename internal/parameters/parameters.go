@@ -91,7 +91,7 @@ const (
 	HeavyStompStun                 = 0.8
 	HeavyStompCost                 = 1.0
 	HeavyStompDamageMultiplier     = 1.5
-	PursuerSpeedMultiplier         = 1.35
+	PursuerSpeedMultiplier         = 2.4
 	HeavySizeMultiplier            = 1.2
 	GateHeavySizeMultiplier        = 1.65
 	GateHeavyHealthMultiplier      = 1.2
@@ -135,9 +135,10 @@ const (
 	AttackRatePerLevelIncrease = 0.25
 	MobDamageMultiplier        = 0.5
 	MobAttackRateMultiplier    = 0.5
+	MobShotSpeedMultiplier     = 0.9
 	MobMovementSpeedMultiplier = 0.5
 	MobAimAccuracy             = 0.9
-	ShotSpeed                  = 1400.0
+	ShotSpeed                  = 1800.0
 	ShotSize                   = 10.0
 	ShotLifetime               = 1.5
 	SecretWallHits             = 5
