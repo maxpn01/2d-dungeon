@@ -40,7 +40,7 @@ func DefaultLayout() Layout {
 			crownArena(),
 			teleportSanctum(),
 			feastHall(),
-			sideRoom(WestArchive, "THE SUNKEN ARCHIVE", Cells(-32, -106, 20, 20), ""),
+			sideRoom(WestArchive, "THE SUNKEN ARCHIVE", Cells(-32, -106, 20, 20), "archive-inscription"),
 			sideRoom(WestGallery, "THE WEST GALLERY", Cells(-32, -134, 20, 20), "column-inscription"),
 			sideRoom(EastArmory, "THE BROKEN ARMORY", Cells(48, -112, 20, 20), "armory-inscription"),
 			sideRoom(EastGallery, "THE EAST GALLERY", Cells(48, -140, 20, 20), ""),
