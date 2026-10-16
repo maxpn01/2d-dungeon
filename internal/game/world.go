@@ -16,16 +16,19 @@ const localPlayerID = "player"
 
 type World struct {
 	presentation
-	simulation       *simulation.World
-	accumulator      float64
-	previousSnapshot simulation.Snapshot
-	snapshot         simulation.Snapshot
-	player           simulation.Player
-	ais              []simulation.AI
-	controls         controls
-	direction        simulation.Direction
-	name             string
-	started          bool
+	simulation          *simulation.World
+	accumulator         float64
+	previousSnapshot    simulation.Snapshot
+	snapshot            simulation.Snapshot
+	player              simulation.Player
+	ais                 []simulation.AI
+	teleporterDiscovery ui.TeleporterDiscovery
+	libraryDiscovered   bool
+	wingRoomDiscovered  bool
+	controls            controls
+	direction           simulation.Direction
+	name                string
+	started             bool
 }
 
 func NewWorld() *World {
@@ -33,7 +36,7 @@ func NewWorld() *World {
 	w.simulation.Join(localPlayerID)
 	w.syncSimulation()
 	w.gameMap.Exploration.SetSecrets(w.snapshot.OpenSecrets, w.snapshot.Orb.GateOpen)
-	w.gameMap.Exploration.Reveal(w.Center())
+	w.gameMap.Exploration.Reveal(w.Center(), w.player.HasWings, w.player.Flight.Flying)
 	return w
 }
 
@@ -49,7 +52,8 @@ func (w *World) Update(dt float32) {
 	}
 	w.interpolateActors()
 	w.gameMap.Exploration.SetSecrets(w.snapshot.OpenSecrets, w.snapshot.Orb.GateOpen)
-	w.gameMap.Exploration.Reveal(w.Center())
+	w.gameMap.Exploration.Reveal(w.Center(), w.player.HasWings, w.player.Flight.Flying)
+	w.updateDiscoveries(dt)
 }
 
 func (w *World) ReadInput(camera rl.Camera2D, width, height int32) {
@@ -141,6 +145,9 @@ func (w *World) scene() rendering.Scene {
 
 func (w *World) Draw(camera rl.Camera2D, width, height int32) {
 	w.presentation.draw(primitives.Context{Camera: camera, WindowWidth: width, WindowHeight: height}, w.scene())
+	if !w.StatsOpen() && !w.PerksOpen() {
+		w.teleporterDiscovery.Draw(width, height)
+	}
 	p := w.snapshot.Players[0]
 	w.perks.Draw(p.ActiveStatue, w.snapshot.Statues, p.Stats, width, height)
 	if w.StatsOpen() {

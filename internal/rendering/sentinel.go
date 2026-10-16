@@ -53,9 +53,10 @@ func drawMobWeapon(center rl.Vector2, size float32, c simulation.CombatState, ki
 			rl.DrawRing(center, reach*progress, reach*progress+2, base-60, base+60, 24, rl.Fade(accent, .8))
 			angle -= math.Pi / 3 * elapsed / attack.Windup
 		} else {
-			progress := (elapsed - attack.Windup) / (attack.Duration - attack.Windup)
+			progress := min(1, (elapsed-attack.Windup)/attack.Active)
+			fade := float32(max(0, 1-max(0, elapsed-attack.Windup-attack.Active)/max(.01, attack.Duration-attack.Windup-attack.Active)))
 			base := float32(math.Atan2(facing.Y, facing.X) * 180 / math.Pi)
-			rl.DrawRing(center, size/2+25, float32(attack.Reach), base-60, base-60+120*float32(progress), 24, rl.Fade(tint, .35))
+			rl.DrawRing(center, size/2+25, float32(attack.Reach), base-60, base-60+120*float32(progress), 24, rl.Fade(tint, .35*fade))
 			angle += -math.Pi/3 + progress*2*math.Pi/3
 		}
 	} else {

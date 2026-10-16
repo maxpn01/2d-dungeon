@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
@@ -23,6 +24,7 @@ type feedbackActor struct {
 	stone              bool
 	recovery           float64
 	maxHP              float64
+	stompRemaining     float64
 }
 
 type feedbackEffect struct {
@@ -88,6 +90,14 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 				continue
 			}
 			old, existed := f.actors[id]
+			impact := parameters.HeavyStompDuration - parameters.HeavyStompWindup
+			if actor.ai && existed && old.stompRemaining > impact && actor.stompRemaining > 0 && actor.stompRemaining <= impact {
+				local := actors[f.localID]
+				geometry := worldmap.Default()
+				if !local.dead && math.Hypot(actor.x-local.x, actor.y-local.y) <= 600 && geometry.FloorAt(actor.x+actor.size/2, actor.y+actor.size/2) == geometry.FloorAt(local.x+local.size/2, local.y+local.size/2) {
+					playFeedbackSound("stomp")
+				}
+			}
 			if existed && !actor.ai && !old.dead && !actor.dead && worldmap.Default().FloorAt(old.x+old.size/2, old.y+old.size/2) != worldmap.Default().FloorAt(actor.x+actor.size/2, actor.y+actor.size/2) {
 				for _, portal := range worldmap.Default().Portals() {
 					at := portal.Position()
@@ -173,19 +183,22 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot, localID 
 		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: simulation.AISize, hp: a.Stats.HP + a.Split.Mass(), xp: a.Stats.XP, level: a.Stats.Level, tint: tint, ai: true, maxHP: a.Stats.MaxHP()}
 		actor := actors[a.ID]
 		actor.stone = a.Stone
+		actor.stompRemaining = a.Combat.StompRemaining
 		actors[a.ID] = actor
 	}
 	if !f.observed.IsZero() {
 		local := actors[localID]
 		geometry := worldmap.Default().WithSecrets(snapshot.OpenSecrets)
+		traps := geometry.VaultTraps()
+		body := physics.Square(local.x, local.y, local.size)
 		for i, state := range snapshot.VaultFire {
-			if i >= len(f.vaultFire) || state.TriggeredTick == 0 || snapshot.Tick < state.TriggeredTick {
+			if i >= len(f.vaultFire) || i >= len(traps) || state.TriggeredTick == 0 || snapshot.Tick < state.TriggeredTick {
 				continue
 			}
 			age := snapshot.Tick - state.TriggeredTick
 			if age >= simulation.VaultTrapWarningTicks && age < simulation.VaultTrapWarningTicks+simulation.VaultTrapFireTicks && f.vaultFire[i] != state.TriggeredTick {
 				f.vaultFire[i] = state.TriggeredTick
-				if geometry.RoomContains(worldmap.OrbVault, physics.Square(local.x, local.y, local.size)) {
+				if !local.dead && geometry.FloorAt(local.x+local.size/2, local.y+local.size/2) == worldmap.FirstFloor && body.Overlaps(traps[i].Lane.Expanded(300)) {
 					playFeedbackSound("fire")
 				}
 			}

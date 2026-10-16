@@ -30,17 +30,17 @@ func MobBody(t MobType, x, y float64) physics.Rect {
 }
 
 type MobMeleeAttack struct {
-	Reach, Windup, Duration, DamageMultiplier float64
+	Reach, Windup, Duration, Active, DamageMultiplier, AdvanceMultiplier float64
 }
 
 func MobMelee(t MobType) MobMeleeAttack {
 	switch t {
 	case DungeonPursuer:
-		return MobMeleeAttack{parameters.PursuerMeleeReach, parameters.PursuerMeleeWindup, parameters.PursuerMeleeDuration, 1}
+		return MobMeleeAttack{Reach: parameters.PursuerMeleeReach, Windup: parameters.PursuerMeleeWindup, Duration: parameters.PursuerMeleeDuration, Active: parameters.PursuerMeleeActive, DamageMultiplier: 1, AdvanceMultiplier: parameters.PursuerMeleeAdvanceMultiplier}
 	case DungeonHeavy, GateHeavy:
-		return MobMeleeAttack{parameters.HeavyMeleeReach, parameters.HeavyMeleeWindup, parameters.HeavyMeleeDuration, parameters.HeavyMeleeDamageMultiplier}
+		return MobMeleeAttack{Reach: parameters.HeavyMeleeReach, Windup: parameters.HeavyMeleeWindup, Duration: parameters.HeavyMeleeDuration, Active: parameters.HeavyMeleeActive, DamageMultiplier: parameters.HeavyMeleeDamageMultiplier, AdvanceMultiplier: parameters.HeavyMeleeAdvanceMultiplier}
 	case Sentinel:
-		return MobMeleeAttack{SentinelSwordReach, SentinelSwordWindup, SentinelSwordDuration, 1}
+		return MobMeleeAttack{Reach: SentinelSwordReach, Windup: SentinelSwordWindup, Duration: SentinelSwordDuration, Active: parameters.SentinelMeleeActive, DamageMultiplier: 1, AdvanceMultiplier: parameters.SentinelMeleeAdvanceMultiplier}
 	}
 	return MobMeleeAttack{}
 }
@@ -154,7 +154,10 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 			ai.Behavior = "winding stomp"
 			if ai.Combat.StompRemaining > parameters.HeavyStompDuration-parameters.HeavyStompWindup+parameters.HeavyStompAimLock {
 				if target := w.players[ai.aggressorID]; target != nil && w.aiCanSeePlayer(ai, target, parameters.HeavyStompReach+PlayerSize) {
-					dx, dy := target.X-ai.X, target.Y-ai.Y
+					impactIn := ai.Combat.StompRemaining - (parameters.HeavyStompDuration - parameters.HeavyStompWindup)
+					travel := math.Hypot(target.X-ai.X, target.Y-ai.Y) / parameters.HeavyStompWaveSpeed
+					intercept := meleeIntercept(target, impactIn+travel)
+					dx, dy := intercept.X-ai.X, intercept.Y-ai.Y
 					if distance := math.Hypot(dx, dy); distance > 0 {
 						ai.Combat.StompDirection = Direction{X: dx / distance, Y: dy / distance}
 						ai.Combat.Facing = ai.Combat.StompDirection
@@ -162,15 +165,36 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 				}
 			}
 		}
-		return Direction{AimX: ai.Combat.StompDirection.X, AimY: ai.Combat.StompDirection.Y}
+		d := Direction{AimX: ai.Combat.StompDirection.X, AimY: ai.Combat.StompDirection.Y}
+		if target := w.players[ai.aggressorID]; target != nil && !target.Dead {
+			movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), target.X, target.Y)
+			d.X, d.Y = movement.X, movement.Y
+		}
+		return limitMeleeAdvance(ai, w.players[ai.aggressorID], d, 1)
 	}
 	if ai.Combat.SwordRemaining > 0 {
 		ai.Behavior = "striking"
-		if ai.Combat.SwordRemaining > attack.Duration-attack.Windup {
+		elapsed := attack.Duration - ai.Combat.SwordRemaining
+		if elapsed < attack.Windup {
 			ai.Behavior = "winding strike"
+			if target := w.players[ai.aggressorID]; target != nil && elapsed < attack.Windup-parameters.MeleeAimLock && w.aiCanSeePlayer(ai, target, attack.Reach+PlayerSize+80) {
+				trackMeleeAim(ai, target, attack.Windup-elapsed, parameters.MeleeTurnRate)
+			}
 		}
-		return Direction{AimX: ai.Combat.SwordDirection.X, AimY: ai.Combat.SwordDirection.Y}
+		d := Direction{AimX: ai.Combat.SwordDirection.X, AimY: ai.Combat.SwordDirection.Y}
+		if elapsed < attack.Windup+attack.Active {
+			d.X, d.Y = d.AimX, d.AimY
+		} else if target := w.players[ai.aggressorID]; target != nil && !target.Dead {
+			movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), target.X, target.Y)
+			d.X, d.Y = movement.X, movement.Y
+		}
+		multiplier := 1.0
+		if elapsed < attack.Windup+attack.Active {
+			multiplier = attack.AdvanceMultiplier
+		}
+		return limitMeleeAdvance(ai, w.players[ai.aggressorID], d, multiplier)
 	}
+
 	if ai.Combat.Phase != DashIdle {
 		ai.Behavior = "charging"
 		if ai.Combat.Phase == DashWinding {
@@ -188,28 +212,37 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 	ai.alertUntil = w.tick + parameters.AIAlertSeconds*TickRate
 	if ai.attackCooldown > 0 {
 		ai.Behavior = "recovering strike"
-		if distance > attack.Reach+PlayerSize/2 {
-			movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), target.X, target.Y)
-			d.X, d.Y = movement.X*.5, movement.Y*.5
-		}
-		return d
+		movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), target.X, target.Y)
+		d.X, d.Y = movement.X, movement.Y
+		return limitMeleeAdvance(ai, target, d, 1)
 	}
-	if ai.Type.IsHeavy() && ai.mobChargeCooldown == 0 && ai.Stats.MP >= parameters.HeavyStompCost && distance <= parameters.HeavyStompReach+PlayerSize/2 && w.aiCanSeePlayer(ai, target, parameters.HeavyStompReach+PlayerSize) {
+	if ai.Type.IsHeavy() && distance > attack.Reach+PlayerSize/2-8 && ai.mobChargeCooldown == 0 && ai.Stats.MP >= parameters.HeavyStompCost && distance <= parameters.HeavyStompReach+PlayerSize/2 && w.aiCanSeePlayer(ai, target, parameters.HeavyStompReach+PlayerSize) {
 		ai.Stats.MP -= parameters.HeavyStompCost
 		ai.Combat.StompRemaining = parameters.HeavyStompDuration
-		ai.Combat.StompDirection = Direction{X: d.AimX, Y: d.AimY}
+		intercept := meleeIntercept(target, parameters.HeavyStompWindup+distance/parameters.HeavyStompWaveSpeed)
+		sx, sy := intercept.X-ai.X, intercept.Y-ai.Y
+		length := math.Hypot(sx, sy)
+		ai.Combat.StompDirection = Direction{X: sx / max(1, length), Y: sy / max(1, length)}
 		ai.Combat.Facing = ai.Combat.StompDirection
 		ai.mobChargeCooldown = parameters.HeavyStompCooldownTicks
 		ai.attackCooldown = int(math.Ceil((parameters.HeavyStompDuration + 1/ai.Stats.AttackRate) * TickRate))
 		ai.Behavior = "winding stomp"
-		return d
+		movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), target.X, target.Y)
+		d.X, d.Y = movement.X, movement.Y
+		return limitMeleeAdvance(ai, target, d, 1)
 	}
 	if distance <= attack.Reach+PlayerSize/2-8 && w.aiCanSeePlayer(ai, target, attack.Reach+PlayerSize) {
+		intercept := meleeIntercept(target, attack.Windup)
+		sx, sy := intercept.X-ai.X, intercept.Y-ai.Y
+		length := math.Hypot(sx, sy)
+		d.AimX, d.AimY = sx/max(1, length), sy/max(1, length)
 		ai.Combat.SwordRemaining = attack.Duration
 		ai.Combat.SwordDirection = Direction{X: d.AimX, Y: d.AimY}
+		ai.meleeHits = nil
+		d.X, d.Y = d.AimX, d.AimY
 		ai.attackCooldown = int(math.Ceil((attack.Duration + 1/ai.Stats.AttackRate) * TickRate))
 		ai.Behavior = "winding strike"
-		return d
+		return limitMeleeAdvance(ai, target, d, attack.AdvanceMultiplier)
 	}
 	movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), target.X, target.Y)
 	d.X, d.Y = movement.X, movement.Y

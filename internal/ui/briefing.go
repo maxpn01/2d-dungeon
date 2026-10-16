@@ -3,13 +3,15 @@ package ui
 import (
 	"math"
 
+	"raylib-2d-sandbox/internal/rendering"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type Briefing struct {
-	elapsed float64
+	elapsed     float64
+	soundPlayed bool
 }
 
 func NewBriefing() *Briefing {
@@ -17,6 +19,10 @@ func NewBriefing() *Briefing {
 }
 
 func (b *Briefing) Draw(width, height int32) Action {
+	if !b.soundPlayed {
+		rendering.PlayDungeonWelcomeSound()
+		b.soundPlayed = true
+	}
 	b.elapsed += float64(rl.GetFrameTime())
 	scale := min(float32(1), min(float32(width-48)/840, float32(height-48)/660))
 	x, y := (float32(width)-840*scale)/2, (float32(height)-660*scale)/2
@@ -66,9 +72,6 @@ func (b *Briefing) Draw(width, height int32) Action {
 		line(corner[0], corner[1], corner[0]+28*dx, corner[1], gold)
 		line(corner[0], corner[1], corner[0], corner[1]+28*dy, gold)
 	}
-	mode := "A SOLITARY DESCENT"
-
-	text(mode, 32, 16, teal)
 	text("The dungeon is waking", 66, 46, gold)
 	pulse := float32(.5 + .15*math.Sin(b.elapsed*1.8))
 	rl.DrawCircleGradient(rl.NewVector2(x+420*scale, y+172*scale), 62*scale, rl.Fade(teal, .12), rl.Fade(teal, 0))
@@ -80,8 +83,8 @@ func (b *Briefing) Draw(width, height int32) Action {
 	line(490, 174, 570, 174, rl.Fade(gold, .25))
 	text("Something stirs beneath these ancient halls.", 248, 23, rl.RayWhite)
 
-	text("Find the guarded orb vault within the dungeon.", 280, 23, muted)
-	text("Explore, grow stronger, and discover the way to the next floor.", 333, 23, gold)
+	text("Explore the halls and grow stronger.", 280, 23, muted)
+	text("Find a way to the next floor.", 333, 23, gold)
 
 	line(64, 383, 776, 383, rl.Fade(gold, .2))
 	controls := [][2]string{{"WASD", "Move"}, {"MOUSE", "Aim"}, {"LEFT CLICK", "Shoot"}, {"SHIFT", "Boost"}, {"E", "Interact"}, {"M", "Map"}, {"P", "Stats"}}
@@ -109,7 +112,7 @@ func (b *Briefing) Draw(width, height int32) Action {
 	rl.DrawRectangleLinesEx(button, max(float32(1), scale), gold)
 	text("Enter the dungeon", 567, 26, rl.RayWhite)
 
-	footer := "Enter to continue / Esc to return"
+	footer := "Enter or Esc to continue"
 
 	text(footer, 623, 16, muted)
 	if b.elapsed > .2 && rl.IsWindowFocused() && (rl.IsKeyPressed(rl.KeyEnter) || hovered && rl.IsMouseButtonPressed(rl.MouseLeftButton)) {

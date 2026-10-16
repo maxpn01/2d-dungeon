@@ -5,6 +5,8 @@ import "raylib-2d-sandbox/internal/physics"
 type Exploration struct {
 	world    *Map
 	radius   int
+	flying   bool
+	margin   int
 	explored map[[2]int]bool
 	visible  map[[2]int]bool
 	walls    map[[2]int]bool
@@ -26,6 +28,19 @@ func (e *Exploration) SetWorld(world *Map) {
 	}
 }
 
+func (e *Exploration) SetVision(radius float64, flying bool, margin int) {
+	cells := int(radius / Tile)
+	if e.radius != cells || e.flying != flying || e.margin != margin {
+		e.radius, e.flying, e.margin = cells, flying, margin
+		e.visible = nil
+	}
+}
+
+func (e *Exploration) Overview() (physics.Rect, bool) {
+	area := Cells(-e.margin, -e.margin, SurfaceCells+2*e.margin, SurfaceCells+2*e.margin)
+	return area.Bounds(), e.flying && area.Contains(At(e.origin[0], e.origin[1]))
+}
+
 func (e *Exploration) Reveal(position physics.Vector) {
 	if !position.Valid() {
 		return
@@ -37,14 +52,32 @@ func (e *Exploration) Reveal(position physics.Vector) {
 	e.origin = origin
 	e.visible = make(map[[2]int]bool)
 	e.walls = make(map[[2]int]bool)
-	for y := max(MinCellY, origin[1]-e.radius); y <= min(MaxCellY-1, origin[1]+e.radius); y++ {
-		for x := max(MinCellX, origin[0]-e.radius); x <= min(MaxCellX-1, origin[0]+e.radius); x++ {
+	left, top, right, bottom := origin[0]-e.radius, origin[1]-e.radius, origin[0]+e.radius, origin[1]+e.radius
+	overview, overlooking := e.Overview()
+	if overlooking {
+		left, top = min(left, -e.margin), min(top, -e.margin)
+		right, bottom = max(right, SurfaceCells+e.margin-1), max(bottom, SurfaceCells+e.margin-1)
+	}
+	limitBottom := MaxCellY - 1
+	if overlooking {
+		limitBottom = max(limitBottom, SurfaceCells+e.margin-1)
+	}
+	for y := max(MinCellY, top); y <= min(limitBottom, bottom); y++ {
+		for x := max(MinCellX, left); x <= min(MaxCellX-1, right); x++ {
 			dx, dy := x-origin[0], y-origin[1]
-			if dx*dx+dy*dy > e.radius*e.radius {
+			if dx*dx+dy*dy > e.radius*e.radius && !(overlooking && overview.Contains(physics.Square(float64(x*Tile), float64(y*Tile), Tile))) {
 				continue
 			}
 			cell := [2]int{x, y}
-			if traceCells(origin, cell, e.world.fogOpaque) {
+			if e.flying || traceCells(origin, cell, e.world.fogOpaque) {
+				if e.world.CellFloor(x, y) != e.world.CellFloor(origin[0], origin[1]) || e.flying && e.world.SecretHidden(float64(x*Tile+Tile/2), float64(y*Tile+Tile/2)) {
+					continue
+				}
+				if e.flying && e.world.vaultGateClosed {
+					if room, ok := e.world.Room(OrbVault); ok && room.Area.Contains(At(x, y)) {
+						continue
+					}
+				}
 				e.visible[cell] = true
 				e.explored[cell] = true
 			}
@@ -78,5 +111,5 @@ func (e *Exploration) Visible(cell [2]int) bool {
 func (e *Exploration) ActorVisible(body physics.Rect) bool {
 	center := body.Center()
 	cell := WorldCell(center.X, center.Y)
-	return e.Visible(cell) && !e.world.fogOpaque(cell[0], cell[1]) && traceCells(e.origin, cell, e.world.fogOpaque)
+	return e.Visible(cell) && !e.world.fogOpaque(cell[0], cell[1]) && (e.flying || traceCells(e.origin, cell, e.world.fogOpaque))
 }

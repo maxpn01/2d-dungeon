@@ -46,7 +46,7 @@ func NewMap() *Map {
 
 func (m *Map) Draw(ctx primitives.Context, snapshot simulation.Snapshot, local simulation.Player) {
 	m.Exploration.SetSecrets(snapshot.OpenSecrets, snapshot.Orb.GateOpen)
-	m.Exploration.Reveal(rl.NewVector2(float32(local.X+simulation.PlayerSize/2), float32(local.Y+simulation.PlayerSize/2)))
+	m.Exploration.Reveal(rl.NewVector2(float32(local.X+simulation.PlayerSize/2), float32(local.Y+simulation.PlayerSize/2)), local.HasWings, local.Flight.Flying)
 	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
 	m.wallHits = snapshot.SecretWallHits
 	m.safeZones, m.gate = snapshot.SafeZones, local.EntranceGate

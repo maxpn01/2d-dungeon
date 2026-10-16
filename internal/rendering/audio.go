@@ -6,11 +6,10 @@ import (
 	"time"
 
 	"raylib-2d-sandbox/assets"
+	"raylib-2d-sandbox/internal/parameters"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
-
-const victorySoundVolume float32 = .04
 
 var combatAudio struct {
 	sounds       map[string]rl.Sound
@@ -34,14 +33,44 @@ func InitFeedbackAudio() {
 	for _, cue := range []struct {
 		name                 string
 		start, end, duration float64
-	}{{"hit", 950, 220, .075}, {"hurt", 180, 65, .18}, {"mana", 240, 170, .16}, {"low", 100, 75, .3}, {"stone", 130, 42, .14}, {"awaken", 0, 0, 3.0}, {"fire", 0, 0, .9}, {"rumble", 0, 0, DungeonAwakeningShakeDuration}, {"gate", 0, 0, 1.6}, {"seal", 330, 990, .45}, {"library-tap", 620, 380, .075}, {"library-bounce", 430, 280, .055}, {"library-bind", 440, 1100, .28}, {"library-done", 660, 1320, .6}, {"completion", 0, 0, 8}} {
+		volume               float32
+	}{
+		{"library-discovery", 0, 0, 3.2, parameters.LibraryDiscoverySoundVolume},
+		{"welcome", 0, 0, 2.8, parameters.DungeonWelcomeSoundVolume},
+		{"hint", 660, 880, .18, parameters.HintSoundVolume},
+		{"hit", 950, 220, .075, parameters.DefaultSoundVolume},
+		{"hurt", 180, 65, .18, parameters.DefaultSoundVolume},
+		{"mana", 240, 170, .16, parameters.DefaultSoundVolume},
+		{"low", 100, 75, .3, parameters.DefaultSoundVolume},
+		{"stone", 130, 42, .14, parameters.DefaultSoundVolume},
+		{"awaken", 0, 0, 3.0, parameters.SentinelAwakeningSoundVolume},
+		{"fire", 0, 0, .9, parameters.FireSoundVolume},
+		{"stomp", 0, 0, .45, parameters.HeavyStompSoundVolume},
+		{"rumble", 0, 0, DungeonAwakeningShakeDuration, parameters.OrbAwakeningSoundVolume},
+		{"gate", 0, 0, 1.6, parameters.GateSoundVolume},
+		{"seal", 330, 990, .45, parameters.SealSoundVolume},
+		{"library-tap", 620, 380, .075, parameters.DefaultSoundVolume},
+		{"library-bounce", 430, 280, .055, parameters.DefaultSoundVolume},
+		{"library-bind", 440, 1100, .28, parameters.DefaultSoundVolume},
+		{"library-done", 660, 1320, .6, parameters.DefaultSoundVolume},
+		{"completion", 0, 0, 8, parameters.VictorySoundVolume},
+	} {
 		var data []byte
-		if cue.name == "completion" {
+		switch cue.name {
+		case "completion":
 			data = assets.RoundComplete
-		} else {
+		case "awaken":
+			data = assets.SentinelAwakening
+		case "welcome":
+			data = dungeonWelcomeWave(cue.duration)
+		case "library-discovery":
+			data = libraryDiscoveryWave(cue.duration)
+		case "stomp":
+			data = heavyStompWave(cue.duration)
+		default:
 			data = feedbackWave(cue.start, cue.end, cue.duration)
 		}
-		if cue.name == "fire" || cue.name == "awaken" || cue.name == "rumble" || cue.name == "gate" {
+		if cue.name == "fire" || cue.name == "rumble" || cue.name == "gate" {
 			data = environmentWave(cue.name, cue.duration)
 		}
 		wave := rl.LoadWaveFromMemory(".wav", data, int32(len(data)))
@@ -51,17 +80,15 @@ func InitFeedbackAudio() {
 		sound := rl.LoadSoundFromWave(wave)
 		rl.UnloadWave(wave)
 		if rl.IsSoundValid(sound) {
-			volume := float32(.3)
-			if cue.name == "completion" {
-				volume = victorySoundVolume
-			}
-			rl.SetSoundVolume(sound, volume)
+			rl.SetSoundVolume(sound, cue.volume)
 			combatAudio.sounds[cue.name] = sound
 		}
 	}
+	initFloorAmbience()
 }
 
 func CloseFeedbackAudio() {
+	closeFloorAmbience()
 	for _, sound := range combatAudio.sounds {
 		rl.UnloadSound(sound)
 	}
@@ -77,11 +104,17 @@ func FeedbackAudioEnabled() bool { return !combatAudio.muted && len(combatAudio.
 func ToggleFeedbackAudio() {
 	combatAudio.muted = !combatAudio.muted
 	if combatAudio.muted {
+		floorAmbience.volume = 0
+		if floorAmbience.ready {
+			rl.SetMusicVolume(floorAmbience.music, 0)
+		}
 		for _, sound := range combatAudio.sounds {
 			rl.StopSound(sound)
 		}
 	}
 }
+
+func PlayHintSound() { playFeedbackSound("hint") }
 
 func playFeedbackSound(kind string) {
 	if !FeedbackAudioEnabled() {

@@ -57,7 +57,9 @@ func (g *Game) run(testing bool) {
 				case screenSettings:
 					current = screenMenu
 				case screenBriefing:
-					current = screenMenu
+					g.soloBriefed = true
+					g.startSinglePlayer()
+					current = screenSinglePlayer
 				case screenSinglePlayer:
 					if !g.world.Dead() {
 						current = screenMenu
@@ -156,5 +158,6 @@ func (g *Game) run(testing bool) {
 		case ui.ActionExit:
 			exitRequested = true
 		}
+		g.updateAmbience(current, dt)
 	}
 }

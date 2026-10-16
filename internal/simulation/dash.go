@@ -93,6 +93,10 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 	walkSpeed := p.MovementSpeed()
 	if p.Stats.Mob {
 		walkSpeed *= min(1, math.Hypot(input.X, input.Y))
+		attack := MobMelee(p.Stats.MobType)
+		if c.SwordRemaining > 0 && attack.Duration-c.SwordRemaining < attack.Windup+attack.Active {
+			walkSpeed *= attack.AdvanceMultiplier
+		}
 	}
 	c.Held = input.Dash
 	if length := math.Hypot(input.AimX, input.AimY); length > 0 {

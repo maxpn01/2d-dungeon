@@ -53,7 +53,7 @@ func (w *World) ReadTestingInput() bool {
 			w.resultsDismissed = false
 		}
 		w.gameMap.Exploration.SetSecrets(w.snapshot.OpenSecrets, w.snapshot.Orb.GateOpen)
-		w.gameMap.Exploration.Reveal(w.Center())
+		w.gameMap.Exploration.Reveal(w.Center(), w.player.HasWings, w.player.Flight.Flying)
 	}
 	return changed
 }

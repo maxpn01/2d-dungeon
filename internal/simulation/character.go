@@ -90,7 +90,7 @@ func AdvancePlayer(p *Player, input Direction, dt float64, zones ...[]SafeZone) 
 		p.Combat.StunRemaining = max(0, p.Combat.StunRemaining-dt)
 		return
 	}
-	if p.Combat.StompRemaining > 0 {
+	if p.Combat.StompRemaining > 0 && !p.Stats.Mob {
 		return
 	}
 	if p.HasWings {

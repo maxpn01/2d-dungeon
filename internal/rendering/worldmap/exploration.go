@@ -15,6 +15,7 @@ type Exploration struct {
 	hiddenAreas []physics.Rect
 	fogLight    map[[2]int]float64
 	fogFocus    rl.Vector2
+	radius      float64
 }
 
 func explorationCell(p rl.Vector2) [2]int {
@@ -48,7 +49,11 @@ func (e *Exploration) SetSecrets(open []string, gateOpen ...float64) {
 	}
 }
 
-func (e *Exploration) Reveal(p rl.Vector2) {
+func (e *Exploration) Reveal(p rl.Vector2, hasWings, flying bool) {
+	e.radius = parameters.ExplorationRadius
+	if hasWings {
+		e.radius = parameters.WingExplorationRadius
+	}
 	e.focus = p
 	if e.state == nil {
 		if e.world == nil {
@@ -56,10 +61,16 @@ func (e *Exploration) Reveal(p rl.Vector2) {
 		}
 		e.state = e.world.NewExploration(parameters.ExplorationRadius)
 	}
+	e.state.SetVision(e.radius, flying, parameters.WingOverviewMargin)
 	e.state.Reveal(physics.Vector{X: float64(p.X), Y: float64(p.Y)})
 }
 
 func (e *Exploration) ActorVisible(x, y, size float64) bool {
+	for _, area := range e.hiddenAreas {
+		if area.Overlaps(physics.Square(x, y, max(size, 1))) {
+			return false
+		}
+	}
 	return e.state != nil && e.state.ActorVisible(physics.Square(x, y, size))
 }
 

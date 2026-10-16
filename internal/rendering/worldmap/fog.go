@@ -4,7 +4,6 @@ import (
 	"image/color"
 	"math"
 
-	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 	mapdata "raylib-2d-sandbox/internal/worldmap"
@@ -35,7 +34,14 @@ func (e *Exploration) fogOpacity(x, y float64) float32 {
 		light = max(light, e.fogLight[cell])
 	}
 	distance := math.Hypot(x-float64(e.focus.X), y-float64(e.focus.Y))
-	fade := max(0, min(1, (parameters.ExplorationRadius-distance)/110))
+	fade := max(0, min(1, (e.radius-distance)/110))
+	if overview, ok := e.state.Overview(); ok {
+		outside := math.Hypot(max(overview.X-x, 0, x-overview.X-overview.W), max(overview.Y-y, 0, y-overview.Y-overview.H))
+		if outside == 0 {
+			edge := min(x-overview.X, overview.X+overview.W-x, y-overview.Y, overview.Y+overview.H-y)
+			fade = max(fade, min(1, edge/mapdata.Tile))
+		}
+	}
 	fade = fade * fade * (3 - 2*fade)
 	return float32(1 - light*fade)
 }
@@ -86,15 +92,21 @@ func (e *Exploration) advanceFog() {
 	if e.state == nil {
 		return
 	}
-	reset := e.fogLight == nil || math.Hypot(float64(e.focus.X-e.fogFocus.X), float64(e.focus.Y-e.fogFocus.Y)) > parameters.ExplorationRadius
+	reset := e.fogLight == nil || math.Hypot(float64(e.focus.X-e.fogFocus.X), float64(e.focus.Y-e.fogFocus.Y)) > e.radius
 	if reset {
 		e.fogLight = make(map[[2]int]float64)
 	}
 	e.fogFocus = e.focus
 	origin := explorationCell(e.focus)
 	blend := 1 - math.Exp(-float64(min(rl.GetFrameTime(), .05))*14)
-	for y := origin[1] - 12; y <= origin[1]+12; y++ {
-		for x := origin[0] - 12; x <= origin[0]+12; x++ {
+	reach := int(math.Ceil(e.radius/mapdata.Tile)) + 1
+	left, top, right, bottom := origin[0]-reach, origin[1]-reach, origin[0]+reach, origin[1]+reach
+	if overview, ok := e.state.Overview(); ok {
+		left, top = min(left, int(overview.X/mapdata.Tile)-1), min(top, int(overview.Y/mapdata.Tile)-1)
+		right, bottom = max(right, int((overview.X+overview.W)/mapdata.Tile)+1), max(bottom, int((overview.Y+overview.H)/mapdata.Tile)+1)
+	}
+	for y := top; y <= bottom; y++ {
+		for x := left; x <= right; x++ {
 			cell := [2]int{x, y}
 			target := 0.0
 			if e.Visible(cell) {
@@ -110,17 +122,10 @@ func (e *Exploration) advanceFog() {
 		}
 	}
 	for cell := range e.fogLight {
-		if absInt(cell[0]-origin[0]) > 12 || absInt(cell[1]-origin[1]) > 12 {
+		if cell[0] < left || cell[0] > right || cell[1] < top || cell[1] > bottom {
 			delete(e.fogLight, cell)
 		}
 	}
-}
-
-func absInt(value int) int {
-	if value < 0 {
-		return -value
-	}
-	return value
 }
 
 func (m *Map) DrawFog(ctx primitives.Context) {

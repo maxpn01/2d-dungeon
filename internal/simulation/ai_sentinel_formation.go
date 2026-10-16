@@ -42,7 +42,7 @@ func (w *World) sentinelFormation(ai *aiState, target *playerState) (bool, physi
 	if math.Hypot(target.velocityX, target.velocityY) > 40 {
 		angle += math.Atan2(target.velocityY, target.velocityX)
 	}
-	intercept := sentinelIntercept(target, .25)
+	intercept := meleeIntercept(target, .25)
 	point := physics.Vector{X: intercept.X + math.Cos(angle)*85, Y: intercept.Y + math.Sin(angle)*85}
 	if room, ok := worldmap.Default().Room(ai.den.RoomID); ok {
 		b := physics.Square(point.X, point.Y, AISize).ClampedTo(room.Bounds().Expanded(-AISize))
