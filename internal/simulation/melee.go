@@ -45,7 +45,7 @@ func (w *World) advanceMobMelee(actors []eater) {
 		start := position{ai.X, ai.Y}
 		if dashAttack {
 			for _, actor := range actors {
-				if actor.ai == ai && actor.cell == nil {
+				if actor.ai == ai {
 					start = actor.start
 					break
 				}
@@ -59,7 +59,7 @@ func (w *World) advanceMobMelee(actors []eater) {
 			}
 		}
 		for _, target := range actors {
-			if target.player == nil || target.dead() || target.protectedAt(1, w.safeZones) {
+			if target.player == nil || target.dead() || target.protected() {
 				continue
 			}
 			if dashAttack {

@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"fmt"
 	"math"
 	"sort"
 
@@ -34,7 +33,6 @@ func indexEaters(eaters []eater) map[foodGridCell][]int {
 }
 
 type eater struct {
-	cell       *SplitCell
 	id         string
 	start, end position
 	size       float64
@@ -45,30 +43,12 @@ type eater struct {
 
 func (w *World) eaters(previous map[string]position) []eater {
 	capacity := len(w.players) + len(w.ais)
-	for _, player := range w.players {
-		capacity += len(player.Split)
-	}
-	for i := range w.ais {
-		capacity += len(w.ais[i].Split)
-	}
 	eaters := make([]eater, 0, capacity)
 	for id, player := range w.players {
 		if player.Dead {
 			continue
 		}
 		eaters = append(eaters, eater{id: id, start: previous[id], end: position{player.X, player.Y}, size: PlayerSize, stats: &player.Stats, player: player})
-		for i := range player.Split {
-			cell := &player.Split[i]
-			if !cell.Active {
-				continue
-			}
-			cellID := fmt.Sprintf("%s/split/%d", id, i)
-			start, ok := previous[cellID]
-			if !ok {
-				start = position{cell.X, cell.Y}
-			}
-			eaters = append(eaters, eater{id: cellID, start: start, end: position{cell.X, cell.Y}, size: PlayerSize, stats: &cell.Stats, player: player, cell: cell})
-		}
 	}
 	sort.Slice(eaters, func(i, j int) bool { return eaters[i].id < eaters[j].id })
 	for i := range w.ais {
@@ -80,18 +60,6 @@ func (w *World) eaters(previous map[string]position) []eater {
 		old := previous[ai.ID]
 		start := MobBody(ai.Type, old.x, old.y)
 		eaters = append(eaters, eater{id: ai.ID, start: position{start.X, start.Y}, end: position{body.X, body.Y}, size: body.W, stats: &ai.Stats, ai: ai})
-		for j := range ai.Split {
-			cell := &ai.Split[j]
-			if !cell.Active {
-				continue
-			}
-			id := fmt.Sprintf("%s/split/%d", ai.ID, j)
-			start, ok := previous[id]
-			if !ok {
-				start = position{cell.X, cell.Y}
-			}
-			eaters = append(eaters, eater{id: id, start: start, end: position{cell.X, cell.Y}, size: AISize, stats: &cell.Stats, ai: ai, cell: cell})
-		}
 	}
 	return eaters
 }
@@ -108,21 +76,9 @@ func (e eater) die(killer string, tick uint64) {
 		e.stats.HP = e.stats.MaxHP()
 		return
 	}
-	if e.player != nil && e.player.Split.Count() > 0 {
-		e.stats.HP = 0
-		if e.player.Stats.HP > 0 || e.player.Split.Mass() > 0 {
-			return
-		}
-	}
 	if e.player == nil {
 		if e.ai.respawnTick != 0 {
 			return
-		}
-		if e.ai.Split.Count() > 0 {
-			e.stats.HP = 0
-			if e.ai.Stats.HP > 0 || e.ai.Split.Mass() > 0 {
-				return
-			}
 		}
 		e.ai.deaths++
 		e.ai.respawnTick = tick + AIRespawnSeconds*TickRate
@@ -157,13 +113,10 @@ func (w *World) consumeFruits(eaters []eater) {
 		earliest := math.Inf(1)
 		tryActor := func(i int) {
 			actor := eaters[i]
-			if actor.ai != nil && actor.ai.den.ID != "" {
+			if actor.ai != nil {
 				return
 			}
-			if fruit.Ejected && actor.player != nil && actor.player.ID == fruit.Source && w.tick < fruit.OwnerPickupTick {
-				return
-			}
-			if actor.dead() || actor.ai != nil && (actor.ai.Behavior == "sleeping" || actor.ai.Behavior == "emerging") {
+			if actor.dead() {
 				return
 			}
 			location := position{fruit.X, fruit.Y}
@@ -220,42 +173,9 @@ func (e eater) ownerStats() *Stats {
 	return &e.ai.Stats
 }
 
-func (e eater) takeMP() float64 {
-	owner := e.ownerStats()
-	totalHP := owner.HP
-	if e.player != nil {
-		totalHP += e.player.Split.Mass()
-	} else {
-		totalHP += e.ai.Split.Mass()
-	}
-	amount := owner.MP * min(1, e.stats.HP/max(e.stats.HP, totalHP))
-	owner.MP = max(0, owner.MP-amount)
-	return amount * ActorMPFraction
-}
-
 func (e eater) gain(hp, xp float64, mana ...float64) {
-	owner := e.ownerStats()
 	for _, mp := range mana {
-		owner.GainMP(mp)
+		e.ownerStats().GainMP(mp)
 	}
-	if (e.player == nil || e.player.Split.Count() == 0) && (e.ai == nil || e.ai.Split.Count() == 0) {
-		e.stats.Eat(hp, xp)
-		return
-	}
-	var stats *Stats
-	var split *SplitCells
-	if e.player != nil {
-		stats, split = &e.player.Stats, &e.player.Split
-	} else {
-		stats, split = &e.ai.Stats, &e.ai.Split
-	}
-	stats.GainXP(xp)
-	for i := range *split {
-		if (*split)[i].Active {
-			(*split)[i].Stats.Level, (*split)[i].Stats.XP = stats.Level, stats.XP
-			(*split)[i].Stats.rebuildPerks()
-		}
-	}
-	room := max(0, stats.MaxHP()-stats.HP-split.Mass())
-	e.stats.HP += min(hp, room)
+	e.stats.Eat(hp, xp)
 }

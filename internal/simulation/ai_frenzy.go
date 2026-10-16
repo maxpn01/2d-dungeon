@@ -39,13 +39,6 @@ func (w *World) clearMobShot(ai *aiState, target *playerState) bool {
 		if _, hit := body.CollisionFraction(delta, physics.Square(other.X, other.Y, AISize).Expanded(12), physics.Vector{}); hit {
 			return false
 		}
-		for _, cell := range other.Split {
-			if cell.Active && cell.Stats.HP > 0 {
-				if _, hit := body.CollisionFraction(delta, physics.Square(cell.X, cell.Y, AISize).Expanded(12), physics.Vector{}); hit {
-					return false
-				}
-			}
-		}
 	}
 	return true
 }

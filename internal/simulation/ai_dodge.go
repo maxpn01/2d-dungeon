@@ -11,7 +11,7 @@ import (
 
 func (w *World) avoidPlayerShots(ai *aiState, input Direction) Direction {
 	ai.shotDodgeCooldown = max(0, ai.shotDodgeCooldown-1)
-	if ai.returning || ai.Behavior == "sleeping" || ai.settleTicks > 0 || ai.Combat.Phase != DashIdle || ai.Combat.SwordRemaining > 0 || ai.Combat.StompRemaining > 0 {
+	if ai.returning || ai.Combat.Phase != DashIdle || ai.Combat.SwordRemaining > 0 || ai.Combat.StompRemaining > 0 {
 		ai.evadeTicks, ai.shotDodgeReactionTicks = 0, 0
 		return input
 	}

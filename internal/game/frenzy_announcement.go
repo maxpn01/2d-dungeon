@@ -66,9 +66,6 @@ func drawFrenzyAnnouncement(snapshot simulation.Snapshot, local simulation.Playe
 	y := int32(108)
 	if width < 800 {
 		available, y = width-32, 218
-		if snapshot.Boss.Phase != "" {
-			y = 270
-		}
 	}
 	for fontSize > 14 && primitives.MeasureText(title, fontSize)+40 > available {
 		fontSize--

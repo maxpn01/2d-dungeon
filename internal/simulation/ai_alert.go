@@ -24,7 +24,6 @@ func (w *World) aiCanSeePlayer(ai *aiState, p *playerState, radius float64) bool
 	return !p.Dead && math.Hypot(p.X-ai.X, p.Y-ai.Y) <= radius &&
 		!geometry.OverlapsCover(physics.Square(p.X, p.Y, PlayerSize)) &&
 		geometry.Visible(ai.X+AISize/2, ai.Y+AISize/2, p.X+PlayerSize/2, p.Y+PlayerSize/2) &&
-		!InSafeZone(p.X, p.Y, PlayerSize, p.Stats.HP, w.safeZones) &&
 		!geometry.PrivateGateCrossed(ai.X, ai.Y, p.X, p.Y, PlayerSize)
 }
 

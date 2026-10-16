@@ -101,7 +101,7 @@ func drawHUDMeter(x, y, width int32, label, value string, current, maximum float
 
 func playerDetails(player simulation.Player, name string) playerView {
 	stats := player.Stats
-	hp := float32(stats.HP + player.Split.Mass())
+	hp := float32(stats.HP)
 	if player.Dead {
 		hp = 0
 	}
@@ -109,7 +109,7 @@ func playerDetails(player simulation.Player, name string) playerView {
 		SpectralShots: stats.SpectralShots, Perks: stats.Perks, Character: player.Character, Name: name, Avatar: primitives.CharacterColor(player.Character),
 		Level: stats.Level, MaxLevel: simulation.MaxLevel, HP: hp, MaxHP: float32(stats.MaxHP()),
 		MP: float32(stats.MP), MaxMP: float32(stats.MaxMP()), XP: float32(stats.XP), NextXP: float32(simulation.XPForNextLevel(stats.Level)),
-		Speed:  float32(simulation.PlayerMovementSpeed(player.Character, stats.Speed, stats.HP, player.Split)),
+		Speed:  float32(player.MovementSpeed()),
 		Damage: float32(stats.Damage), ShotMPCost: float32(stats.ShotMPCost()), AttackRate: float32(stats.AttackRate), Boost: float32(stats.BoostMultiplier),
 	}
 }

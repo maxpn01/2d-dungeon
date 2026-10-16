@@ -36,7 +36,6 @@ func (p *presentation) draw(ctx primitives.Context, scene rendering.Scene) {
 	snapshot, local, players := scene.Snapshot, scene.Local, scene.RenderedPlayers
 	ui.DrawPlayer(local, scene.PlayerName, width)
 	p.feedback.DrawCombatOverlay(time.Now(), local, width, height)
-	ui.DrawBossTimer(snapshot.Boss, width)
 	drawFrenzyAnnouncement(snapshot, local, width)
 	if snapshot.WinnerID != "" {
 		label := "FLOOR I COMPLETE"

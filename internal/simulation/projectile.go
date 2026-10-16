@@ -48,7 +48,7 @@ func (w *World) fire(p *Player, input Direction) {
 	if p.Stats.SpectralShots {
 		slots = 2
 	}
-	if len(w.projectiles)+slots > parameters.MaxProjectiles || InSafeZone(p.X, p.Y, PlayerSize, p.Stats.HP, w.safeZones) || !PrepareShot(p, input) {
+	if len(w.projectiles)+slots > parameters.MaxProjectiles || !PrepareShot(p, input) {
 		return
 	}
 	length := math.Hypot(input.AimX, input.AimY)
@@ -111,7 +111,7 @@ func (w *World) advanceProjectiles(actors []eater) {
 			}
 			winner, first := -1, math.Inf(1)
 			for i, actor := range actors {
-				if actor.id == shot.Owner || actor.dead() || actor.protectedAt(1, w.safeZones) || (shot.Kind == "arrow" || shot.Kind == "shockwave") && actor.player == nil {
+				if actor.id == shot.Owner || actor.dead() || actor.protected() || (shot.Kind == "arrow" || shot.Kind == "shockwave") && actor.player == nil {
 					continue
 				}
 				if t, hit := eatingContact(start, end, shot.Size, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step)/float64(steps)}, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step+1)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step+1)/float64(steps)}, actor.size); hit && (t < first || t == first && (winner < 0 || actor.id < actors[winner].id)) {
@@ -162,7 +162,7 @@ func (w *World) advanceProjectiles(actors []eater) {
 }
 
 func (w *World) dropKillLoot(target eater, hp, mp float64) {
-	if target.ai != nil && target.cell == nil {
+	if target.ai != nil {
 		hp = target.ai.spawnMaxHP
 	}
 	drops := 0

@@ -22,7 +22,7 @@ func (w *World) TestingEnabled(id string) bool { p := w.players[id]; return p !=
 func (w *World) GodMode(id string) bool        { p := w.players[id]; return p != nil && p.testing && p.god }
 
 func (w *World) refillTestingPlayer(p *playerState) {
-	p.Stats.HP = max(0, p.Stats.MaxHP()-p.Split.Mass())
+	p.Stats.HP = p.Stats.MaxHP()
 	p.Stats.MP = p.Stats.MaxMP()
 	p.Dead, p.KilledBy, p.progressionReset = false, "", false
 }
@@ -46,7 +46,6 @@ func (w *World) CycleTestingLevel(id string) {
 	levels := []int{1, 5, 10, 20, MaxLevel}
 	index := slices.Index(levels, p.Stats.Level)
 	p.Stats = NewStatsAtLevel(levels[(index+1)%len(levels)])
-	p.Split = nil
 	w.refillTestingPlayer(p)
 }
 
@@ -155,13 +154,13 @@ func (w *World) TestingWarp(id, roomID string) bool {
 		return false
 	}
 	p.X, p.Y = x, y
-	p.Flight, p.Combat, p.Split = FlightState{}, CombatState{}, nil
+	p.Flight, p.Combat = FlightState{}, CombatState{}
 	p.ActiveStatue, p.TeleportCharge, p.portalCooldown = "", 0, 0
 	p.direction = Direction{}
 	p.velocityX, p.velocityY = 0, 0
 	p.VaultGateOpen = w.orb.GateOpen
 	p.OpenSecrets = w.openSecrets
-	p.Escaped, p.GatesClosed, p.InArena = false, false, false
+	p.Escaped = false
 	w.winnerID, w.finishedTick = "", 0
 	w.projectiles = nil
 	w.refillTestingPlayer(p)

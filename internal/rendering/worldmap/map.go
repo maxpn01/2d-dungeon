@@ -23,7 +23,6 @@ type Map struct {
 	floor        mapdata.Floor
 	gatePrompt   bool
 	nearGateID   string
-	safeZones    []simulation.SafeZone
 	Exploration  Exploration
 	sizeInCells  rl.Vector2
 	cellSize     rl.Vector2
@@ -49,7 +48,7 @@ func (m *Map) Draw(ctx primitives.Context, snapshot simulation.Snapshot, local s
 	m.Exploration.Reveal(rl.NewVector2(float32(local.X+simulation.PlayerSize/2), float32(local.Y+simulation.PlayerSize/2)), local.HasWings, local.Flight.Flying)
 	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
 	m.wallHits = snapshot.SecretWallHits
-	m.safeZones, m.gate = snapshot.SafeZones, local.EntranceGate
+	m.gate = local.EntranceGate
 	m.floor = m.world.FloorAt(local.X+simulation.PlayerSize/2, local.Y+simulation.PlayerSize/2)
 	m.gatePrompt = !local.Dead && simulation.NearEntranceGateFor(local.EntranceID, local.X, local.Y)
 	m.nearGateID = mapdata.EntranceGate
@@ -57,7 +56,6 @@ func (m *Map) Draw(ctx primitives.Context, snapshot simulation.Snapshot, local s
 	if m.floor == mapdata.FirstFloor {
 		m.drawSanctuary(ctx)
 	}
-	drawSafeZones(m.safeZones)
 	if m.floor == mapdata.FirstFloor {
 		m.drawSanctuaryAltar(ctx)
 	}

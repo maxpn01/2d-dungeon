@@ -145,7 +145,6 @@ func (w *World) updateStatues() {
 				p.HasWings, p.Flight = false, FlightState{}
 				p.Stats = NewStats()
 				p.Stats.HP = 0
-				p.Split = nil
 				p.ActiveStatue = ""
 				p.progressionReset = true
 			}

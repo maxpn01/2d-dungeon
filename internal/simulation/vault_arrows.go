@@ -34,7 +34,7 @@ func (w *World) advanceVaultArrows(actors []eater) {
 	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
 	ports := geometry.VaultArrowPorts()
 	for _, actor := range actors {
-		if actor.player == nil || actor.cell != nil || actor.dead() || !geometry.RoomContains(worldmap.OrbVault, physics.Square(actor.end.x, actor.end.y, actor.size)) {
+		if actor.player == nil || actor.dead() || !geometry.RoomContains(worldmap.OrbVault, physics.Square(actor.end.x, actor.end.y, actor.size)) {
 			continue
 		}
 		center := physics.Vector{X: actor.end.x + actor.size/2, Y: actor.end.y + actor.size/2}

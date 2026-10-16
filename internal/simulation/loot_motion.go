@@ -3,12 +3,8 @@ package simulation
 import (
 	"math"
 
-	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/worldmap"
 )
-
-const EjectInterval = parameters.EjectInterval
-const EjectOwnerDelay = parameters.EjectOwnerDelay
 
 func (w *World) advanceFood() {
 	for i := range w.fruits {

@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"fmt"
 	"math"
 	"sort"
 	"time"
@@ -51,11 +50,7 @@ type Player struct {
 	ActiveStatue   string
 	EntranceGate   EntranceGateState
 	ShotCooldown   float64
-	EjectCooldown  float64
 	Character      Character
-	Split          SplitCells
-	GatesClosed    bool
-	InArena        bool
 	TeleportCharge float64
 	portalCooldown int
 	Combat         CombatState
@@ -89,9 +84,6 @@ type World struct {
 	statues           []StatueState
 	projectiles       []Projectile
 	nextProjectile    uint64
-	safeZones         []SafeZone
-	boss              Boss
-	bossHitUntil      map[string]uint64
 	ais               []aiState
 	nextAI            uint64
 	fruits            []Fruit
@@ -99,12 +91,10 @@ type World struct {
 	nextFruit         uint64
 	players           map[string]*playerState
 	tick              uint64
-	aiSpawnTicks      int
-	protectedUntil    map[string]uint64
 }
 
 func NewWorld() *World {
-	w := &World{dungeonLayout: worldmap.RandomizeDungeon(), secretWallHits: make(map[string]int), bossHitUntil: make(map[string]uint64), patchNext: make(map[string]uint64), protectedUntil: make(map[string]uint64), players: make(map[string]*playerState)}
+	w := &World{dungeonLayout: worldmap.RandomizeDungeon(), secretWallHits: make(map[string]int), patchNext: make(map[string]uint64), players: make(map[string]*playerState)}
 	for _, statue := range worldmap.Default().Statues() {
 		at := statue.Position()
 		w.statues = append(w.statues, StatueState{ID: statue.ID, X: at.X, Y: at.Y, Cycle: 1})
@@ -173,26 +163,10 @@ func (w *World) Step(now time.Time) {
 	if w.orb.GateActivated {
 		w.orb.GateOpen = min(1, w.orb.GateOpen+StepSeconds*.65)
 	}
-	for id, until := range w.protectedUntil {
-		if w.tick >= until {
-			delete(w.protectedUntil, id)
-		}
-	}
 	previousCapacity := len(w.players) + len(w.ais)
-	for _, player := range w.players {
-		previousCapacity += len(player.Split)
-	}
-	for i := range w.ais {
-		previousCapacity += len(w.ais[i].Split)
-	}
 	previous := make(map[string]position, previousCapacity)
 	for id, player := range w.players {
 		previous[id] = position{player.X, player.Y}
-		for i, cell := range player.Split {
-			if cell.Active {
-				previous[fmt.Sprintf("%s/split/%d", id, i)] = position{cell.X, cell.Y}
-			}
-		}
 		if player.Dead {
 			continue
 		}
@@ -208,7 +182,7 @@ func (w *World) Step(now time.Time) {
 		if direction.Interact && (w.interactLibrary(player, direction) || w.interactVaultGate(player) || w.interactSecret(player) || w.interactObjective(player) || w.interactStatue(player)) {
 			direction.Interact = false
 		}
-		AdvancePlayer(&player.Player, direction, StepSeconds, w.safeZones)
+		AdvancePlayer(&player.Player, direction, StepSeconds)
 		player.velocityX = (player.X - previous[id].x) / StepSeconds
 		player.velocityY = (player.Y - previous[id].y) / StepSeconds
 		w.revealFlownSecrets(player)
@@ -216,11 +190,6 @@ func (w *World) Step(now time.Time) {
 	}
 	for _, ai := range w.ais {
 		previous[ai.ID] = position{ai.X, ai.Y}
-		for i, cell := range ai.Split {
-			if cell.Active {
-				previous[fmt.Sprintf("%s/split/%d", ai.ID, i)] = position{cell.X, cell.Y}
-			}
-		}
 	}
 	w.updateAIs()
 	w.respawnEntranceGuards()
@@ -233,15 +202,9 @@ func (w *World) Step(now time.Time) {
 	w.advanceHeavyStomps()
 	w.advanceVaultTraps(eaters)
 	w.advanceLibraries()
-	for id, p := range w.players {
-		old := previous[id]
-		ConstrainArena(&p.Player, old.x, old.y)
-	}
 	for i := range eaters {
 		e := &eaters[i]
-		if e.cell != nil {
-			e.end = position{e.cell.X, e.cell.Y}
-		} else if e.player != nil {
+		if e.player != nil {
 			e.end = position{e.player.X, e.player.Y}
 		} else {
 			body := MobBody(e.ai.Type, e.ai.X, e.ai.Y)
@@ -249,7 +212,6 @@ func (w *World) Step(now time.Time) {
 		}
 	}
 	w.consumeFruits(eaters)
-	w.finishSplitCells()
 	for _, p := range w.players {
 		clampPlayerBodies(&p.Player)
 	}
@@ -261,14 +223,6 @@ func (w *World) Step(now time.Time) {
 			w.refillTestingPlayer(p)
 		}
 	}
-	// The surface is only a respawn area while floor one is being redesigned.
-	remaining := w.fruits[:0]
-	for _, fruit := range w.fruits {
-		if fruit.Y < 0 || fruit.Source != "" {
-			remaining = append(remaining, fruit)
-		}
-	}
-	w.fruits = remaining
 }
 
 type Snapshot struct {
@@ -283,8 +237,6 @@ type Snapshot struct {
 	Orb               OrbState
 	Statues           []StatueState
 	Projectiles       []Projectile
-	SafeZones         []SafeZone
-	Boss              Boss
 	AIs               []AI
 	Tick              uint64
 	Players           []Player
@@ -298,7 +250,6 @@ func (w *World) Snapshot() Snapshot {
 		state.VaultGateOpen = w.orb.GateOpen
 		state.WingDoorOpen = w.wingDoorOpen
 		state.OpenSecrets = append([]string(nil), w.openSecrets...)
-		state.Split = state.Split.Clone()
 		players = append(players, state)
 	}
 	sort.Slice(players, func(i, j int) bool { return players[i].ID < players[j].ID })
@@ -310,17 +261,14 @@ func (w *World) Snapshot() Snapshot {
 			continue
 		}
 		state := ai.AI
-		state.Split = state.Split.Clone()
 		ais = append(ais, state)
 	}
-	boss := w.boss
-	boss.Tail = append([]Point(nil), boss.Tail...)
 	statues := w.StatuesForPlayer("")
 	hits := make(map[string]int, len(w.secretWallHits))
 	for id, count := range w.secretWallHits {
 		hits[id] = count
 	}
-	return Snapshot{VaultArrowStarted: w.vaultArrowStarted, VaultFire: append([]VaultFire(nil), w.vaultFire[:]...), SecretWallHits: hits, DungeonLayout: w.dungeonLayout, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, FinishedTick: w.finishedTick, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	return Snapshot{VaultArrowStarted: w.vaultArrowStarted, VaultFire: append([]VaultFire(nil), w.vaultFire[:]...), SecretWallHits: hits, DungeonLayout: w.dungeonLayout, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, FinishedTick: w.finishedTick, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }

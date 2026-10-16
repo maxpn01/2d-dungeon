@@ -51,8 +51,8 @@ func (s *Settings) Draw() Action {
 	cx := float32(rl.GetScreenWidth()) / 2
 	top := float32(rl.GetScreenHeight())/2 - 230
 	primitives.DrawCenteredText("settings", int32(top), 40, rl.RayWhite)
-	for i, character := range []simulation.Character{simulation.Square, simulation.Triangle, simulation.Circle} {
-		card := rl.NewRectangle(cx-240+float32(i)*165, top+65, 150, 115)
+	for _, character := range []simulation.Character{simulation.Square} {
+		card := rl.NewRectangle(cx-75, top+65, 150, 115)
 		enabled := simulation.CharacterEnabled(character)
 		if enabled && rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(rl.GetMousePosition(), card) {
 			s.character = character

@@ -65,12 +65,6 @@ func (v *radarView) begin(m *Map) {
 	v.rect(m.edgePosX.start, m.edgePosY.start, m.edgePosX.end-m.edgePosX.start, m.edgePosY.end-m.edgePosY.start, field)
 	v.rect(float32(int(m.sizeInCells.X)/2-2)*m.cellSize.X, float32(int(m.sizeInCells.Y)/2-2)*m.cellSize.Y, 5*m.cellSize.X, 5*m.cellSize.Y, rl.Gray)
 	v.rect(m.size.X/2-120, 0, 240, m.cellSize.Y, field)
-	for _, zone := range m.safeZones {
-		center := v.point(rl.NewVector2(float32(zone.X), float32(zone.Y)))
-		radius := float32(zone.Radius) * v.scale
-		rl.DrawCircleV(center, radius, rl.NewColor(27, 77, 49, 255))
-		rl.DrawCircleLinesV(center, radius, rl.NewColor(100, 220, 145, 255))
-	}
 
 	left := max(mapdata.MinCellX, int(math.Floor(float64((v.focus.X-v.bounds.Width/(2*v.scale))/mapdata.Tile))))
 	right := min(mapdata.MaxCellX, int(math.Ceil(float64((v.focus.X+v.bounds.Width/(2*v.scale))/mapdata.Tile))))
@@ -165,12 +159,6 @@ func (v radarView) end(player rl.Vector2) {
 	rl.DrawRectangleLinesEx(v.bounds, 1, paleStone)
 }
 
-func (v radarView) bossMarker(b simulation.Boss) {
-	if b.Phase == "gathering" || b.Phase == "fighting" {
-		v.marker(rl.NewVector2(float32(b.X+simulation.BossSize/2), float32(b.Y+simulation.BossSize/2)), 5, rl.Gold)
-	}
-}
-
 func (v radarView) statueMarkers(statues []simulation.StatueState) {
 	for _, s := range statues {
 		center := rl.NewVector2(float32(s.X), float32(s.Y))
@@ -195,7 +183,6 @@ type Marker struct {
 
 func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker, snapshot simulation.Snapshot) {
 	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
-	m.safeZones = snapshot.SafeZones
 	m.floor = m.world.FloorAt(float64(focus.X), float64(focus.Y))
 	v := newRadarView(width, focus)
 	if height > 0 {
@@ -206,7 +193,6 @@ func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker,
 	for _, marker := range markers {
 		v.marker(marker.Center, marker.Radius, marker.Tint)
 	}
-	v.bossMarker(snapshot.Boss)
 	v.statueMarkers(snapshot.Statues)
 	if m.floor == mapdata.FirstFloor {
 		gate, ok := m.world.Gate(mapdata.VaultGate)

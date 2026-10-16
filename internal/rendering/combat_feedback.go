@@ -50,7 +50,7 @@ func (f *Feedback) DrawCombatOverlay(now time.Time, player simulation.Player, wi
 	if player.Dead {
 		return
 	}
-	hp := player.Stats.HP + player.Split.Mass()
+	hp := player.Stats.HP
 	low := hp <= player.Stats.MaxHP()*.25
 	pulse := float32(.5 + .5*math.Sin(float64(now.UnixMilli())*.009))
 	if low {

@@ -173,14 +173,14 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot, localID 
 	f.observeLibraryAudio(snapshot, localID)
 	actors := make(map[string]feedbackActor)
 	for _, p := range snapshot.Players {
-		actors[p.ID] = feedbackActor{x: p.X, y: p.Y, size: simulation.PlayerSize, hp: p.Stats.HP + p.Split.Mass(), xp: p.Stats.XP, level: p.Stats.Level, tint: primitives.CharacterColor(p.Character), dead: p.Dead, hidden: p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, simulation.PlayerSize)), escaped: p.Escaped, recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP()}
+		actors[p.ID] = feedbackActor{x: p.X, y: p.Y, size: simulation.PlayerSize, hp: p.Stats.HP, xp: p.Stats.XP, level: p.Stats.Level, tint: primitives.CharacterColor(p.Character), dead: p.Dead, hidden: p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, simulation.PlayerSize)), escaped: p.Escaped, recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP()}
 	}
 	for _, a := range snapshot.AIs {
 		tint := rl.Green
 		if a.Character == simulation.Triangle {
 			tint = primitives.CharacterColor(a.Character)
 		}
-		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: simulation.AISize, hp: a.Stats.HP + a.Split.Mass(), xp: a.Stats.XP, level: a.Stats.Level, tint: tint, ai: true, maxHP: a.Stats.MaxHP()}
+		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: simulation.AISize, hp: a.Stats.HP, xp: a.Stats.XP, level: a.Stats.Level, tint: tint, ai: true, maxHP: a.Stats.MaxHP()}
 		actor := actors[a.ID]
 		actor.stone = a.Stone
 		actor.stompRemaining = a.Combat.StompRemaining
@@ -226,7 +226,7 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot, localID 
 			f.hurtAt = now
 			playFeedbackSound("hurt")
 		}
-		low := !p.Dead && p.Stats.HP+p.Split.Mass() <= p.Stats.MaxHP()*.25
+		low := !p.Dead && p.Stats.HP <= p.Stats.MaxHP()*.25
 		if low && !f.lowHP {
 			playFeedbackSound("low")
 		}

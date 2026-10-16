@@ -102,11 +102,7 @@ func (w *World) syncSimulation() {
 	w.feedback.Observe(time.Now(), snapshot, localPlayerID)
 	w.previousSnapshot, w.snapshot = w.snapshot, snapshot
 	w.player = snapshot.Players[0]
-	w.player.Split = w.player.Split.Clone()
 	w.ais = append(w.ais[:0], snapshot.AIs...)
-	for i := range w.ais {
-		w.ais[i].Split = w.ais[i].Split.Clone()
-	}
 }
 
 func (w *World) Configure(name string, character simulation.Character) {

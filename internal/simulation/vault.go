@@ -78,7 +78,7 @@ func (w *World) advanceVaultTraps(actors []eater) {
 			continue
 		}
 		for _, actor := range actors {
-			if actor.player == nil || actor.dead() || actor.protectedAt(1, w.safeZones) || w.vaultFireHits[i][actor.id] {
+			if actor.player == nil || actor.dead() || actor.protected() || w.vaultFireHits[i][actor.id] {
 				continue
 			}
 			delta := physics.Vector{X: actor.end.x - actor.start.x, Y: actor.end.y - actor.start.y}

@@ -71,11 +71,8 @@ func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 			trail.Y -= dir.Y * float32(i) * 13
 			primitives.DrawCharacterShape(character, trail, rl.Fade(tint, 0.19/float32(i)))
 		}
-	case simulation.DashBumped, simulation.DashRecoiling:
+	case simulation.DashBumped:
 		duration := simulation.BumpStun
-		if c.Phase == simulation.DashRecoiling {
-			duration = simulation.BossRecoilDuration
-		}
 		p := phaseProgress(c.Remaining, duration)
 		stretch = -0.28 * (1 - p)
 		offset = float32(math.Sin(float64(p)*math.Pi*4)) * 4 * (1 - p)
@@ -88,29 +85,11 @@ func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 	primitives.DrawCharacterShape(character, shadow, rl.Fade(rl.Black, 0.35))
 	primitives.DrawCharacterShape(character, body, tint)
 
-	if c.HitGrace > 0 {
-		pulse := float32(.6 + .25*math.Sin(rl.GetTime()*20))
-		rl.DrawRing(center, bounds.Width*.75+4, bounds.Width*.75+7, 0, 360, 40, rl.Fade(rl.SkyBlue, pulse))
-	}
 	drawCombat(center, bounds.Width, c)
 	if character == simulation.Triangle {
 		drawSentinelSword(center, bounds.Width, c)
 	}
 	return bounds
-}
-
-func DrawSplitBody(x, y, size, hp float64, tint color.RGBA, character simulation.Character, count int) {
-	if character == simulation.Circle && count >= 64 {
-		bounds := actorBounds(x, y, size, hp)
-		radius := bounds.Width / 2
-		segments := int32(12)
-		if radius > 12 {
-			segments = 18
-		}
-		rl.DrawCircleSector(rl.NewVector2(bounds.X+radius, bounds.Y+radius), radius, 0, 360, segments, tint)
-		return
-	}
-	DrawActor(x, y, size, hp, simulation.CombatState{}, tint, character)
 }
 
 func drawCombat(center rl.Vector2, size float32, c simulation.CombatState) {
@@ -163,11 +142,8 @@ func drawCombat(center rl.Vector2, size float32, c simulation.CombatState) {
 		for _, side := range []float32{-1, 1} {
 			rl.DrawLineEx(point(-size/2-30, side*size*0.6), point(size/2, side*size*0.6), 2, rl.Fade(rl.RayWhite, 0.65))
 		}
-	case simulation.DashBumped, simulation.DashRecoiling:
+	case simulation.DashBumped:
 		duration := simulation.BumpStun
-		if c.Phase == simulation.DashRecoiling {
-			duration = simulation.BossRecoilDuration
-		}
 		p := phaseProgress(c.Remaining, duration)
 		impact := point(size/2+simulation.BumpKnockback, 0)
 		for i := 0; i < 7; i++ {

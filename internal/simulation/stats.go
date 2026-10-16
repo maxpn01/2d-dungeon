@@ -125,36 +125,9 @@ func (s *Stats) GainMP(amount float64) {
 	}
 }
 
-func SpeedForMass(base, hp float64) float64 {
-	return base
-}
+func (s Stats) MovementSpeed() float64 { return s.Speed }
 
-func (s Stats) MovementSpeed() float64 { return SpeedForMass(s.Speed, s.HP) }
-
-func MovementMass(hp float64, cells SplitCells) float64 {
-	largest, total := hp, hp
-	for _, cell := range cells {
-		if cell.Active {
-			largest = max(largest, cell.Stats.HP)
-			total += cell.Stats.HP
-		}
-	}
-	return largest + parameters.SplitMassMovementFraction*(total-largest)
-}
-
-const CircleSplitSpeedMultiplier = parameters.CircleSplitSpeedMultiplier
-
-func PlayerMovementSpeed(character Character, base, hp float64, cells SplitCells) float64 {
-	speed := SpeedForMass(base, MovementMass(hp, cells))
-	if character == Circle && cells.Count() > 0 {
-		speed *= CircleSplitSpeedMultiplier
-	}
-	return speed
-}
-
-func (p Player) MovementSpeed() float64 {
-	return PlayerMovementSpeed(p.Character, p.Stats.Speed, p.Stats.HP, p.Split)
-}
+func (p Player) MovementSpeed() float64 { return p.Stats.MovementSpeed() }
 
 func (s Stats) MPRecoveryPerSecond() float64 {
 	return parameters.MPRecoveryPerSecond + PerkBonus(ManaRecoveryPerk, s.Perks[ManaRecoveryPerk])

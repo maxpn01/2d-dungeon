@@ -18,8 +18,6 @@ const (
 	BumpStun            = parameters.BumpStun
 	BumpCost            = parameters.BumpCost
 	BumpKnockback       = parameters.BumpKnockback
-	ContactRatio        = parameters.ContactRatio
-	KnockedMass         = parameters.KnockedMass
 	HitProtectionTicks  = parameters.HitProtectionTicks
 	MaxMassDrops        = parameters.MaxMassDrops
 )
@@ -32,14 +30,6 @@ const (
 	DashRushing    DashPhase = "burst"
 	DashRecovering DashPhase = "recovery"
 	DashBumped     DashPhase = "bump"
-	DashRecoiling  DashPhase = "recoil"
-)
-
-const (
-	BossHitGrace       = parameters.BossHitGrace
-	BossRecoilDuration = parameters.BossRecoilDuration
-	BossImpactHold     = parameters.BossImpactHold
-	BossRecoilDistance = parameters.BossRecoilDistance
 )
 
 type CombatState struct {
@@ -50,9 +40,6 @@ type CombatState struct {
 	SwordRemaining float64   `json:"sword_remaining,omitempty"`
 	SwordDirection Direction `json:"sword_direction"`
 	Boosting       bool      `json:"boosting,omitempty"`
-	RecoilX        float64   `json:"recoil_x,omitempty"`
-	RecoilY        float64   `json:"recoil_y,omitempty"`
-	HitGrace       float64   `json:"hit_grace,omitempty"`
 	Phase          DashPhase `json:"phase,omitempty"`
 	Remaining      float64   `json:"remaining,omitempty"`
 	Facing         Direction `json:"facing"`
@@ -69,8 +56,6 @@ func DashBurstDuration(stats Stats) float64 {
 }
 
 func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
-	oldX, oldY := p.X, p.Y
-	defer func() { ConstrainArena(p, oldX, oldY) }()
 	c := &p.Combat
 	c.Attack = false
 	if p.Dead || !input.Valid() || dt <= 0 {
@@ -88,7 +73,6 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 		motion.Bounds.Y += p.Y - body.Y
 		return motion
 	}
-	c.HitGrace = max(0, c.HitGrace-dt)
 	pressed := input.Dash && !c.Held
 	walkSpeed := p.MovementSpeed()
 	if p.Stats.Mob {
@@ -138,18 +122,6 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 				}
 				distance -= travel
 			}
-		case DashRecoiling:
-			progress := func(elapsed float64) float64 {
-				t := max(0, min(1, (elapsed-BossImpactHold)/(BossRecoilDuration-BossImpactHold)))
-				return 1 - (1-t)*(1-t)
-			}
-			elapsed := BossRecoilDuration - c.Remaining
-			fraction := progress(elapsed+step) - progress(elapsed)
-			length := math.Hypot(c.RecoilX, c.RecoilY)
-			if length > 0 {
-				motion := move(Direction{X: c.RecoilX / length, Y: c.RecoilY / length}, length*fraction)
-				p.X, p.Y = motion.Bounds.X, motion.Bounds.Y
-			}
 		case DashRecovering:
 			motion := move(input, walkSpeed*SpeedScale*step*.35)
 			p.X, p.Y = motion.Bounds.X, motion.Bounds.Y
@@ -170,8 +142,4 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 			}
 		}
 	}
-}
-
-func CanContactEat(hp, preyHP float64) bool {
-	return hp > 0 && (preyHP == 0 || hp >= preyHP*ContactRatio)
 }

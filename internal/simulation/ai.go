@@ -6,21 +6,13 @@ import (
 	"math/rand/v2"
 
 	"raylib-2d-sandbox/internal/parameters"
-	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/worldmap"
 )
 
 const (
-	InitialAIs            = parameters.InitialAIs
-	InitialAISpawnDelay   = parameters.InitialAISpawnDelay
-	AIRespawnSeconds      = parameters.AIRespawnSeconds
-	AIAwakeSeconds        = parameters.AIAwakeSeconds
-	AIAsleepSeconds       = parameters.AIAsleepSeconds
-	AISize                = parameters.AISize
-	AIDetectionRadius     = parameters.AIDetectionRadius
-	AISettleTicks         = parameters.AISettleTicks
-	AIReactionTicks       = parameters.AIReactionTicks
-	AIAttackIntervalTicks = parameters.AIAttackIntervalTicks
+	AIRespawnSeconds  = parameters.AIRespawnSeconds
+	AISize            = parameters.AISize
+	AIDetectionRadius = parameters.AIDetectionRadius
 )
 
 type AI struct {
@@ -32,7 +24,6 @@ type AI struct {
 	Combat    CombatState
 	Behavior  string
 	Character Character
-	Split     SplitCells
 	ID        string
 	X, Y      float64
 	Stats     Stats
@@ -56,22 +47,13 @@ type aiState struct {
 	shotCooldown                 float64
 	AI
 	den                        worldmap.Den
-	settleTicks                int
-	targetID                   string
-	targetTicks                int
 	attackCooldown             int
 	returning                  bool
-	direction                  Direction
-	wanderTicks                int
 	patrolX                    float64
 	patrolY                    float64
 	patrolTicks                int
 	patrolPause                int
 	respawnTick                uint64
-	awakeTicks                 int
-	asleepTicks                int
-	escapeTicks                int
-	escapeDirection            Direction
 	evadeTicks                 int
 	evadeDirection             Direction
 	shotDodgeReactionTicks     int
@@ -113,25 +95,6 @@ func (w *World) spawnEntranceGuards() {
 	}
 }
 
-func (w *World) spawnAIs() {
-	for i := 0; i < InitialAIs; i++ {
-		ai := w.newSurfaceAI(i)
-		if !w.denClear(ai.X, ai.Y, -1) {
-			ai.respawnTick = w.tick + TickRate
-		}
-		w.ais = append(w.ais, ai)
-	}
-}
-
-func (w *World) newSurfaceAI(slot int) aiState {
-	w.nextAI++
-	stats := newMobStats(1, SpawnGuard)
-	return aiState{spawnMaxHP: stats.MaxHP(), settleTicks: AISettleTicks, AI: AI{
-		Type: SpawnGuard, ID: fmt.Sprintf("ai-%d", w.nextAI), X: 600 + float64(slot%3)*450,
-		Y: 400 + float64(slot/3)*650, Stats: stats, Behavior: "emerging", Character: Square,
-	}}
-}
-
 func (w *World) updateAIs() {
 	w.awakenVaultSentinels()
 	for i := range w.ais {
@@ -164,12 +127,11 @@ func (w *World) updateAIs() {
 			input = w.steerShooter(ai, input)
 		}
 		oldX, oldY := ai.X, ai.Y
-		actor := Player{VaultGateOpen: w.orb.GateOpen, OpenSecrets: w.openSecrets, ID: ai.ID, ShotCooldown: ai.shotCooldown, X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character, Split: ai.Split}
-		actor.GatesClosed = w.boss.Phase == "fighting"
-		AdvancePlayer(&actor, input, StepSeconds, w.safeZones)
+		actor := Player{VaultGateOpen: w.orb.GateOpen, OpenSecrets: w.openSecrets, ID: ai.ID, ShotCooldown: ai.shotCooldown, X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character}
+		AdvancePlayer(&actor, input, StepSeconds)
 		w.fire(&actor, input)
 		ai.shotCooldown = actor.ShotCooldown
-		ai.X, ai.Y, ai.Stats, ai.Combat, ai.Split = actor.X, actor.Y, actor.Stats, actor.Combat, actor.Split
+		ai.X, ai.Y, ai.Stats, ai.Combat = actor.X, actor.Y, actor.Stats, actor.Combat
 		if worldmap.Default().PrivateGateCrossed(oldX, oldY, ai.X, ai.Y, AISize) || ai.den.ID != "" && !w.aiWithinTerritory(ai) {
 			ai.X, ai.Y = oldX, oldY
 			if ai.aggressorID != "" {
@@ -219,11 +181,7 @@ func (w *World) aiIntent(ai *aiState) Direction {
 		length := math.Hypot(dx, dy)
 		d := Direction{AimX: dx / max(1, length), AimY: dy / max(1, length), Shoot: true}
 		ai.Behavior = "attacking"
-		if ai.den.ID == "" && length > parameters.AIFiringDistance {
-			ai.Behavior = "pursuing"
-			movement := ai.navigateMap(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), target.X, target.Y)
-			d.X, d.Y = movement.X, movement.Y
-		} else if ai.aggressorID != "" && w.tick < ai.alertUntil {
+		if ai.aggressorID != "" && w.tick < ai.alertUntil {
 			movement, _ := w.investigateAI(ai)
 			d.X, d.Y = movement.X, movement.Y
 		}
@@ -241,40 +199,7 @@ func (w *World) aiIntent(ai *aiState) Direction {
 	if d, investigating := w.investigateAI(ai); investigating {
 		return d
 	}
-	if ai.den.ID != "" {
-		return ai.patrolInput(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen))
-	}
-	if ai.settleTicks > 0 {
-		ai.settleTicks--
-		ai.Behavior = "emerging"
-		return Direction{}
-	}
-	if fruit, found := w.nearestFruit(ai); found {
-		ai.Behavior = "seeking"
-		return ai.navigate(fruit.X+(fruit.Size-AISize)/2, fruit.Y+(fruit.Size-AISize)/2)
-	}
-	ai.Behavior = "wandering"
-	if ai.wanderTicks == 0 {
-		directions := [8]Direction{{X: 1}, {X: -1}, {Y: 1}, {Y: -1}, {X: 1, Y: 1}, {X: -1, Y: 1}, {X: 1, Y: -1}, {X: -1, Y: -1}}
-		ai.direction = directions[rand.IntN(len(directions))]
-		ai.wanderTicks = 2*TickRate + rand.IntN(2*TickRate+1)
-	}
-	d := ai.direction
-	if ai.X <= MapMin+8 {
-		d.X = math.Abs(d.X)
-	}
-	if ai.X >= MapMax-AISize-8 {
-		d.X = -math.Abs(d.X)
-	}
-	if ai.Y <= MapMin+8 {
-		d.Y = math.Abs(d.Y)
-	}
-	if ai.Y >= MapMax-AISize-8 {
-		d.Y = -math.Abs(d.Y)
-	}
-	ai.direction = d
-	ai.wanderTicks--
-	return d
+	return ai.patrolInput(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen))
 }
 
 func (ai *aiState) patrolInput(geometry *worldmap.Map) Direction {
@@ -336,62 +261,6 @@ func (w *World) respawnEntranceGuards() {
 	}
 }
 
-func (w *World) nearestFruit(ai *aiState) (Fruit, bool) {
-	var nearest Fruit
-	best := AIDetectionRadius * AIDetectionRadius
-	found := false
-	for _, fruit := range w.fruits {
-		if !ai.sees(fruit.X, fruit.Y) || !ai.inTerritory(fruit.X, fruit.Y) || (fruit.MP > 0 && ai.Stats.MP >= ai.Stats.MaxMP() || fruit.MP == 0 && ai.Stats.HP >= ai.Stats.MaxHP() && ai.Stats.Level >= MaxLevel) {
-			continue
-		}
-		fruitCenter := (physics.Rect{X: fruit.X, Y: fruit.Y, W: fruit.Size, H: fruit.Size}).Center()
-		aiCenter := (physics.Rect{X: ai.X, Y: ai.Y, W: AISize, H: AISize}).Center()
-		distance := fruitCenter.DistanceSquared(aiCenter)
-		if distance <= best && (!found || distance < best || fruit.ID < nearest.ID) {
-			nearest, best, found = fruit, distance, true
-		}
-	}
-	return nearest, found
-}
-
-func (w *World) respawnAIs() {
-	for i := range w.ais {
-		ai := &w.ais[i]
-		if ai.respawnTick == 0 || w.tick < ai.respawnTick {
-			continue
-		}
-		next := w.newSurfaceAI(i)
-		if !w.denClear(next.X, next.Y, i) {
-			ai.respawnTick = w.tick + TickRate
-			continue
-		}
-		*ai = next
-	}
-}
-
-func (ai *aiState) updateSleep(threat bool) bool {
-	if threat {
-		ai.awakeTicks = max(0, ai.awakeTicks-1)
-		return false
-	}
-	if ai.Behavior == "sleeping" {
-		ai.asleepTicks--
-		if ai.asleepTicks > 0 {
-			return true
-		}
-		ai.awakeTicks = AIAwakeSeconds * TickRate
-		return false
-	}
-	ai.awakeTicks = max(0, ai.awakeTicks-1)
-	if ai.awakeTicks == 0 {
-		ai.Behavior = "sleeping"
-		ai.asleepTicks = AIAsleepSeconds * TickRate
-		ai.wanderTicks, ai.escapeTicks = 0, 0
-		return true
-	}
-	return false
-}
-
 func (w *World) denClear(x, y float64, skip int) bool {
 	for _, p := range w.players {
 		if !p.Dead && math.Hypot(p.X-x, p.Y-y) < AIDetectionRadius+PlayerSize {
@@ -404,24 +273,7 @@ func (w *World) denClear(x, y float64, skip int) bool {
 			if math.Hypot(a.X-x, a.Y-y) < AISize*2 {
 				return false
 			}
-			for _, cell := range a.Split {
-				if cell.Active && math.Hypot(cell.X-x, cell.Y-y) < AISize*2 {
-					return false
-				}
-			}
 		}
 	}
 	return true
-}
-func (ai *aiState) observeTarget(target *playerState) {
-	if target == nil {
-		ai.targetID = ""
-		ai.targetTicks = 0
-		return
-	}
-	if target.ID != ai.targetID {
-		ai.targetID = target.ID
-		ai.targetTicks = 0
-	}
-	ai.targetTicks++
 }

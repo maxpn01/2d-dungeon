@@ -1,14 +1,14 @@
 package simulation
 
 import (
-	"math/rand/v2"
-
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/physics"
 )
 
-const SafeZoneMaxMass = parameters.SafeZoneMaxMass
-const SafeZoneCount = parameters.SafeZoneCount
+const (
+	SafeZoneMaxMass = parameters.SafeZoneMaxMass
+	SafeZoneCount   = parameters.SafeZoneCount
+)
 
 type SafeZone struct{ X, Y, Radius float64 }
 
@@ -46,12 +46,6 @@ func InSafeZone(x, y, size, mass float64, zones []SafeZone) bool {
 }
 
 func (e eater) protectedAt(t float64, zones []SafeZone) bool {
-	if e.player != nil && e.player.god {
-		return true
-	}
-	if e.ai != nil && (e.ai.Stone || e.ai.Awakening > 0) {
-		return true
-	}
 	x, y := e.start.x+(e.end.x-e.start.x)*t, e.start.y+(e.end.y-e.start.y)*t
 	return InSafeZone(x, y, e.size, e.stats.HP, zones)
 }

@@ -56,7 +56,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 			Type: ai.Type, Level: ai.Stats.Level, Stone: ai.Stone, Awakening: ai.Awakening,
 			ID: ai.ID, Label: fmt.Sprintf("%s Lv.%d", mobName(ai.Type), ai.Stats.Level),
 			X: ai.X, Y: ai.Y, Size: simulation.AISize, HP: ai.Stats.HP, Character: ai.Character,
-			Aiming: ai.Aiming, Frenzied: ai.Frenzied, Combat: ai.Combat, Split: ai.Split, Tint: tint,
+			Aiming: ai.Aiming, Frenzied: ai.Frenzied, Combat: ai.Combat, Tint: tint,
 		}, &scene.Map.Exploration, scene.Feedback)
 	}
 	for _, player := range scene.RenderedPlayers {
@@ -84,11 +84,11 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		DrawPlayerActor(Actor{
 			ID: player.ID, Label: label, X: player.X, Y: player.Y - lift, Size: simulation.PlayerSize,
 			HP: player.Stats.HP, Dead: player.Dead, Character: player.Character,
-			Combat: player.Combat, Split: player.Split, Tint: tint,
+			Combat: player.Combat, Tint: tint,
 		}, scene.Feedback, &scene.Map.Exploration)
 	}
 	DrawProjectiles(scene.PreviousProjectiles, scene.Projectiles, scene.ProjectileAlpha, &scene.Map.Exploration)
-	DrawEncounter(scene.Boss, scene.Local, scene.Snapshot.Orb, &scene.Map.Exploration)
+	DrawPortals(scene.Local, scene.Snapshot.Orb, &scene.Map.Exploration)
 	scene.Map.DrawVaultFire(scene.Snapshot)
 	for _, p := range scene.Players {
 		if p.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(p.X, p.Y, simulation.PlayerSize) {
