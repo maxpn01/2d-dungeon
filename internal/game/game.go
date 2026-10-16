@@ -24,7 +24,7 @@ func NewGame() *Game {
 	window := NewWindow(
 		parameters.WindowWidth,
 		parameters.WindowHeight,
-		"2D sandbox",
+		"2D Dungeon",
 		rl.Black,
 	)
 
@@ -36,7 +36,7 @@ func NewGame() *Game {
 		ui.NewMenuButton("exit", ui.ActionExit),
 	}, 30, rl.Black)
 
-	menu.Title = "2D SANDBOX"
+	menu.Title = "2D DUNGEON"
 
 	settings := ui.NewSettings()
 	world := NewWorld()
