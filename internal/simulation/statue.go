@@ -56,12 +56,7 @@ func (w *World) interactStatue(p *playerState) bool {
 		if s.offers == nil {
 			s.offers = make(map[string][]PerkCard)
 		}
-		if s.offers[p.ID] == nil {
-			s.offers[p.ID] = perkOffer()
-			if s.offers[p.ID] == nil {
-				s.offers[p.ID] = []PerkCard{}
-			}
-		}
+		s.offers[p.ID] = refreshPerkOffer(s.offers[p.ID], p.Stats)
 	}
 	p.ActiveStatue = s.ID
 	return true

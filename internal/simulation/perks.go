@@ -3,6 +3,7 @@ package simulation
 import (
 	"fmt"
 	"math/rand/v2"
+	"slices"
 
 	"raylib-2d-sandbox/internal/parameters"
 )
@@ -64,6 +65,10 @@ func PerkPenalty(family PerkFamily, rank int) float64 {
 }
 
 func (c PerkCard) Description() string {
+	return c.DescriptionFor(false)
+}
+
+func (c PerkCard) DescriptionFor(hasWings bool) string {
 	b := PerkBonus(c.Family, c.Rank)
 	switch c.Family {
 	case DamagePerk:
@@ -77,6 +82,9 @@ func (c PerkCard) Description() string {
 	case SpeedPerk:
 		return fmt.Sprintf("+%.0f%% base speed / no extra MP cost", b*100)
 	case BoostPerk:
+		if hasWings {
+			return fmt.Sprintf("+%.0f%% flight speed / +%.0f%% MP drain", b*100, PerkPenalty(c.Family, c.Rank)*100)
+		}
 		return fmt.Sprintf("+%.0f%% Shift boost / +%.0f%% MP drain", b*100, PerkPenalty(c.Family, c.Rank)*100)
 	case HeavyPerk:
 		return fmt.Sprintf("+%.0f%% damage / -%.0f%% speed", b*100, PerkPenalty(c.Family, c.Rank)*100)
@@ -133,18 +141,35 @@ func (s *Stats) rebuildPerks() {
 	s.BoostCost = BoostMPPerSecond * (1 + PerkPenalty(BoostPerk, s.Perks[BoostPerk]))
 }
 
-func perkOffer() []PerkCard {
-	return generatePerkOffer([PerkFamilyCount]int{})
-}
-
 func perkUpgradeOffer(stats Stats) []PerkCard {
 	return generatePerkOffer(stats.Perks)
 }
 
-func generatePerkOffer(minimumRanks [PerkFamilyCount]int) []PerkCard {
+func refreshPerkOffer(previous []PerkCard, stats Stats) []PerkCard {
+	cards := make([]PerkCard, 0, 3)
+	excluded := make([]PerkFamily, 0, 3)
+	for _, card := range previous {
+		if card.Valid() && card.Rank > stats.Perks[card.Family] {
+			cards = append(cards, card)
+			excluded = append(excluded, card.Family)
+		}
+	}
+	for _, card := range generatePerkOffer(stats.Perks, excluded...) {
+		if len(cards) == 3 {
+			break
+		}
+		cards = append(cards, card)
+	}
+	return cards
+}
+
+func generatePerkOffer(minimumRanks [PerkFamilyCount]int, excluded ...PerkFamily) []PerkCard {
 	families := rand.Perm(int(PerkFamilyCount))
 	cards := make([]PerkCard, 0, 3)
 	for _, f := range families {
+		if slices.Contains(excluded, PerkFamily(f)) {
+			continue
+		}
 		owned := minimumRanks[f]
 		total := 0
 		for rank := owned; rank < MaxPerkRank; rank++ {

@@ -158,7 +158,7 @@ func (w *World) Draw(camera rl.Camera2D, width, height int32) {
 		w.teleporterDiscovery.Draw(width, height)
 	}
 	p := w.snapshot.Players[0]
-	w.perks.Draw(p.ActiveStatue, w.snapshot.Statues, p.Stats, width, height)
+	w.perks.Draw(p.ActiveStatue, w.snapshot.Statues, p.Stats, p.HasWings, width, height)
 	if w.StatsOpen() {
 		ui.DrawStats(p, w.name, width, height)
 	}

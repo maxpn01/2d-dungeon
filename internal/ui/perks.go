@@ -97,7 +97,7 @@ func wrappedText(text string, x, y, width, size int32, tint color.RGBA) int32 {
 	return y
 }
 
-func perkPreview(stats simulation.Stats, card simulation.PerkCard) string {
+func perkPreview(stats simulation.Stats, card simulation.PerkCard, hasWings bool) string {
 	next := stats
 	if !next.ApplyPerk(card) {
 		return "Already owned at this rank or higher"
@@ -114,6 +114,9 @@ func perkPreview(stats simulation.Stats, card simulation.PerkCard) string {
 	case simulation.SpeedPerk:
 		return fmt.Sprintf("Base speed %.2f -> %.2f", stats.Speed, next.Speed)
 	case simulation.BoostPerk:
+		if hasWings {
+			return fmt.Sprintf("Flight %.2fx -> %.2fx. MP/sec %.2f -> %.2f.", simulation.FlightSpeedMultiplier(stats), simulation.FlightSpeedMultiplier(next), simulation.FlightMPCost(stats), simulation.FlightMPCost(next))
+		}
 		return fmt.Sprintf("Shift boost %.2fx -> %.2fx. MP/sec %.2f -> %.2f.", stats.BoostMultiplier, next.BoostMultiplier, stats.BoostCost, next.BoostCost)
 	case simulation.HeavyPerk:
 		return fmt.Sprintf("Damage %.2f -> %.2f. Speed %.2f -> %.2f.", stats.Damage, next.Damage, stats.Speed, next.Speed)
@@ -127,7 +130,7 @@ func perkPreview(stats simulation.Stats, card simulation.PerkCard) string {
 	return ""
 }
 
-func (p *PerkPanel) Draw(active string, statues []simulation.StatueState, stats simulation.Stats, width, height int32) {
+func (p *PerkPanel) Draw(active string, statues []simulation.StatueState, stats simulation.Stats, hasWings bool, width, height int32) {
 	s := p.Sync(active, statues)
 	if s == nil || p.Closing {
 		return
@@ -161,8 +164,8 @@ func (p *PerkPanel) Draw(active string, statues []simulation.StatueState, stats 
 		x, cy, w := int32(rect.X)+20, int32(rect.Y), int32(rect.Width)-40
 		primitives.DrawText(fmt.Sprintf("RANK %s / LV %d", simulation.RankName(card.Rank), card.Rank), x, cy+13, 18, tint)
 		primitives.DrawText(simulation.PerkName(card.Family), x, cy+65, 24, rl.RayWhite)
-		wrappedText(card.Description(), x, cy+113, w, 20, tint)
-		wrappedText(perkPreview(stats, card), x, cy+175, w, 17, rl.LightGray)
+		wrappedText(card.DescriptionFor(hasWings), x, cy+113, w, 20, tint)
+		wrappedText(perkPreview(stats, card, hasWings), x, cy+175, w, 17, rl.LightGray)
 		owned := stats.Perks[card.Family]
 		label := "NEW BLESSING"
 		if owned > 0 {

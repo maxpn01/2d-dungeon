@@ -65,7 +65,7 @@ func DrawStats(player simulation.Player, name string, width, height int32) {
 		tint := perkTint(card.Rank)
 		label := fmt.Sprintf("%s %s", simulation.PerkName(card.Family), simulation.RankName(card.Rank))
 		primitives.DrawText(label, left, rowY, 18, tint)
-		primitives.DrawText(card.Description(), left, rowY+24, 16, tint)
+		primitives.DrawText(card.DescriptionFor(player.HasWings), left, rowY+24, 16, tint)
 	}
 	if p.SpectralShots {
 		rowY := y + 378 + int32(len(owned))*56

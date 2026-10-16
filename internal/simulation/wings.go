@@ -16,6 +16,14 @@ type FlightState struct {
 	LandingY  float64 `json:"landing_y"`
 }
 
+func FlightSpeedMultiplier(stats Stats) float64 {
+	return WingSpeedMultiplier * (1 + PerkBonus(BoostPerk, stats.Perks[BoostPerk]))
+}
+
+func FlightMPCost(stats Stats) float64 {
+	return WingMPPerSecond * (1 + PerkPenalty(BoostPerk, stats.Perks[BoostPerk]))
+}
+
 func advanceWingPlayer(p *Player, input Direction, dt float64) {
 	geometry := worldmap.Default().WithSecrets(p.OpenSecrets).WithVaultGate(p.VaultGateOpen)
 	grounded := geometry.Walkable(p.X, p.Y, PlayerSize, PlayerSize)
@@ -23,7 +31,8 @@ func advanceWingPlayer(p *Player, input Direction, dt float64) {
 	if grounded {
 		f.LandingX, f.LandingY = p.X, p.Y
 	}
-	powered := input.Boost && p.Stats.MP >= WingMPPerSecond*dt
+	cost := FlightMPCost(p.Stats)
+	powered := input.Boost && p.Stats.MP >= cost*dt
 	if f.Flying && !powered && !grounded && !f.Returning {
 		if x, y, found := geometry.NearestLanding(p.X, p.Y, PlayerSize); found {
 			f.LandingX, f.LandingY = x, y
@@ -46,7 +55,7 @@ func advanceWingPlayer(p *Player, input Direction, dt float64) {
 		p.Combat.Facing = Direction{X: input.AimX / length, Y: input.AimY / length}
 	}
 	dx, dy := input.X, input.Y
-	speed := p.MovementSpeed() * WingSpeedMultiplier * SpeedScale
+	speed := p.MovementSpeed() * FlightSpeedMultiplier(p.Stats) * SpeedScale
 	if f.Returning {
 		if x, y, found := geometry.FlightLandingStep(p.X, p.Y, f.LandingX, f.LandingY, PlayerSize); found {
 			dx, dy = x-p.X, y-p.Y
@@ -55,7 +64,7 @@ func advanceWingPlayer(p *Player, input Direction, dt float64) {
 		}
 		speed *= 2
 	} else {
-		p.Stats.MP = max(0, p.Stats.MP-WingMPPerSecond*dt)
+		p.Stats.MP = max(0, p.Stats.MP-cost*dt)
 	}
 	length := math.Hypot(dx, dy)
 	if length > 0 {
