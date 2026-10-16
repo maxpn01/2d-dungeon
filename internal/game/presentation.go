@@ -19,6 +19,7 @@ type presentation struct {
 	gameMap             *maprender.Map
 	feedback            rendering.Feedback
 	perks               ui.PerkPanel
+	stats               ui.StatsPanel
 	statsOpen           bool
 	resultsDismissed    bool
 }
@@ -94,5 +95,14 @@ func (p *presentation) drawRadar(width, height int32, scene rendering.Scene) {
 }
 
 func (p *presentation) StatsOpen() bool { return p.statsOpen }
-func (p *presentation) CloseStats()     { p.statsOpen = false }
-func (p *presentation) ToggleStats()    { p.statsOpen = !p.statsOpen }
+func (p *presentation) CloseStats() {
+	p.statsOpen = false
+	p.stats = ui.StatsPanel{}
+}
+func (p *presentation) ToggleStats() {
+	if p.statsOpen {
+		p.CloseStats()
+	} else {
+		p.statsOpen = true
+	}
+}

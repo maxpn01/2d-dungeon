@@ -3,6 +3,8 @@ package ui
 import (
 	"image/color"
 
+	"raylib-2d-sandbox/internal/display"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -96,15 +98,15 @@ func NewMenu(options []*MenuButton, gap float32, bgColor color.RGBA) *Menu {
 func (m *Menu) Draw() Action {
 	rl.DrawRectangle(
 		0, 0,
-		int32(rl.GetScreenWidth()),
-		int32(rl.GetScreenHeight()),
+		int32(display.Width()),
+		int32(display.Height()),
 		m.BackgroundColor,
 	)
 
 	if m.Title != "" {
-		cx := int32(rl.GetScreenWidth()) / 2
-		cy := int32(rl.GetScreenHeight()) / 2
-		pixelSize := max(int32(1), min(int32(rl.GetScreenWidth())/max(64, int32(len(m.Title)*6+11)), int32(rl.GetScreenHeight())/64))
+		cx := int32(display.Width()) / 2
+		cy := int32(display.Height()) / 2
+		pixelSize := max(int32(1), min(int32(display.Width())/max(64, int32(len(m.Title)*6+11)), int32(display.Height())/64))
 		titleY := cy - 10*pixelSize
 
 		rl.DrawRectangle(cx-2*pixelSize, titleY-8*pixelSize, 4*pixelSize, 4*pixelSize, rl.Red)
@@ -121,7 +123,7 @@ func (m *Menu) Draw() Action {
 		}
 	}
 
-	y := (float32(rl.GetScreenHeight()) - totalHeight) / 2
+	y := (float32(display.Height()) - totalHeight) / 2
 
 	return m.drawOptions(y)
 }
@@ -130,7 +132,7 @@ func (m *Menu) drawOptions(y float32) Action {
 	action := ActionNone
 
 	for _, btn := range m.Options {
-		btn.Bounds.X = (float32(rl.GetScreenWidth()) - btn.Bounds.Width) / 2
+		btn.Bounds.X = (float32(display.Width()) - btn.Bounds.Width) / 2
 		btn.Bounds.Y = y
 
 		if clickedAction := btn.Draw(); clickedAction != ActionNone {

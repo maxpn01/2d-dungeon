@@ -36,6 +36,8 @@ func (g *Game) run(testing bool) {
 	mapOpen := false
 	exitRequested := false
 	for !rl.WindowShouldClose() && !exitRequested {
+		g.window.syncSize()
+		g.camera.Offset = g.window.getWindowCenter()
 		dt := rl.GetFrameTime()
 		singlePlayerDeadAtFrameStart := current == screenSinglePlayer && g.world.Dead()
 		if current == screenSinglePlayer && g.world.ReadTestingInput() {
@@ -103,7 +105,7 @@ func (g *Game) run(testing bool) {
 			}
 		}
 
-		rl.BeginDrawing()
+		g.window.beginDrawing()
 		rl.ClearBackground(g.window.bgColor)
 		action := ui.ActionNone
 		switch current {
@@ -131,7 +133,7 @@ func (g *Game) run(testing bool) {
 				}
 			}
 		}
-		rl.EndDrawing()
+		g.window.endDrawing()
 
 		if action != ui.ActionNone {
 			mapOpen = false

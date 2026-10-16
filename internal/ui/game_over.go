@@ -3,6 +3,8 @@ package ui
 import (
 	"image/color"
 
+	"raylib-2d-sandbox/internal/display"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -21,11 +23,11 @@ func NewGameOver() *GameOver {
 func (g *GameOver) Draw() Action {
 	rl.ClearBackground(g.menu.BackgroundColor)
 
-	cx := int32(rl.GetScreenWidth()) / 2
-	cy := int32(rl.GetScreenHeight()) / 2
+	cx := int32(display.Width()) / 2
+	cy := int32(display.Height()) / 2
 
 	// Integer-sized pixels keep the title sharp without a font or texture asset.
-	pixelSize := max(int32(1), min(int32(rl.GetScreenWidth())/64, int32(rl.GetScreenHeight())/64))
+	pixelSize := max(int32(1), min(int32(display.Width())/64, int32(display.Height())/64))
 	titleY := cy - 10*pixelSize
 
 	// A shattered version of the red square the player controls.

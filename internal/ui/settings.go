@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 
+	"raylib-2d-sandbox/internal/display"
 	"raylib-2d-sandbox/internal/preferences"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
@@ -48,8 +49,8 @@ func (s *Settings) save() bool {
 }
 
 func (s *Settings) Draw() Action {
-	cx := float32(rl.GetScreenWidth()) / 2
-	top := float32(rl.GetScreenHeight())/2 - 230
+	cx := float32(display.Width()) / 2
+	top := float32(display.Height())/2 - 230
 	primitives.DrawCenteredText("settings", int32(top), 40, rl.RayWhite)
 	for _, character := range []simulation.Character{simulation.Square} {
 		card := rl.NewRectangle(cx-75, top+65, 150, 115)

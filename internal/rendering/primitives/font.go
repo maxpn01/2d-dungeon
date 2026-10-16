@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"raylib-2d-sandbox/assets"
+	"raylib-2d-sandbox/internal/display"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -46,5 +47,5 @@ func MeasureText(text string, size int32) int32 {
 }
 
 func DrawCenteredText(text string, y, size int32, tint color.RGBA) {
-	DrawText(text, (int32(rl.GetScreenWidth())-MeasureText(text, size))/2, y, size, tint)
+	DrawText(text, (int32(display.Width())-MeasureText(text, size))/2, y, size, tint)
 }

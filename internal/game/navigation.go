@@ -1,9 +1,8 @@
 package game
 
 import (
+	"raylib-2d-sandbox/internal/display"
 	"raylib-2d-sandbox/internal/ui"
-
-	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 func (g *Game) enterSinglePlayer() screen {
@@ -41,7 +40,7 @@ func (g *Game) cameraFollowPlayer() {
 }
 
 func (g *Game) drawFullMap() {
-	width, height := int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight())
+	width, height := int32(display.Width()), int32(display.Height())
 	ui.DrawFullMapBackground(g.menu.BackgroundColor, height)
 	g.world.DrawMap(width, height)
 }
