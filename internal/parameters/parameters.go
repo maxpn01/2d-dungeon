@@ -134,7 +134,7 @@ const (
 	BaseAttackRate             = 5.0
 	AttackRatePerLevelIncrease = 0.25
 	MobDamageMultiplier        = 0.5
-	MobAttackRateMultiplier    = 0.5
+	MobAttackRateMultiplier    = 0.7
 	MobShotSpeedMultiplier     = 0.9
 	MobMovementSpeedMultiplier = 0.5
 	MobAimAccuracy             = 0.9
