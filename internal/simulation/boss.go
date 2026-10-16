@@ -404,8 +404,6 @@ func (w *World) updatePortals() {
 			p.Combat = CombatState{}
 			p.TeleportCharge = 0
 			p.portalCooldown = 2 * TickRate
-			p.commands = nil
-			p.InputSeq = p.lastSequence
 			p.direction = Direction{}
 		}
 	}

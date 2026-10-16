@@ -2,7 +2,6 @@ package worldmap
 
 import (
 	"math/rand/v2"
-	"strings"
 )
 
 func randomizeSideRoomGuards(layout *Layout, seed uint64) {
@@ -25,7 +24,7 @@ func randomizeSideRoomGuards(layout *Layout, seed uint64) {
 	}
 	for i := range layout.Rooms {
 		room := &layout.Rooms[i]
-		pair, ok := assignments[strings.TrimPrefix(room.ID, "north-")]
+		pair, ok := assignments[room.ID]
 		if !ok {
 			continue
 		}

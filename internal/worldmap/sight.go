@@ -2,6 +2,7 @@ package worldmap
 
 import (
 	"math"
+
 	"raylib-2d-sandbox/internal/physics"
 )
 

@@ -12,16 +12,15 @@ import (
 )
 
 const (
-	TickRate     = parameters.TickRate
-	StepSeconds  = parameters.StepSeconds
-	PlayerSize   = parameters.PlayerSize
-	SpeedScale   = parameters.SpeedScale
-	BaseSpeed    = parameters.BaseSpeed
-	MapMin       = parameters.MapMin
-	MapMax       = parameters.MapMax
-	MinPosition  = parameters.MinPosition
-	MaxPosition  = parameters.MaxPosition
-	InputTimeout = parameters.InputTimeout
+	TickRate    = parameters.TickRate
+	StepSeconds = parameters.StepSeconds
+	PlayerSize  = parameters.PlayerSize
+	SpeedScale  = parameters.SpeedScale
+	BaseSpeed   = parameters.BaseSpeed
+	MapMin      = parameters.MapMin
+	MapMax      = parameters.MapMax
+	MinPosition = parameters.MinPosition
+	MaxPosition = parameters.MaxPosition
 )
 
 type Direction struct {
@@ -41,37 +40,30 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
-	EntranceID        string `json:"entrance_id"`
-	HasWings          bool
-	Flight            FlightState
-	WingDoorOpen      float64
-	VaultGateOpen     float64
-	NorthWingDoorOpen float64
-	OpenSecrets       []string
-	HasOrb            bool
-	Escaped           bool
-	ActiveStatue      string
-	EntranceGate      EntranceGateState
-	ShotCooldown      float64
-	EjectCooldown     float64
-	Character         Character
-	Split             SplitCells
-	GatesClosed       bool
-	InArena           bool
-	TeleportCharge    float64
-	portalCooldown    int
-	Combat            CombatState
-	Dead              bool
-	KilledBy          string
-	Stats             Stats
-	InputSeq          uint64
-	ID                string
-	X, Y              float64
-}
-
-type command struct {
-	direction Direction
-	sequence  uint64
+	EntranceID     string `json:"entrance_id"`
+	HasWings       bool
+	Flight         FlightState
+	WingDoorOpen   float64
+	VaultGateOpen  float64
+	OpenSecrets    []string
+	HasOrb         bool
+	Escaped        bool
+	ActiveStatue   string
+	EntranceGate   EntranceGateState
+	ShotCooldown   float64
+	EjectCooldown  float64
+	Character      Character
+	Split          SplitCells
+	GatesClosed    bool
+	InArena        bool
+	TeleportCharge float64
+	portalCooldown int
+	Combat         CombatState
+	Dead           bool
+	KilledBy       string
+	Stats          Stats
+	ID             string
+	X, Y           float64
 }
 
 type playerState struct {
@@ -79,12 +71,8 @@ type playerState struct {
 	testing              bool
 	god                  bool
 	Player
-	spawnSlot        uint64
 	progressionReset bool
 	direction        Direction
-	lastInput        time.Time
-	commands         []command
-	lastSequence     uint64
 }
 
 type World struct {
@@ -93,7 +81,6 @@ type World struct {
 	vaultFireHits     [worldmap.VaultFireTrapCount]map[string]bool
 	dungeonLayout     string
 	wingDoorOpen      float64
-	northWingDoorOpen float64
 	winnerID          string
 	finishedTick      uint64
 	secretWallHits    map[string]int
@@ -130,7 +117,7 @@ func NewWorld() *World {
 	return w
 }
 
-const MaxPlayers = 2
+const MaxPlayers = 1
 
 func (w *World) Join(id string) bool {
 	if _, exists := w.players[id]; exists {
@@ -139,71 +126,21 @@ func (w *World) Join(id string) bool {
 	if len(w.players) >= MaxPlayers {
 		return false
 	}
-	slot := uint64(0)
-	for _, p := range w.players {
-		if p.spawnSlot == 0 {
-			slot = 1
-		}
-	}
-	x, y := w.spawnPosition(slot)
-	w.players[id] = &playerState{spawnSlot: slot, Player: Player{EntranceID: worldmap.EntranceID(slot), EntranceGate: EntranceGateState{ID: worldmap.EntranceID(slot)}, Character: Square, Stats: NewStats(), ID: id, X: x, Y: y}}
+	x, y := w.spawnPosition()
+	w.players[id] = &playerState{Player: Player{EntranceID: worldmap.EntranceGate, EntranceGate: EntranceGateState{ID: worldmap.EntranceGate}, Character: Square, Stats: NewStats(), ID: id, X: x, Y: y}}
 	return true
 }
 
-func (w *World) Leave(id string) {
-	w.releaseStatues(id)
-	w.releaseOrb(id)
-	delete(w.players, id)
-}
-
-func (w *World) Input(id string, direction Direction, now time.Time) bool {
-	return w.Command(id, direction, 0, now)
-}
-
-func (w *World) Command(id string, direction Direction, sequence uint64, now time.Time) bool {
+func (w *World) Input(id string, direction Direction) bool {
 	player, exists := w.players[id]
 	if !exists || !direction.Valid() {
 		return false
 	}
-	if sequence == 0 {
-		if player.lastSequence != 0 {
-			return false
-		}
-		player.direction = direction
-	} else {
-		if sequence != player.lastSequence+1 {
-			return false
-		}
-		player.lastSequence = sequence
-		if !player.Dead {
-			if len(player.commands) > 0 {
-				pending := player.commands[0].direction
-				if pending.Shoot || pending.Dash || pending.Interact {
-					direction.AimX, direction.AimY = pending.AimX, pending.AimY
-				}
-				direction.Shoot = direction.Shoot || pending.Shoot
-				direction.Dash = direction.Dash || pending.Dash
-				direction.Interact = direction.Interact || pending.Interact
-				player.commands[0] = command{direction, sequence}
-			} else {
-				player.commands = append(player.commands, command{direction, sequence})
-			}
-		}
-	}
 	if player.Dead {
-		player.direction = Direction{}
-		player.InputSeq = player.lastSequence
+		direction = Direction{}
 	}
-	player.lastInput = now
+	player.direction = direction
 	return true
-}
-
-func (w *World) DiscardInputs() {
-	for _, player := range w.players {
-		player.direction = Direction{}
-		player.commands = nil
-		player.InputSeq = player.lastSequence
-	}
 }
 
 func Move(x, y float64, d Direction, seconds, speed float64) (float64, float64) {
@@ -262,25 +199,12 @@ func (w *World) Step(now time.Time) {
 		if player.god {
 			w.refillTestingPlayer(player)
 		}
-		if now.Sub(player.lastInput) >= InputTimeout {
-			player.direction = Direction{}
-			player.commands = nil
-			player.InputSeq = player.lastSequence
-		}
+
 		direction := player.direction
-		if player.lastSequence != 0 {
-			direction = Direction{}
-			if len(player.commands) > 0 {
-				next := player.commands[0]
-				player.commands = player.commands[1:]
-				direction = next.direction
-				player.InputSeq = next.sequence
-			}
-		}
+
 		player.VaultGateOpen = w.orb.GateOpen
 		player.OpenSecrets = w.openSecrets
 		player.WingDoorOpen = w.wingDoorOpen
-		player.NorthWingDoorOpen = w.northWingDoorOpen
 		if direction.Interact && (w.interactLibrary(player, direction) || w.interactVaultGate(player) || w.interactSecret(player) || w.interactObjective(player) || w.interactStatue(player)) {
 			direction.Interact = false
 		}
@@ -353,7 +277,6 @@ type Snapshot struct {
 	SecretWallHits    map[string]int
 	DungeonLayout     string
 	WingDoorOpen      float64
-	NorthWingDoorOpen float64
 	WinnerID          string
 	FinishedTick      uint64
 	OpenSecrets       []string
@@ -374,7 +297,6 @@ func (w *World) Snapshot() Snapshot {
 		state := player.Player
 		state.VaultGateOpen = w.orb.GateOpen
 		state.WingDoorOpen = w.wingDoorOpen
-		state.NorthWingDoorOpen = w.northWingDoorOpen
 		state.OpenSecrets = append([]string(nil), w.openSecrets...)
 		state.Split = state.Split.Clone()
 		players = append(players, state)
@@ -398,7 +320,7 @@ func (w *World) Snapshot() Snapshot {
 	for id, count := range w.secretWallHits {
 		hits[id] = count
 	}
-	return Snapshot{VaultArrowStarted: w.vaultArrowStarted, VaultFire: append([]VaultFire(nil), w.vaultFire[:]...), SecretWallHits: hits, DungeonLayout: w.dungeonLayout, NorthWingDoorOpen: w.northWingDoorOpen, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, FinishedTick: w.finishedTick, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	return Snapshot{VaultArrowStarted: w.vaultArrowStarted, VaultFire: append([]VaultFire(nil), w.vaultFire[:]...), SecretWallHits: hits, DungeonLayout: w.dungeonLayout, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, FinishedTick: w.finishedTick, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), SafeZones: append([]SafeZone(nil), w.safeZones...), Boss: boss, Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
 }
 
 func (w *World) Tick() uint64 { return w.tick }

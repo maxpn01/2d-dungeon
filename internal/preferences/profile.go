@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/simulation"
 )
 
@@ -49,7 +48,7 @@ func (p Profile) Save() error {
 }
 
 func (p *Profile) normalize() {
-	p.PlayerName = protocol.NormalizePlayerName(p.PlayerName)
+	p.PlayerName = NormalizePlayerName(p.PlayerName)
 	p.Character = simulation.NormalizeCharacter(p.Character)
 }
 

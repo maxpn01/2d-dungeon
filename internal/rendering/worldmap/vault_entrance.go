@@ -2,9 +2,10 @@ package worldmap
 
 import (
 	"math"
+	"slices"
+
 	"raylib-2d-sandbox/internal/physics"
 	mapdata "raylib-2d-sandbox/internal/worldmap"
-	"slices"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

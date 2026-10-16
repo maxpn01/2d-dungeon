@@ -2,11 +2,12 @@ package simulation
 
 import (
 	"math"
+
 	"raylib-2d-sandbox/internal/worldmap"
 )
 
-func (w *World) spawnPosition(slot uint64) (float64, float64) {
-	centerX, centerY := worldmap.SpawnCenter(slot)
+func (w *World) spawnPosition() (float64, float64) {
+	centerX, centerY := float64(worldmap.SpawnAltarCenter), float64(worldmap.SpawnAltarCenter)
 	bestX, bestY, bestDistance := centerX-PlayerSize/2, centerY-80-PlayerSize/2, -1.0
 	for offset := uint64(0); offset < 400; offset++ {
 		cell := offset % 400
@@ -16,9 +17,6 @@ func (w *World) spawnPosition(slot uint64) (float64, float64) {
 			spread = -spread
 		}
 		angle := -math.Pi/2 + float64(spread)*math.Pi/120
-		if slot == 1 {
-			angle = -angle
-		}
 		radius := 80 + float64(cell/40)*8
 		x := centerX + math.Cos(angle)*radius - PlayerSize/2
 		y := centerY + math.Sin(angle)*radius - PlayerSize/2

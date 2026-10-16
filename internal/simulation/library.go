@@ -3,7 +3,6 @@ package simulation
 import (
 	"math"
 	"math/bits"
-	"strings"
 
 	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/worldmap"
@@ -33,12 +32,10 @@ type LibraryState struct {
 }
 
 func IsLibraryBook(id string) bool {
-	return id == "secret-inscription" || id == worldmap.NorthID("secret-inscription")
+	return id == "secret-inscription"
 }
 func LibraryRoom(id string) string {
-	if strings.HasPrefix(id, "north-") {
-		return worldmap.NorthID(worldmap.SecretLibrary)
-	}
+
 	return worldmap.SecretLibrary
 }
 func LibraryArena(book StatueState) physics.Rect {
@@ -57,18 +54,14 @@ func LibraryWard(book StatueState, index int) physics.Vector {
 	default:
 		at = physics.Vector{X: bounds.X + 42, Y: bounds.Y + bounds.H - 65}
 	}
-	if strings.HasPrefix(book.ID, "north-") {
-		at.Y = 2*bounds.Y + bounds.H - at.Y
-	}
+
 	return at
 }
 func LibraryHome(book StatueState, index int) physics.Vector {
 	bounds := LibraryArena(book)
 	offsets := [LibraryTomeCount]physics.Vector{{X: -70, Y: -100}, {X: 70, Y: 70}, {X: -105, Y: 115}}
 	offset := offsets[index]
-	if strings.HasPrefix(book.ID, "north-") {
-		offset.Y = -offset.Y
-	}
+
 	return physics.Vector{X: bounds.X + bounds.W/2 + offset.X, Y: bounds.Y + bounds.H/2 + offset.Y}
 }
 func LibraryShelves(book StatueState) []physics.Rect {

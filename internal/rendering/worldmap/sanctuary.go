@@ -14,13 +14,11 @@ var sanctuarySeam = rl.NewColor(22, 38, 42, 255)
 var sanctuaryGold = rl.NewColor(133, 117, 70, 255)
 
 func (m *Map) drawSanctuary(ctx primitives.Context) {
-	m.drawSanctuaryAt(ctx, 0, false)
-	if room, ok := m.world.Room(mapdata.NorthSanctuary); ok {
-		m.drawSanctuaryAt(ctx, room.Area.Y*mapdata.Tile, true)
-	}
+	m.drawSanctuaryAt(ctx, 0)
+
 }
 
-func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int, north bool) {
+func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int) {
 	camera := ctx.Camera
 	camera.Target.Y -= float32(originY)
 	cs, rs, ce, re := m.visibleCellRange(camera, ctx.WindowWidth, ctx.WindowHeight)
@@ -35,9 +33,7 @@ func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int, north bool) {
 		for col := left; col < right; col++ {
 			x, y := col*mapdata.Tile, originY+row*mapdata.Tile
 			patternRow := row
-			if north {
-				patternRow = mapdata.SurfaceCells - 1 - row
-			}
+
 			hash := uint32(col*73856093) ^ uint32(patternRow*19349663)
 			tone := uint8(hash % 5)
 			dungeonRect(x+1, y+1, 39, 39, rl.NewColor(14+tone, 27+tone, 31+tone, 255))
@@ -47,9 +43,7 @@ func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int, north bool) {
 	}
 	var wingBorder rl.Rectangle
 	doorID := mapdata.WingDoor
-	if north {
-		doorID = mapdata.NorthID(doorID)
-	}
+
 	for _, door := range m.world.SecretDoors() {
 		if door.ID == doorID {
 			border := door.SanctuaryBorder()
@@ -58,9 +52,7 @@ func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int, north bool) {
 	}
 	for col := left; col < right; col++ {
 		entranceRow, entranceY, closedY := -1, originY, originY+h-10
-		if north {
-			entranceRow, entranceY, closedY = originY/mapdata.Tile+mapdata.SurfaceCells, originY+h-10, originY
-		}
+
 		connected := false
 		for dx := -2; dx <= 2; dx++ {
 			if mapdata.Default().Cell(col+dx, entranceRow) != 0 {
@@ -77,9 +69,7 @@ func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int, north bool) {
 	for row := top; row < bottom; row++ {
 		y := originY + row*40
 		index := row
-		if north {
-			index = mapdata.SurfaceCells - 1 - row
-		}
+
 		if wingBorder.X != 0 || float32(y) < wingBorder.Y || float32(y) >= wingBorder.Y+wingBorder.Height {
 			drawSanctuaryBorder(0, y, 10, 40, index)
 		}
@@ -97,10 +87,7 @@ func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int, north bool) {
 
 func (m *Map) drawSanctuaryAltar(ctx primitives.Context) {
 	drawSpawnAltar(rl.NewVector2(mapdata.SpawnAltarCenter, mapdata.SpawnAltarCenter))
-	if room, ok := m.world.Room(mapdata.NorthSanctuary); ok {
-		bounds := room.Bounds()
-		drawSpawnAltar(rl.NewVector2(float32(bounds.X+bounds.W/2), float32(bounds.Y+bounds.H/2)))
-	}
+
 }
 
 func drawSanctuaryBorder(x, y, w, h, index int) {

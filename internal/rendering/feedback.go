@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/worldmap"
@@ -57,7 +56,7 @@ type Feedback struct {
 	vaultFire     [worldmap.VaultFireTrapCount]uint64
 }
 
-func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruits []protocol.Fruit) {
+func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruits []simulation.Fruit) {
 	if f.spawns == nil {
 		f.spawns = make(map[string]time.Time)
 	}
@@ -159,19 +158,19 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 	}
 }
 
-func (f *Feedback) Observe(now time.Time, snapshot protocol.Snapshot, localID string) {
+func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot, localID string) {
 	f.localID = localID
 	f.observeLibraryAudio(snapshot, localID)
 	actors := make(map[string]feedbackActor)
 	for _, p := range snapshot.Players {
-		actors[p.ID] = feedbackActor{x: p.X, y: p.Y, size: p.Size, hp: p.Stats.HP + p.Split.Mass(), xp: p.Stats.XP, level: p.Stats.Level, tint: primitives.CharacterColor(p.Character), dead: p.Dead, hidden: p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, p.Size)), escaped: p.Escaped, recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP()}
+		actors[p.ID] = feedbackActor{x: p.X, y: p.Y, size: simulation.PlayerSize, hp: p.Stats.HP + p.Split.Mass(), xp: p.Stats.XP, level: p.Stats.Level, tint: primitives.CharacterColor(p.Character), dead: p.Dead, hidden: p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, simulation.PlayerSize)), escaped: p.Escaped, recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP()}
 	}
 	for _, a := range snapshot.AIs {
 		tint := rl.Green
 		if a.Character == simulation.Triangle {
 			tint = primitives.CharacterColor(a.Character)
 		}
-		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: a.Size, hp: a.Stats.HP + a.Split.Mass(), xp: a.Stats.XP, level: a.Stats.Level, tint: tint, ai: true, maxHP: a.Stats.MaxHP()}
+		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: simulation.AISize, hp: a.Stats.HP + a.Split.Mass(), xp: a.Stats.XP, level: a.Stats.Level, tint: tint, ai: true, maxHP: a.Stats.MaxHP()}
 		actor := actors[a.ID]
 		actor.stone = a.Stone
 		actors[a.ID] = actor
@@ -373,11 +372,11 @@ func (f *Feedback) Spawn(id string, now time.Time) {
 	f.spawns[id] = now
 }
 
-func (f *Feedback) observeLibraryAudio(snapshot protocol.Snapshot, localID string) {
+func (f *Feedback) observeLibraryAudio(snapshot simulation.Snapshot, localID string) {
 	if f.libraryEvents == nil {
 		f.libraryEvents = make(map[string]simulation.LibraryState)
 	}
-	var local protocol.Player
+	var local simulation.Player
 	for _, p := range snapshot.Players {
 		if p.ID == localID {
 			local = p
@@ -390,7 +389,7 @@ func (f *Feedback) observeLibraryAudio(snapshot protocol.Snapshot, localID strin
 		}
 		before, known := f.libraryEvents[book.ID]
 		current := book.Library
-		audible := !local.Dead && worldmap.Default().WithSecrets(snapshot.OpenSecrets).RoomContains(simulation.LibraryRoom(book.ID), physics.Square(local.X, local.Y, local.Size))
+		audible := !local.Dead && worldmap.Default().WithSecrets(snapshot.OpenSecrets).RoomContains(simulation.LibraryRoom(book.ID), physics.Square(local.X, local.Y, simulation.PlayerSize))
 		if known && audible && current.StartedTick != 0 && before.StartedTick == current.StartedTick {
 			for tome := 0; tome < simulation.LibraryTomeCount; tome++ {
 				if current.HitTicks[tome] > before.HitTicks[tome] {

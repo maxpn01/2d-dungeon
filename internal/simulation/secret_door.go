@@ -42,16 +42,7 @@ func (w *World) advanceWingDoor() {
 	if slices.Contains(w.openSecrets, worldmap.WingDoor) {
 		w.wingDoorOpen = min(1, w.wingDoorOpen+StepSeconds/1.1)
 	}
-	if slices.Contains(w.openSecrets, worldmap.NorthID(worldmap.WingDoor)) {
-		w.northWingDoorOpen = min(1, w.northWingDoorOpen+StepSeconds/1.1)
-	}
-}
 
-func WingDoorProgress(south, north float64, id string) float64 {
-	if id == worldmap.NorthID(worldmap.WingDoor) {
-		return north
-	}
-	return south
 }
 
 func constrainWingDoor(p *Player, oldX, oldY float64) {
@@ -66,7 +57,7 @@ func constrainWingDoor(p *Player, oldX, oldY float64) {
 			bounds.X, bounds.Y = min(bounds.X, border.X), min(bounds.Y, border.Y)
 			bounds.W, bounds.H = right-bounds.X, bottom-bounds.Y
 		}
-		if door.Interactable && WingDoorProgress(p.WingDoorOpen, p.NorthWingDoorOpen, door.ID) < 1 && physics.Square(p.X, p.Y, PlayerSize).Overlaps(bounds) {
+		if door.Interactable && p.WingDoorOpen < 1 && physics.Square(p.X, p.Y, PlayerSize).Overlaps(bounds) {
 			p.X, p.Y = oldX, oldY
 			return
 		}

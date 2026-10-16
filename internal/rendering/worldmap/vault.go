@@ -2,7 +2,7 @@ package worldmap
 
 import (
 	"math"
-	"raylib-2d-sandbox/internal/protocol"
+
 	"raylib-2d-sandbox/internal/simulation"
 	mapdata "raylib-2d-sandbox/internal/worldmap"
 
@@ -47,7 +47,7 @@ func (m *Map) drawVault() {
 	}
 }
 
-func (m *Map) drawVaultTraps(snapshot protocol.Snapshot) {
+func (m *Map) drawVaultTraps(snapshot simulation.Snapshot) {
 	if m.floor != mapdata.FirstFloor {
 		return
 	}
@@ -83,7 +83,7 @@ func (m *Map) drawVaultTraps(snapshot protocol.Snapshot) {
 	}
 }
 
-func (m *Map) DrawVaultArrowWarning(snapshot protocol.Snapshot) {
+func (m *Map) DrawVaultArrowWarning(snapshot simulation.Snapshot) {
 	if snapshot.VaultArrowStarted == 0 || snapshot.Tick < snapshot.VaultArrowStarted {
 		return
 	}
@@ -110,7 +110,7 @@ func vaultVents(trap mapdata.VaultTrap) []rl.Vector2 {
 	return []rl.Vector2{rl.NewVector2(float32(b.X), float32(b.Y+b.H/2)), rl.NewVector2(float32(b.X+b.W), float32(b.Y+b.H/2))}
 }
 
-func (m *Map) DrawVaultFire(snapshot protocol.Snapshot) {
+func (m *Map) DrawVaultFire(snapshot simulation.Snapshot) {
 	traps := m.world.VaultTraps()
 	for i, state := range snapshot.VaultFire {
 		if i >= len(traps) || state.TriggeredTick == 0 || snapshot.Tick < state.TriggeredTick {

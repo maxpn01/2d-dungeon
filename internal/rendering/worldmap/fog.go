@@ -5,7 +5,6 @@ import (
 	"math"
 
 	"raylib-2d-sandbox/internal/parameters"
-	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 	mapdata "raylib-2d-sandbox/internal/worldmap"
@@ -167,7 +166,7 @@ func (m *Map) DrawFog(ctx primitives.Context) {
 	rl.EndShaderMode()
 }
 
-func (m *Map) DrawVisibleVaultGate(orb simulation.OrbState, local protocol.Player) {
+func (m *Map) DrawVisibleVaultGate(orb simulation.OrbState, local simulation.Player) {
 	gate, ok := m.world.Gate(mapdata.VaultGate)
 	if ok && m.Exploration.EntityVisible(float64(gate.Left+gate.Right)/2, float64(gate.Y+mapdata.Tile), 0) {
 		m.drawVaultGate(orb, local)

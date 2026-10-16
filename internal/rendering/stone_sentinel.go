@@ -3,6 +3,7 @@ package rendering
 import (
 	"fmt"
 	"math"
+
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 

@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"math"
+
 	"raylib-2d-sandbox/internal/worldmap"
 )
 
@@ -56,7 +57,7 @@ func constrainEntranceGate(p *Player, oldX, oldY float64) {
 	if p.Flight.Flying {
 		return
 	}
-	for _, id := range []string{worldmap.EntranceGate, worldmap.NorthID(worldmap.EntranceGate)} {
+	for _, id := range []string{worldmap.EntranceGate} {
 		gate, _ := worldmap.Default().Gate(id)
 		left, right, yGate := float64(gate.Left), float64(gate.Right), float64(gate.Y)
 		g := &p.EntranceGate
@@ -73,19 +74,6 @@ func constrainEntranceGate(p *Player, oldX, oldY float64) {
 		}
 		if g.ID == id && g.Remaining > 0 && ((g.Side == 1 && p.Y+PlayerSize < yGate-38) || (g.Side == -1 && p.Y > yGate+38)) {
 			g.Passed = true
-		}
-	}
-}
-
-func constrainPrivateEntrance(p *Player, oldX, oldY float64, oldFlight FlightState) {
-	geometry := worldmap.Default()
-	if !p.Flight.Flying && !geometry.CanAccessEntrance(p.EntranceID, p.X, p.Y, PlayerSize) {
-		p.X, p.Y, p.Flight = oldX, oldY, oldFlight
-	}
-	for i := range p.Split {
-		cell := &p.Split[i]
-		if cell.Active && !geometry.CanAccessEntrance(p.EntranceID, cell.X, cell.Y, PlayerSize) {
-			cell.X, cell.Y = p.X, p.Y
 		}
 	}
 }

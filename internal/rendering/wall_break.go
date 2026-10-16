@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -17,7 +17,7 @@ type wallBreak struct {
 	hit     bool
 }
 
-func (f *Feedback) observeWalls(now time.Time, snapshot protocol.Snapshot, localID string) {
+func (f *Feedback) observeWalls(now time.Time, snapshot simulation.Snapshot, localID string) {
 	open := snapshot.OpenSecrets
 	current := make(map[string]bool, len(open))
 	for _, id := range open {

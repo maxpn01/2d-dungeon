@@ -22,11 +22,7 @@ func (m *Map) CanFly(body physics.Rect) bool {
 		}
 		return 0
 	}
-	if room, ok := m.Room(NorthSanctuary); ok && body.Overlaps(room.Bounds()) {
-		return walkableSanctuary(body.X, 2*MirrorAxis*Tile-body.Y-body.H, body.W, body.H, func(x, y int) int {
-			return flightCell(x, 2*MirrorAxis-y-1)
-		}, false)
-	}
+
 	if body.Overlaps(Cells(0, 0, SurfaceCells, SurfaceCells).Bounds()) {
 		return walkableSanctuary(body.X, body.Y, body.W, body.H, flightCell, false)
 	}
@@ -54,9 +50,7 @@ func (m *Map) buildFlightCells() map[[2]int]bool {
 	reserve(Cells(0, 0, SurfaceCells, SurfaceCells), 0)
 	for _, room := range m.layout.Rooms {
 		margin := 1
-		if room.ID == NorthSanctuary {
-			margin = 0
-		}
+
 		reserve(room.Area, margin)
 	}
 	for _, passage := range m.passages {
@@ -98,7 +92,7 @@ func (m *Map) buildFlightCells() map[[2]int]bool {
 	return cells
 }
 
-func (m *Map) NearestLanding(x, y, size float64, entranceID string) (float64, float64, bool) {
+func (m *Map) NearestLanding(x, y, size float64) (float64, float64, bool) {
 	body := physics.Square(x, y, size)
 	if !body.Valid() {
 		return x, y, false
@@ -114,15 +108,12 @@ func (m *Map) NearestLanding(x, y, size float64, entranceID string) (float64, fl
 		if distance > bestDistance || distance == bestDistance && (candidate.X > bestX || candidate.X == bestX && candidate.Y >= bestY) {
 			return
 		}
-		if m.CanOccupy(candidate) && m.CanAccessEntrance(entranceID, candidate.X, candidate.Y, size) {
+		if m.CanOccupy(candidate) {
 			bestX, bestY, bestDistance = candidate.X, candidate.Y, distance
 		}
 	}
 	consider(physics.Rect{X: SurfaceMin, Y: SurfaceMin, W: SurfaceMax - SurfaceMin, H: SurfaceMax - SurfaceMin})
-	_, hasNorthSanctuary := m.Room(NorthSanctuary)
-	if hasNorthSanctuary {
-		consider(physics.Rect{X: SurfaceMin, Y: 2*MirrorAxis*Tile - SurfaceMax, W: SurfaceMax - SurfaceMin, H: SurfaceMax - SurfaceMin})
-	}
+
 	considerCell := func(cx, cy int) {
 		for height := 1; height <= 2; height++ {
 			for width := 1; width <= 2; width++ {
@@ -136,9 +127,6 @@ func (m *Map) NearestLanding(x, y, size float64, entranceID string) (float64, fl
 	for cy := 0; cy < SurfaceCells; cy++ {
 		for cx := 0; cx < SurfaceCells; cx++ {
 			considerCell(cx, cy)
-			if hasNorthSanctuary {
-				considerCell(cx, 2*MirrorAxis-cy-1)
-			}
 		}
 	}
 	return bestX, bestY, !math.IsInf(bestDistance, 1)

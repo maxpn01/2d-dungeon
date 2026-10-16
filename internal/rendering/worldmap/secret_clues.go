@@ -2,6 +2,7 @@ package worldmap
 
 import (
 	"math"
+
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	mapdata "raylib-2d-sandbox/internal/worldmap"

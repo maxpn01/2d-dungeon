@@ -1,8 +1,9 @@
 package rendering
 
 import (
-	rl "github.com/gen2brain/raylib-go/raylib"
 	"math"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 func drawPossession(ai Actor) {

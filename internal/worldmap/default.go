@@ -1,8 +1,9 @@
 package worldmap
 
 import (
-	"raylib-2d-sandbox/internal/parameters"
 	"time"
+
+	"raylib-2d-sandbox/internal/parameters"
 )
 
 const (

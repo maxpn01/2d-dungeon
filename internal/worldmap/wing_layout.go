@@ -3,17 +3,14 @@ package worldmap
 import (
 	"fmt"
 	"math/rand/v2"
+
 	"raylib-2d-sandbox/internal/physics"
 )
 
-func wingRoom(layout Layout, north bool, id string) (Layout, string, error) {
+func wingRoom(layout Layout, id string) (Layout, string, error) {
 	room, _ := DefaultLayout().Room(WingChamber)
 	doorID, passageID := WingDoor, "aerie-entrance"
-	if north {
-		room.ID = NorthID(room.ID)
-		room.Statues[0].ID = NorthID(WingStatue)
-		doorID, passageID = NorthID(doorID), NorthID(passageID)
-	}
+
 	wall, offset := "", 0
 	if id == "" {
 		wall = []string{"left", "right"}[rand.IntN(2)]
@@ -44,11 +41,7 @@ func wingRoom(layout Layout, north bool, id string) (Layout, string, error) {
 		room.Statues[0].At = At(11, 3)
 		door = Cells(SurfaceCells, offset, 1, 2)
 	}
-	if north {
-		room.Area = mirrorArea(room.Area)
-		room.Statues[0].At.Y = room.Area.Height - 1 - room.Statues[0].At.Y
-		door = mirrorArea(door)
-	}
+
 	layout.SetRoom(room)
 	layout.SecretDoors = append(layout.SecretDoors, SecretDoor{ID: doorID, RoomID: room.ID, Area: door, Interactable: true})
 	layout.SetPassage(Passage{ID: passageID, From: Location{At: door.Origin()}, To: Location{At: At(door.Right()-1, door.Bottom()-1)}, Width: 1})
@@ -59,9 +52,6 @@ func (door SecretDoor) SanctuaryBorder() physics.Rect {
 	area := door.Area.Bounds()
 	if door.Area.Width > door.Area.Height {
 		y := float64(SurfaceMax)
-		if door.Area.Y < 0 {
-			y = float64((2*MirrorAxis - SurfaceCells) * Tile)
-		}
 		return physics.Rect{X: area.X, Y: y, W: area.W, H: SurfaceMin}
 	}
 	x := 0.0
@@ -70,3 +60,5 @@ func (door SecretDoor) SanctuaryBorder() physics.Rect {
 	}
 	return physics.Rect{X: x, Y: area.Y, W: SurfaceMin, H: area.H}
 }
+
+func IsWingStatue(id string) bool { return id == WingStatue }

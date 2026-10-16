@@ -135,8 +135,6 @@ func (e eater) die(killer string, tick uint64) {
 	e.player.Flight = FlightState{}
 	e.player.KilledBy = killer
 	e.player.direction = Direction{}
-	e.player.commands = nil
-	e.player.InputSeq = e.player.lastSequence
 }
 
 func (w *World) consumeFruits(eaters []eater) {

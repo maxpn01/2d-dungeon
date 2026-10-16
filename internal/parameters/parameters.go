@@ -3,7 +3,7 @@ package parameters
 import "time"
 
 // World geometry. Changing tile or surface dimensions also changes the
-// derived world bounds used by both the client and server.
+// derived world bounds.
 const (
 	Tile         = 40
 	MinCellX     = -57
@@ -19,16 +19,15 @@ const (
 
 // Simulation timing and movement.
 const (
-	TickRate     = 30
-	StepSeconds  = 1.0 / TickRate
-	PlayerSize   = ActorSize
-	SpeedScale   = 100.0
-	BaseSpeed    = 5.0
-	MapMin       = float64(SurfaceMin)
-	MapMax       = float64(SurfaceMax)
-	MinPosition  = MapMin
-	MaxPosition  = MapMax - PlayerSize
-	InputTimeout = 500 * time.Millisecond
+	TickRate    = 30
+	StepSeconds = 1.0 / TickRate
+	PlayerSize  = ActorSize
+	SpeedScale  = 100.0
+	BaseSpeed   = 5.0
+	MapMin      = float64(SurfaceMin)
+	MapMax      = float64(SurfaceMax)
+	MinPosition = MapMin
+	MaxPosition = MapMax - PlayerSize
 )
 
 // Progression, food, and refuges.
@@ -236,7 +235,7 @@ const (
 	BossRecoverTicks           = 22
 )
 
-// Client display, feedback, and network smoothing.
+// Display and feedback.
 const (
 	WindowWidth                      = 1440
 	WindowHeight                     = 1000
@@ -246,23 +245,8 @@ const (
 	ExplorationRadius                = 400
 	WingWallGlowStrength             = 5
 	EntityDetectionRadius            = 1200
-	ChatVisibleLines                 = 8
-	ChatFadeSeconds                  = 10
-	ChatFontSize                     = 18
-	ChatLineHeight                   = 24
-	ChatMargin                       = 24
 	EatingContactTime                = 80 * time.Millisecond
 	EatingShrinkTime                 = 140 * time.Millisecond
 	EatingSceneTime                  = EatingContactTime + EatingShrinkTime + 30*time.Millisecond
-	MaxExtrapolation                 = 100 * time.Millisecond
-	CorrectionSeconds                = 0.05
-	TeleportDistance                 = 200
-	PlayerBufferTicks                = 2.0
-	MaxChatEntries                   = 50
-	ChatCooldown                     = 500 * time.Millisecond
-	MessagesPerSecond                = 120.0
-	SnapshotRate                     = 15
-	LobbySnapshotInterval            = time.Second
-	MatchCountdownSeconds            = 3
 	ResultsDelaySeconds              = 3
 )

@@ -1,14 +1,15 @@
 package simulation
 
 import (
+	"slices"
+
 	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/worldmap"
-	"slices"
 )
 
 func (w *World) EnableTesting(id string) bool {
 	p := w.players[id]
-	if p == nil || worldmap.Multiplayer() || len(w.players) != 1 {
+	if p == nil || len(w.players) != 1 {
 		return false
 	}
 	p.testing, p.god = true, true
@@ -156,7 +157,7 @@ func (w *World) TestingWarp(id, roomID string) bool {
 	p.X, p.Y = x, y
 	p.Flight, p.Combat, p.Split = FlightState{}, CombatState{}, nil
 	p.ActiveStatue, p.TeleportCharge, p.portalCooldown = "", 0, 0
-	p.direction, p.commands = Direction{}, nil
+	p.direction = Direction{}
 	p.velocityX, p.velocityY = 0, 0
 	p.VaultGateOpen = w.orb.GateOpen
 	p.OpenSecrets = w.openSecrets

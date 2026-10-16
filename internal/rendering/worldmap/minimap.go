@@ -5,7 +5,6 @@ import (
 	"math"
 
 	"raylib-2d-sandbox/internal/parameters"
-	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 	mapdata "raylib-2d-sandbox/internal/worldmap"
@@ -194,7 +193,7 @@ type Marker struct {
 	Tint   color.RGBA
 }
 
-func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker, snapshot protocol.Snapshot) {
+func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker, snapshot simulation.Snapshot) {
 	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
 	m.safeZones = snapshot.SafeZones
 	m.floor = m.world.FloorAt(float64(focus.X), float64(focus.Y))
@@ -235,8 +234,8 @@ func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker,
 		}
 	} else {
 		for _, player := range snapshot.Players {
-			if player.ID == snapshot.Orb.Carrier && m.Exploration.PlayerVisible(player.X, player.Y, player.Size) {
-				v.marker(rl.NewVector2(float32(player.X+player.Size/2), float32(player.Y+player.Size/2)), 5, primitives.RuneColor)
+			if player.ID == snapshot.Orb.Carrier && m.Exploration.PlayerVisible(player.X, player.Y, simulation.PlayerSize) {
+				v.marker(rl.NewVector2(float32(player.X+simulation.PlayerSize/2), float32(player.Y+simulation.PlayerSize/2)), 5, primitives.RuneColor)
 			}
 		}
 	}

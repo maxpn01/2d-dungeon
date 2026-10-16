@@ -15,26 +15,20 @@ type secretPlacement struct {
 	door CellRect
 }
 
-func secretBase(multiplayer bool) Layout {
+func secretBase() Layout {
 	layout := DefaultLayout()
-	if multiplayer {
-		layout = MultiplayerLayout()
-	}
+
 	layout.RemoveRoom(WingChamber)
-	layout.RemoveRoom(NorthID(WingChamber))
 	layout.RemovePassage("aerie-entrance")
-	layout.RemovePassage(NorthID("aerie-entrance"))
 	layout.RemoveRoom(SecretLibrary)
-	layout.RemoveRoom(NorthID(SecretLibrary))
 	layout.RemovePassage("library-secret")
-	layout.RemovePassage(NorthID("library-secret"))
 	layout.SecretDoors = slices.DeleteFunc(layout.SecretDoors, func(door SecretDoor) bool {
-		return door.RoomID == WingChamber || door.RoomID == NorthID(WingChamber) || door.RoomID == SecretLibrary || door.RoomID == NorthID(SecretLibrary)
+		return door.RoomID == WingChamber || door.RoomID == SecretLibrary
 	})
 	return layout
 }
 
-func secretPlacements(layout Layout, room Room, span int, side string) []secretPlacement {
+func secretPlacements(layout Layout, room Room, span int) []secretPlacement {
 	occupied := map[[2]int]bool{}
 	reserve := func(area CellRect) {
 		for y := area.Y; y < area.Bottom(); y++ {
@@ -57,10 +51,7 @@ func secretPlacements(layout Layout, room Room, span int, side string) []secretP
 		if !host.HasRole(ExplorationRoom) || host.HasRole(Private) || host.Floor != FirstFloor {
 			continue
 		}
-		north := strings.HasPrefix(host.ID, "north-")
-		if side == "south" && north || side == "north" && !north {
-			continue
-		}
+
 		for wall := range 4 {
 			width, height := room.Area.Width, room.Area.Height
 			length := host.Area.Height
@@ -146,13 +137,11 @@ func placeSecret(layout *Layout, room Room, doorID, passageID string, placement 
 	layout.SetPassage(Passage{ID: passageID, From: Location{At: door.Origin()}, To: Location{At: At(door.Right()-1, door.Bottom()-1)}, Width: 1})
 }
 
-func secretRoom(layout Layout, roomID, doorID, passageID, side, id string, span int) (Layout, string, error) {
+func secretRoom(layout Layout, roomID, doorID, passageID, id string, span int) (Layout, string, error) {
 	template := DefaultLayout()
-	if side == "north" {
-		template = MultiplayerLayout()
-	}
+
 	room, _ := template.Room(roomID)
-	placements := secretPlacements(layout, room, span, side)
+	placements := secretPlacements(layout, room, span)
 	if id == "" {
 		byRoom := map[string][]secretPlacement{}
 		var rooms []string
@@ -179,14 +168,14 @@ func secretRoom(layout Layout, roomID, doorID, passageID, side, id string, span 
 	return layout, "", fmt.Errorf("invalid placement %q for %s", id, roomID)
 }
 
-func dungeonLayout(multiplayer bool, id string) (Layout, string, error) {
+func dungeonLayout(id string) (Layout, string, error) {
 	parts := []string{"", "", "", "", "", ""}
 	if id != "" {
 		parts = strings.Split(id, "|")
 		if len(parts) == 5 {
 			parts = append(parts, "0000000000000000")
 		}
-		if len(parts) != 6 || parts[0] == "" || parts[2] != "astral-gate-v2" || parts[3] == "" || parts[4] == "" || multiplayer && (parts[1] == "" || parts[1] == "-" || parts[4] == "-") || !multiplayer && (parts[1] != "-" || parts[4] != "-") {
+		if len(parts) != 6 || parts[0] == "" || parts[2] != "astral-gate-v2" || parts[3] == "" || parts[4] == "" || parts[1] != "-" || parts[4] != "-" {
 			return Layout{}, "", fmt.Errorf("invalid dungeon layout %q", id)
 		}
 	}
@@ -197,33 +186,23 @@ func dungeonLayout(multiplayer bool, id string) (Layout, string, error) {
 	if seedErr != nil {
 		return Layout{}, "", fmt.Errorf("invalid guard placement seed %q", parts[5])
 	}
-	layout := secretBase(multiplayer)
+	layout := secretBase()
 	randomizeSideRoomGuards(&layout, seed)
 	var err error
-	layout, parts[3], err = wingRoom(layout, false, parts[3])
+	layout, parts[3], err = wingRoom(layout, parts[3])
 	if err != nil {
 		return Layout{}, "", err
 	}
-	if multiplayer {
-		layout, parts[4], err = wingRoom(layout, true, parts[4])
-		if err != nil {
-			return Layout{}, "", err
-		}
-	} else {
-		parts[4] = "-"
-	}
-	layout, parts[0], err = secretRoom(layout, SecretLibrary, "library-wall", "library-secret", "south", parts[0], 2)
+
+	parts[4] = "-"
+
+	layout, parts[0], err = secretRoom(layout, SecretLibrary, "library-wall", "library-secret", parts[0], 2)
 	if err != nil {
 		return Layout{}, "", err
 	}
-	if multiplayer {
-		layout, parts[1], err = secretRoom(layout, NorthID(SecretLibrary), NorthID("library-wall"), NorthID("library-secret"), "north", parts[1], 2)
-		if err != nil {
-			return Layout{}, "", err
-		}
-	} else {
-		parts[1] = "-"
-	}
+
+	parts[1] = "-"
+
 	parts[2] = "astral-gate-v2"
 	return layout, strings.Join(parts, "|"), nil
 }
@@ -234,11 +213,7 @@ func activateDungeonMap(layout Layout, id string) error {
 		return err
 	}
 	m.dungeonLayout = id
-	if Multiplayer() {
-		multiplayerDungeonMap.Store(m)
-	} else {
-		soloDungeonMap.Store(m)
-	}
+	dungeonMap.Store(m)
 	return nil
 }
 
@@ -249,7 +224,7 @@ func SetDungeonLayout(id string) error {
 	if id == "" {
 		return fmt.Errorf("missing dungeon layout")
 	}
-	layout, _, err := dungeonLayout(Multiplayer(), id)
+	layout, _, err := dungeonLayout(id)
 	if err != nil {
 		return err
 	}
@@ -257,7 +232,7 @@ func SetDungeonLayout(id string) error {
 }
 
 func RandomizeDungeon() string {
-	layout, id, err := dungeonLayout(Multiplayer(), "")
+	layout, id, err := dungeonLayout("")
 	if err != nil {
 		panic(err)
 	}

@@ -3,7 +3,6 @@ package worldmap
 import (
 	"math"
 
-	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 	mapdata "raylib-2d-sandbox/internal/worldmap"
@@ -45,19 +44,16 @@ func NewMap() *Map {
 	}
 }
 
-func (m *Map) Draw(ctx primitives.Context, snapshot protocol.Snapshot, local protocol.Player) {
+func (m *Map) Draw(ctx primitives.Context, snapshot simulation.Snapshot, local simulation.Player) {
 	m.Exploration.SetSecrets(snapshot.OpenSecrets, snapshot.Orb.GateOpen)
-	m.Exploration.Reveal(rl.NewVector2(float32(local.X+local.Size/2), float32(local.Y+local.Size/2)))
+	m.Exploration.Reveal(rl.NewVector2(float32(local.X+simulation.PlayerSize/2), float32(local.Y+simulation.PlayerSize/2)))
 	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
 	m.wallHits = snapshot.SecretWallHits
 	m.safeZones, m.gate = snapshot.SafeZones, local.EntranceGate
-	m.floor = m.world.FloorAt(local.X+local.Size/2, local.Y+local.Size/2)
+	m.floor = m.world.FloorAt(local.X+simulation.PlayerSize/2, local.Y+simulation.PlayerSize/2)
 	m.gatePrompt = !local.Dead && simulation.NearEntranceGateFor(local.EntranceID, local.X, local.Y)
 	m.nearGateID = mapdata.EntranceGate
-	north, _ := mapdata.Default().Gate(mapdata.NorthID(mapdata.EntranceGate))
-	if math.Abs(local.Y+local.Size/2-float64(north.Y)) <= 110 {
-		m.nearGateID = mapdata.NorthID(mapdata.EntranceGate)
-	}
+
 	if m.floor == mapdata.FirstFloor {
 		m.drawSanctuary(ctx)
 	}
@@ -109,21 +105,4 @@ func clampInt(v, lo, hi int) int {
 		return hi
 	}
 	return v
-}
-
-func (m *Map) sanctuaryTile(x, y int, northBorder mapdata.CellRect) bool {
-	if m.world.SanctuaryCell(x, y) {
-		return true
-	}
-	if !northBorder.Contains(mapdata.At(x, y)) || m.world.Cell(x, y) != 0 {
-		return false
-	}
-	for dy := -1; dy <= 1; dy++ {
-		for dx := -1; dx <= 1; dx++ {
-			if m.world.Cell(x+dx, y+dy) != 0 && !m.world.SanctuaryCell(x+dx, y+dy) {
-				return false
-			}
-		}
-	}
-	return true
 }

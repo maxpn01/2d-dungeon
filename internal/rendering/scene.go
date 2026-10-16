@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"time"
 
-	"raylib-2d-sandbox/internal/protocol"
+	"raylib-2d-sandbox/internal/preferences"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	maprender "raylib-2d-sandbox/internal/rendering/worldmap"
 	"raylib-2d-sandbox/internal/simulation"
@@ -14,11 +14,12 @@ import (
 )
 
 type Scene struct {
-	protocol.Snapshot
+	simulation.Snapshot
+	PlayerName          string
 	Map                 *maprender.Map
-	Local               protocol.Player
-	RenderedPlayers     []protocol.Player
-	RenderedAIs         []protocol.AI
+	Local               simulation.Player
+	RenderedPlayers     []simulation.Player
+	RenderedAIs         []simulation.AI
 	PreviousStatues     []simulation.StatueState
 	PreviousTick        uint64
 	PreviousProjectiles []simulation.Projectile
@@ -54,7 +55,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		DrawAIActor(Actor{
 			Type: ai.Type, Level: ai.Stats.Level, Stone: ai.Stone, Awakening: ai.Awakening,
 			ID: ai.ID, Label: fmt.Sprintf("%s Lv.%d", mobName(ai.Type), ai.Stats.Level),
-			X: ai.X, Y: ai.Y, Size: ai.Size, HP: ai.Stats.HP, Character: ai.Character,
+			X: ai.X, Y: ai.Y, Size: simulation.AISize, HP: ai.Stats.HP, Character: ai.Character,
 			Aiming: ai.Aiming, Frenzied: ai.Frenzied, Combat: ai.Combat, Split: ai.Split, Tint: tint,
 		}, &scene.Map.Exploration, scene.Feedback)
 	}
@@ -62,26 +63,26 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		if player.Dead {
 			continue
 		}
-		if player.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(player.X, player.Y, player.Size) {
+		if player.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(player.X, player.Y, simulation.PlayerSize) {
 			continue
 		}
 		tint := primitives.CharacterColor(player.Character)
-		label := fmt.Sprintf("%s Lv.%d", protocol.NormalizePlayerName(player.Name), player.Stats.Level)
+		label := fmt.Sprintf("%s Lv.%d", preferences.NormalizePlayerName(scene.PlayerName), player.Stats.Level)
 		if player.ID == scene.Local.ID {
 			label += " (you)"
 		}
 		lift := float64(0)
 		if player.HasWings {
-			lift = DrawWings(player.X, player.Y, player.Size, player.Flight.Flying)
+			lift = DrawWings(player.X, player.Y, simulation.PlayerSize, player.Flight.Flying)
 		}
 		if player.HasOrb {
-			center := rl.NewVector2(float32(player.X+player.Size/2), float32(player.Y-30-lift))
+			center := rl.NewVector2(float32(player.X+simulation.PlayerSize/2), float32(player.Y-30-lift))
 			rl.DrawCircleGradient(center, 25, rl.Fade(primitives.RuneColor, .35), rl.Blank)
 			rl.DrawCircleV(center, 8, primitives.RuneColor)
 			rl.DrawCircleV(rl.NewVector2(center.X-2, center.Y-2), 2, rl.RayWhite)
 		}
 		DrawPlayerActor(Actor{
-			ID: player.ID, Label: label, X: player.X, Y: player.Y - lift, Size: player.Size,
+			ID: player.ID, Label: label, X: player.X, Y: player.Y - lift, Size: simulation.PlayerSize,
 			HP: player.Stats.HP, Dead: player.Dead, Character: player.Character,
 			Combat: player.Combat, Split: player.Split, Tint: tint,
 		}, scene.Feedback, &scene.Map.Exploration)
@@ -90,7 +91,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 	DrawEncounter(scene.Boss, scene.Local, scene.Snapshot.Orb, &scene.Map.Exploration)
 	scene.Map.DrawVaultFire(scene.Snapshot)
 	for _, p := range scene.Players {
-		if p.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(p.X, p.Y, p.Size) {
+		if p.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(p.X, p.Y, simulation.PlayerSize) {
 			continue
 		}
 		DrawTeleportCharge(p.X, p.Y, p.TeleportCharge)

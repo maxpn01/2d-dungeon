@@ -1,12 +1,13 @@
 package rendering
 
 import (
-	rl "github.com/gen2brain/raylib-go/raylib"
 	"math"
-	"raylib-2d-sandbox/internal/protocol"
+	"time"
+
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
-	"time"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 func (f *Feedback) DrawHit(id string, bounds rl.Rectangle, character simulation.Character) {
@@ -31,7 +32,7 @@ func (f *Feedback) DrawHit(id string, bounds rl.Rectangle, character simulation.
 	rl.DrawRectangleLinesEx(outline, 2, rl.Fade(rl.Orange, 1-p))
 }
 
-func (f *Feedback) CheckCombatInput(now time.Time, input protocol.Direction, player protocol.Player) {
+func (f *Feedback) CheckCombatInput(now time.Time, input simulation.Direction, player simulation.Player) {
 	if player.Dead {
 		return
 	}
@@ -45,7 +46,7 @@ func (f *Feedback) CheckCombatInput(now time.Time, input protocol.Direction, pla
 	}
 }
 
-func (f *Feedback) DrawCombatOverlay(now time.Time, player protocol.Player, width, height int32) {
+func (f *Feedback) DrawCombatOverlay(now time.Time, player simulation.Player, width, height int32) {
 	if player.Dead {
 		return
 	}

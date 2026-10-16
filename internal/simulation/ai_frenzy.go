@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"math"
+
 	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/worldmap"
 )

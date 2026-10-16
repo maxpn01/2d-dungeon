@@ -3,7 +3,6 @@ package rendering
 import (
 	"math"
 
-	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 	"raylib-2d-sandbox/internal/worldmap"
@@ -11,7 +10,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func DrawEncounter(b simulation.Boss, local protocol.Player, orb simulation.OrbState, e Visibility) {
+func DrawEncounter(b simulation.Boss, local simulation.Player, orb simulation.OrbState, e Visibility) {
 	for _, portal := range worldmap.Default().Portals() {
 		position := portal.Position()
 		pad := rl.NewVector2(float32(position.X), float32(position.Y))

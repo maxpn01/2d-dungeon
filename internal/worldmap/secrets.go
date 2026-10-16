@@ -1,8 +1,9 @@
 package worldmap
 
 import (
-	"raylib-2d-sandbox/internal/physics"
 	"slices"
+
+	"raylib-2d-sandbox/internal/physics"
 )
 
 func (m *Map) SecretDoors() []SecretDoor { return append([]SecretDoor(nil), m.layout.SecretDoors...) }

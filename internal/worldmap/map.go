@@ -2,10 +2,11 @@ package worldmap
 
 import (
 	"fmt"
-	"raylib-2d-sandbox/internal/physics"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"raylib-2d-sandbox/internal/physics"
 )
 
 type FeedingPatch struct {
@@ -67,21 +68,10 @@ type Map struct {
 
 var defaultMap = mustBuild(DefaultLayout())
 
-var multiplayerMap = mustBuild(MultiplayerLayout())
-var multiplayerActive atomic.Bool
-var soloDungeonMap atomic.Pointer[Map]
-var multiplayerDungeonMap atomic.Pointer[Map]
+var dungeonMap atomic.Pointer[Map]
 
-func SetMultiplayer(enabled bool) { multiplayerActive.Store(enabled) }
-func Multiplayer() bool           { return multiplayerActive.Load() }
 func Default() *Map {
-	if Multiplayer() {
-		if m := multiplayerDungeonMap.Load(); m != nil {
-			return m
-		}
-		return multiplayerMap
-	}
-	if m := soloDungeonMap.Load(); m != nil {
+	if m := dungeonMap.Load(); m != nil {
 		return m
 	}
 	return defaultMap

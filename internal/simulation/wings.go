@@ -25,7 +25,7 @@ func advanceWingPlayer(p *Player, input Direction, dt float64) {
 	}
 	powered := input.Boost && p.Stats.MP >= WingMPPerSecond*dt
 	if f.Flying && !powered && !grounded && !f.Returning {
-		if x, y, found := geometry.NearestLanding(p.X, p.Y, PlayerSize, p.EntranceID); found {
+		if x, y, found := geometry.NearestLanding(p.X, p.Y, PlayerSize); found {
 			f.LandingX, f.LandingY = x, y
 		}
 		f.Returning = true

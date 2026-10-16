@@ -22,12 +22,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 	sanctumID, feastID := 0, 0
 	rooms := m.world.Rooms()
 	secretDoors := m.world.SecretDoors()
-	northBorder := mapdata.CellRect{}
 	for i, room := range rooms {
-		if room.ID == mapdata.NorthSanctuary {
-			area := room.Area
-			northBorder = mapdata.Cells(area.X-1, area.Y-1, area.Width+2, area.Height+2)
-		}
 		if room.HasRole(mapdata.PortalSanctum) {
 			sanctumID = i + 2
 		}
@@ -46,7 +41,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 	}
 	for y := max(mapdata.MinCellY, top); y < bottom; y++ {
 		for x := max(mapdata.MinCellX, left); x < min(mapdata.MaxCellX, right); x++ {
-			if m.sanctuaryTile(x, y, northBorder) || m.world.CellFloor(x, y) != m.floor {
+			if m.world.SanctuaryCell(x, y) || m.world.CellFloor(x, y) != m.floor {
 				continue
 			}
 			id := m.world.Cell(x, y)
@@ -136,12 +131,6 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 			southState = m.gate
 		}
 		drawEntranceHall(southState, m.gatePrompt && m.nearGateID == mapdata.EntranceGate, m.world)
-		northGate, _ := m.world.Gate(mapdata.NorthID(mapdata.EntranceGate))
-		state := simulation.EntranceGateState{}
-		if m.gate.ID == mapdata.NorthID(mapdata.EntranceGate) {
-			state = m.gate
-		}
-		drawStatueGate(northGate, state, m.gatePrompt && m.nearGateID == mapdata.NorthID(mapdata.EntranceGate))
 
 	}
 	m.drawFeedingAreas()
@@ -159,7 +148,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 		if room.Floor != m.floor {
 			continue
 		}
-		if (room.ID == mapdata.WingChamber || room.ID == mapdata.NorthID(mapdata.WingChamber)) && m.world.Cell(room.Area.X, room.Area.Y) != 0 && room.Area.Right() >= left && room.Area.X <= right && room.Area.Bottom() >= top && room.Area.Y <= bottom {
+		if room.ID == mapdata.WingChamber && m.world.Cell(room.Area.X, room.Area.Y) != 0 && room.Area.Right() >= left && room.Area.X <= right && room.Area.Bottom() >= top && room.Area.Y <= bottom {
 			drawWingHall(room)
 		}
 		if room.ID == mapdata.FeastHall && room.Area.Y+room.Area.Height >= top && room.Area.Y <= bottom {
@@ -175,9 +164,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 			rl.DrawCircleLinesV(center, 150, rl.Fade(primitives.RuneColor, .2))
 			rl.DrawRectangleLinesEx(rl.NewRectangle(float32(room.Area.X*mapdata.Tile+24), float32(room.Area.Y*mapdata.Tile+24), float32(room.Area.Width*mapdata.Tile-48), float32(room.Area.Height*mapdata.Tile-48)), 2, rl.Fade(primitives.RuneColor, .25))
 			edges := []int{room.Area.Bottom() * mapdata.Tile}
-			if _, ok := m.world.Passage(mapdata.NorthID("sanctum-entrance")); ok {
-				edges = append(edges, room.Area.Y*mapdata.Tile)
-			}
+
 			for _, y := range edges {
 				for _, x := range []int{(room.Area.X+4)*mapdata.Tile - 24, (room.Area.Right()-4)*mapdata.Tile + 8} {
 					dungeonRect(x, y-24, 16, 48, paleStone)
@@ -193,15 +180,13 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 		rl.DrawCircleLinesV(center, 75, paleStone)
 	}
 	if m.floor == mapdata.FirstFloor {
-		for _, id := range []string{"surface-entrance", mapdata.NorthID("surface-entrance")} {
+		for _, id := range []string{"surface-entrance"} {
 			entrance, ok := m.world.Passage(id)
 			if !ok {
 				continue
 			}
 			pillarY := (entrance.Bottom() - 3) * mapdata.Tile
-			if id != "surface-entrance" {
-				pillarY = (entrance.Y + 1) * mapdata.Tile
-			}
+
 			for _, x := range []int{entrance.X*mapdata.Tile - 80, entrance.Right() * mapdata.Tile} {
 				dungeonRect(x, pillarY, 80, 80, stone)
 				dungeonRect(x+6, pillarY+6, 68, 5, paleStone)

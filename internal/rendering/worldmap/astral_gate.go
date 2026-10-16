@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 	mapdata "raylib-2d-sandbox/internal/worldmap"
@@ -43,7 +42,7 @@ func (m *Map) drawAstralRoute() {
 			}
 		}
 	}
-	for _, id := range []string{"vault-gallery-approach", "north-vault-gallery-approach", "vault-processional", "north-vault-processional", "vault-court-entrance"} {
+	for _, id := range []string{"vault-gallery-approach", "vault-processional", "vault-court-entrance"} {
 		if area, found := m.world.Passage(id); found {
 			add(area)
 		}
@@ -86,7 +85,7 @@ func (m *Map) drawAstralRoute() {
 	}
 }
 
-func (m *Map) drawVaultGate(orb simulation.OrbState, local protocol.Player) {
+func (m *Map) drawVaultGate(orb simulation.OrbState, local simulation.Player) {
 	if m.floor != mapdata.FirstFloor {
 		return
 	}
@@ -140,7 +139,7 @@ func (m *Map) drawVaultGate(orb simulation.OrbState, local protocol.Player) {
 		}
 		rl.DrawPoly(rl.NewVector2(lockX, y-31), 4, 9, 0, ink)
 	}
-	if !local.Dead && simulation.NearVaultGate(local.X, local.Y, local.Size) {
+	if !local.Dead && simulation.NearVaultGate(local.X, local.Y, simulation.PlayerSize) {
 		label := fmt.Sprintf("%d GATE WARDENS REMAIN", orb.GateGuardsRemaining)
 		if orb.GateUnlocked {
 			label = "E / OPEN THE ASTRAL GATE"

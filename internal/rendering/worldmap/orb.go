@@ -2,14 +2,15 @@ package worldmap
 
 import (
 	"fmt"
-	rl "github.com/gen2brain/raylib-go/raylib"
 	"math"
-	"raylib-2d-sandbox/internal/protocol"
+
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func drawOrbPedestal(orb simulation.OrbState, local protocol.Player, exploration *Exploration) {
+func drawOrbPedestal(orb simulation.OrbState, local simulation.Player, exploration *Exploration) {
 	if !exploration.EntityVisible(orb.X, orb.Y, 0) {
 		return
 	}
@@ -43,7 +44,7 @@ func drawOrbPedestal(orb simulation.OrbState, local protocol.Player, exploration
 			label = "[E] TAKE THE ORB"
 		}
 	}
-	if !local.Dead && math.Hypot(local.X+local.Size/2-orb.X, local.Y+local.Size/2-orb.Y) <= 100 {
+	if !local.Dead && math.Hypot(local.X+simulation.PlayerSize/2-orb.X, local.Y+simulation.PlayerSize/2-orb.Y) <= 100 {
 		primitives.DrawTextAt(label, rl.NewVector2(center.X-float32(primitives.MeasureText(label, 16))/2, center.Y-85), 16, tint)
 	}
 }

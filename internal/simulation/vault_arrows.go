@@ -3,6 +3,7 @@ package simulation
 import (
 	"fmt"
 	"math"
+
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/worldmap"

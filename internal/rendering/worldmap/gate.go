@@ -82,9 +82,7 @@ func drawStatueGate(bounds mapdata.GateBounds, gate simulation.EntranceGateState
 			label = "GATE OPEN"
 		}
 		promptY := y + 72
-		if y < mapdata.MirrorAxis*mapdata.Tile {
-			promptY = y - 88
-		}
+
 		drawInteractionPrompt(label, rl.NewVector2(float32(x+w/2), float32(promptY)))
 	}
 }

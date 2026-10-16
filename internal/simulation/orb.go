@@ -2,10 +2,11 @@ package simulation
 
 import (
 	"math"
+	"slices"
+
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/physics"
 	"raylib-2d-sandbox/internal/worldmap"
-	"slices"
 )
 
 type OrbState struct {

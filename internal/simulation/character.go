@@ -80,8 +80,6 @@ func AdvancePlayer(p *Player, input Direction, dt float64, zones ...[]SafeZone) 
 		return
 	}
 	oldX, oldY := p.X, p.Y
-	oldFlight := p.Flight
-	defer constrainPrivateEntrance(p, oldX, oldY, oldFlight)
 	advanceEntranceGate(p, input, dt)
 	defer constrainEntranceGate(p, oldX, oldY)
 	defer constrainWingDoor(p, oldX, oldY)

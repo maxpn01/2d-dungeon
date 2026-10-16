@@ -2,7 +2,6 @@ package simulation
 
 import (
 	"math"
-	"slices"
 
 	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/worldmap"
@@ -166,22 +165,6 @@ func (w *World) updateStatues() {
 			p.ActiveStatue = ""
 		}
 	}
-}
-
-func (w *World) Respawn(id string) bool {
-	p := w.players[id]
-	if p == nil || !p.Dead {
-		return false
-	}
-	w.releaseStatues(id)
-	w.replenishPrivateRoute(p.EntranceID)
-	w.projectiles = slices.DeleteFunc(w.projectiles, func(shot Projectile) bool {
-		return shot.Owner == id
-	})
-	x, y := w.spawnPosition(p.spawnSlot)
-	p.Player = Player{EntranceID: p.EntranceID, EntranceGate: EntranceGateState{ID: p.EntranceID}, ID: id, X: x, Y: y, Character: p.Character, Stats: NewStats(), InputSeq: p.lastSequence}
-	p.direction, p.commands, p.progressionReset = Direction{}, nil, false
-	return true
 }
 
 func (w *World) StatuesForPlayer(id string) []StatueState {

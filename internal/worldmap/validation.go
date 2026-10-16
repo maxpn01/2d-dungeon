@@ -2,8 +2,9 @@ package worldmap
 
 import (
 	"fmt"
-	"raylib-2d-sandbox/internal/parameters"
 	"slices"
+
+	"raylib-2d-sandbox/internal/parameters"
 )
 
 func validateLayout(layout Layout) error {

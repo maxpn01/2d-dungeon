@@ -4,19 +4,19 @@ import (
 	"fmt"
 	"math"
 
-	rl "github.com/gen2brain/raylib-go/raylib"
 	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/protocol"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 	mapdata "raylib-2d-sandbox/internal/worldmap"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type libraryRenderFrame struct {
 	previous                  []simulation.StatueState
 	previousTick, currentTick uint64
 	alpha, clock              float64
-	player                    protocol.Player
+	player                    simulation.Player
 	aimBook                   string
 	aimTome                   int
 	aimBinds                  bool
@@ -25,7 +25,7 @@ type libraryRenderFrame struct {
 var libraryColors = [simulation.LibraryTomeCount]rl.Color{rl.NewColor(105, 211, 234, 255), rl.NewColor(239, 187, 95, 255), rl.NewColor(195, 141, 240, 255)}
 var libraryNames = [simulation.LibraryTomeCount]string{"MOON", "SUN", "STAR"}
 
-func (m *Map) PrepareLibraryFrame(previous []simulation.StatueState, previousTick, tick uint64, alpha float64, player protocol.Player) {
+func (m *Map) PrepareLibraryFrame(previous []simulation.StatueState, previousTick, tick uint64, alpha float64, player simulation.Player) {
 	alpha = max(0, min(1, alpha))
 	clock := float64(tick)
 	if previousTick != 0 && tick >= previousTick {
@@ -86,7 +86,7 @@ func librarySymbol(center rl.Vector2, kind int, radius float32, tint rl.Color) {
 	}
 }
 
-func (m *Map) drawHauntedLibrary(snapshot protocol.Snapshot, local protocol.Player) {
+func (m *Map) drawHauntedLibrary(snapshot simulation.Snapshot, local simulation.Player) {
 	if m.floor != mapdata.FirstFloor {
 		return
 	}
@@ -153,7 +153,7 @@ func (m *Map) drawHauntedLibrary(snapshot protocol.Snapshot, local protocol.Play
 				}
 			}
 		}
-		if !local.Dead && book.Near(local.X, local.Y, snapshot.OpenSecrets) && (book.Library.StartedTick == 0 || math.Hypot(book.X-local.X-local.Size/2, book.Y-local.Y-local.Size/2) < 55) {
+		if !local.Dead && book.Near(local.X, local.Y, snapshot.OpenSecrets) && (book.Library.StartedTick == 0 || math.Hypot(book.X-local.X-simulation.PlayerSize/2, book.Y-local.Y-simulation.PlayerSize/2) < 55) {
 			label := "[E] WAKE THE ENCHANTED TOMES"
 			if book.Library.StartedTick != 0 {
 				label = "[E] RECALL UNBOUND TOMES"
@@ -350,7 +350,7 @@ func (m *Map) drawLibraryAim(book simulation.StatueState) {
 	}
 	dx /= length
 	dy /= length
-	origin := physics.Vector{X: p.X + p.Size/2, Y: p.Y + p.Size/2}
+	origin := physics.Vector{X: p.X + simulation.PlayerSize/2, Y: p.Y + simulation.PlayerSize/2}
 	selected, distance := -1, 600.0
 	for tome := 0; tome < simulation.LibraryTomeCount; tome++ {
 		if book.Library.Bound&(1<<tome) != 0 {
@@ -395,12 +395,12 @@ func (m *Map) drawLibraryAim(book simulation.StatueState) {
 	}
 }
 
-func (m *Map) DrawLibraryHUD(ctx primitives.Context, snapshot protocol.Snapshot, local protocol.Player) {
+func (m *Map) DrawLibraryHUD(ctx primitives.Context, snapshot simulation.Snapshot, local simulation.Player) {
 	if local.Dead {
 		return
 	}
 	for _, book := range snapshot.Statues {
-		if !simulation.IsLibraryBook(book.ID) || m.world.SecretHidden(book.X, book.Y) || !m.world.RoomContains(simulation.LibraryRoom(book.ID), physics.Square(local.X, local.Y, local.Size)) {
+		if !simulation.IsLibraryBook(book.ID) || m.world.SecretHidden(book.X, book.Y) || !m.world.RoomContains(simulation.LibraryRoom(book.ID), physics.Square(local.X, local.Y, simulation.PlayerSize)) {
 			continue
 		}
 		title := "THE LIBRARIAN'S SPELL BILLIARDS"

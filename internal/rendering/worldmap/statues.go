@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"image/color"
 	"math"
-	"raylib-2d-sandbox/internal/parameters"
 
+	"raylib-2d-sandbox/internal/parameters"
 	"raylib-2d-sandbox/internal/rendering/primitives"
 	"raylib-2d-sandbox/internal/simulation"
 	mapdata "raylib-2d-sandbox/internal/worldmap"
