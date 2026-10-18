@@ -26,7 +26,7 @@ func drawAstralSigil(at rl.Vector2, radius float32, tint rl.Color) {
 }
 
 func (m *Map) drawAstralRoute() {
-	if m.floor != mapdata.FirstFloor {
+	if !m.showsRoom(mapdata.VaultCourt) {
 		return
 	}
 	room, ok := m.world.Room(mapdata.VaultCourt)
@@ -87,7 +87,7 @@ func (m *Map) drawAstralRoute() {
 }
 
 func (m *Map) drawVaultGate(orb simulation.OrbState, local simulation.Player) {
-	if m.floor != mapdata.FirstFloor {
+	if !m.showsRoom(mapdata.VaultCourt) {
 		return
 	}
 	gate, ok := m.world.Gate(mapdata.VaultGate)
@@ -158,7 +158,7 @@ func (m *Map) drawVaultGate(orb simulation.OrbState, local simulation.Player) {
 }
 
 func (m *Map) drawVaultSeals(orb simulation.OrbState) {
-	if m.floor != mapdata.FirstFloor {
+	if !m.showsRoom(mapdata.OrbVault) {
 		return
 	}
 	center := rl.NewVector2(float32(orb.X), float32(orb.Y))

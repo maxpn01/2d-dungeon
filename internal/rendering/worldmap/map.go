@@ -50,14 +50,12 @@ func (m *Map) Draw(ctx primitives.Context, snapshot simulation.Snapshot, local s
 	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
 	m.wallHits = snapshot.SecretWallHits
 	m.gate = local.EntranceGate
-	m.floor = m.world.FloorAt(local.X+parameters.PlayerSize/2, local.Y+parameters.PlayerSize/2)
+	m.floor = m.world.BodyFloor(local.X, local.Y, parameters.PlayerSize)
 	m.gatePrompt = !local.Dead && simulation.NearEntranceGateFor(local.EntranceID, local.X, local.Y)
 	m.nearGateID = mapdata.EntranceGate
 
 	if m.floor == mapdata.FirstFloor {
 		m.drawSanctuary(ctx)
-	}
-	if m.floor == mapdata.FirstFloor {
 		m.drawSanctuaryAltar(ctx)
 	}
 	m.drawDungeon(ctx)
@@ -104,4 +102,9 @@ func clampInt(v, lo, hi int) int {
 		return hi
 	}
 	return v
+}
+
+func (m *Map) showsRoom(id string) bool {
+	room, ok := m.world.Room(id)
+	return ok && room.Floor == m.floor
 }

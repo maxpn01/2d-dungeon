@@ -48,7 +48,7 @@ func (m *Map) drawVault() {
 }
 
 func (m *Map) drawVaultTraps(snapshot simulation.Snapshot) {
-	if m.floor != mapdata.FirstFloor {
+	if !m.showsRoom(mapdata.OrbVault) {
 		return
 	}
 	rune := rl.NewColor(156, 128, 227, 255)

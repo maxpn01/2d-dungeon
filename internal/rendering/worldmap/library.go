@@ -92,7 +92,7 @@ func librarySymbol(center rl.Vector2, kind int, radius float32, tint rl.Color) {
 }
 
 func (m *Map) drawHauntedLibrary(snapshot simulation.Snapshot, local simulation.Player) {
-	if m.floor != mapdata.FirstFloor {
+	if !m.showsRoom(mapdata.SecretLibrary) {
 		return
 	}
 	seconds := m.libraryFrame.clock / parameters.TickRate

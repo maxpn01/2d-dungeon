@@ -98,7 +98,7 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 				local := actors[f.localID]
 				geometry := worldmap.Default()
 				nearby := math.Hypot(actor.x-local.x, actor.y-local.y) <= 600
-				sameFloor := geometry.FloorAt(actor.x+actor.size/2, actor.y+actor.size/2) == geometry.FloorAt(local.x+local.size/2, local.y+local.size/2)
+				sameFloor := geometry.BodyFloor(actor.x, actor.y, actor.size) == geometry.BodyFloor(local.x, local.y, local.size)
 				if !local.dead && nearby && sameFloor {
 					impact := parameters.HeavyStompDuration - parameters.HeavyStompWindup
 					if old.stompRemaining > impact && actor.stompRemaining > 0 && actor.stompRemaining <= impact {
@@ -115,7 +115,7 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 					}
 				}
 			}
-			if existed && !actor.ai && !old.dead && !actor.dead && worldmap.Default().FloorAt(old.x+old.size/2, old.y+old.size/2) != worldmap.Default().FloorAt(actor.x+actor.size/2, actor.y+actor.size/2) {
+			if existed && !actor.ai && !old.dead && !actor.dead && worldmap.Default().BodyFloor(old.x, old.y, old.size) != worldmap.Default().BodyFloor(actor.x, actor.y, actor.size) {
 				for _, portal := range worldmap.Default().Portals() {
 					at := portal.Position()
 					if math.Hypot(actor.x+actor.size/2-at.X, actor.y+actor.size/2-at.Y) <= 60 {
@@ -225,7 +225,7 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 			age := snapshot.Tick - state.TriggeredTick
 			if age >= simulation.VaultTrapWarningTicks && age < simulation.VaultTrapWarningTicks+simulation.VaultTrapFireTicks && f.vaultFire[i] != state.TriggeredTick {
 				f.vaultFire[i] = state.TriggeredTick
-				if !local.dead && geometry.FloorAt(local.x+local.size/2, local.y+local.size/2) == worldmap.FirstFloor && body.Overlaps(traps[i].Lane.Expanded(300)) {
+				if !local.dead && geometry.BodyFloor(local.x, local.y, local.size) == worldmap.OrbFloor && body.Overlaps(traps[i].Lane.Expanded(300)) {
 					playFeedbackSound("fire")
 				}
 			}

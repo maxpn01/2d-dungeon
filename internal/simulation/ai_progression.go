@@ -41,7 +41,7 @@ func (w *World) averageDungeonGuardLevel() int {
 			continue
 		}
 		room, ok := geometry.Room(ai.den.RoomID)
-		if !ok || room.Floor != worldmap.FirstFloor || room.HasRole(worldmap.Private) {
+		if !ok || room.Floor != worldmap.OrbFloor || room.HasRole(worldmap.Private) {
 			continue
 		}
 		level := ai.Stats.Level

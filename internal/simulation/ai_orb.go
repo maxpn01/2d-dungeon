@@ -20,7 +20,7 @@ func (w *World) orbTarget(ai *aiState) *playerState {
 	}
 	geometry := worldmap.Default()
 	room, ok := geometry.Room(ai.den.RoomID)
-	if !ok || room.Floor != worldmap.FirstFloor || room.HasRole(worldmap.Private) || geometry.FloorAt(carrier.X+parameters.PlayerSize/2, carrier.Y+parameters.PlayerSize/2) != worldmap.FirstFloor {
+	if !ok || room.Floor != worldmap.OrbFloor || room.HasRole(worldmap.Private) || geometry.BodyFloor(carrier.X, carrier.Y, parameters.PlayerSize) != worldmap.OrbFloor {
 		return nil
 	}
 	return carrier

@@ -126,7 +126,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 			}
 		}
 	}
-	if m.floor == mapdata.FirstFloor {
+	if m.showsRoom(mapdata.ProvisionCourt) {
 		southState := simulation.EntranceGateState{}
 		if m.gate.ID == mapdata.EntranceGate {
 			southState = m.gate
@@ -182,7 +182,7 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 		rl.DrawPolyLines(center, 8, 105, 22.5, stone)
 		rl.DrawCircleLinesV(center, 75, paleStone)
 	}
-	if m.floor == mapdata.FirstFloor {
+	if m.showsRoom(mapdata.ProvisionCourt) {
 		for _, id := range []string{mapdata.SurfaceEntrance} {
 			entrance, ok := m.world.Passage(id)
 			if !ok {

@@ -21,8 +21,8 @@ func frenzyAnnouncementAge(snapshot simulation.Snapshot, local simulation.Player
 	}
 	at := snapshot.Orb.FrenzyAt - simulation.OrbFrenzyDelayTicks
 	age := float32(snapshot.Tick-at) / parameters.TickRate
-	onFirstFloor := worldmap.Default().FloorAt(local.X+parameters.PlayerSize/2, local.Y+parameters.PlayerSize/2) == worldmap.FirstFloor
-	if snapshot.Orb.Carrier == "" || snapshot.Tick < at || age >= frenzyAnnouncementDuration || snapshot.WinnerID != "" || !onFirstFloor {
+	onOrbFloor := worldmap.Default().BodyFloor(local.X, local.Y, parameters.PlayerSize) == worldmap.OrbFloor
+	if snapshot.Orb.Carrier == "" || snapshot.Tick < at || age >= frenzyAnnouncementDuration || snapshot.WinnerID != "" || !onOrbFloor {
 		return 0, false
 	}
 	return float32(snapshot.Tick-at) / parameters.TickRate, true

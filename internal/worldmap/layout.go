@@ -23,6 +23,8 @@ const (
 	SecondFloor Floor = 2
 )
 
+const OrbFloor = FirstFloor
+
 type PropKind string
 
 const CoverProp PropKind = "cover"

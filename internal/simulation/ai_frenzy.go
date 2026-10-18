@@ -22,8 +22,8 @@ func (w *World) frenzyPosition(ai *aiState, carrier *playerState) physics.Vector
 	for _, turn := range []float64{0, .35, -.35, .7, -.7} {
 		point := physics.Vector{X: carrier.X + math.Cos(angle+turn)*radius, Y: carrier.Y + math.Sin(angle+turn)*radius}
 		fits := geometry.CanOccupy(physics.Square(point.X, point.Y, parameters.AISize))
-		onFirstFloor := geometry.FloorAt(point.X+parameters.AISize/2, point.Y+parameters.AISize/2) == worldmap.FirstFloor
-		if fits && onFirstFloor && !geometry.PrivateGateCrossed(carrier.X, carrier.Y, point.X, point.Y, parameters.AISize) {
+		onOrbFloor := geometry.BodyFloor(point.X, point.Y, parameters.AISize) == worldmap.OrbFloor
+		if fits && onOrbFloor && !geometry.PrivateGateCrossed(carrier.X, carrier.Y, point.X, point.Y, parameters.AISize) {
 			return point
 		}
 	}

@@ -194,7 +194,7 @@ func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker,
 		v.marker(marker.Center, marker.Radius, marker.Tint)
 	}
 	v.statueMarkers(snapshot.Statues)
-	if m.floor == mapdata.FirstFloor {
+	if m.showsRoom(mapdata.VaultCourt) {
 		gate, ok := m.world.Gate(mapdata.VaultGate)
 		center := rl.NewVector2(float32(gate.Left+gate.Right)/2, float32(gate.Y))
 		if ok && v.Exploration.Explored(explorationCell(center)) {

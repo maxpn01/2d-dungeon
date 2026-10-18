@@ -31,7 +31,7 @@ func (w *World) aiWithinTerritory(ai *aiState) bool {
 	geometry := worldmap.Default()
 	body := MobBody(ai.Type, ai.X, ai.Y)
 	if w.orbTarget(ai) != nil {
-		return ai.Y < 0 && geometry.FloorAt(ai.X+parameters.AISize/2, ai.Y+parameters.AISize/2) == worldmap.FirstFloor
+		return ai.Y < 0 && geometry.BodyFloor(ai.X, ai.Y, parameters.AISize) == worldmap.OrbFloor
 	}
 	if room, ok := geometry.Room(ai.den.RoomID); ok && room.HasRole(worldmap.Private) {
 		return room.Bounds().Contains(body)
@@ -41,7 +41,7 @@ func (w *World) aiWithinTerritory(ai *aiState) bool {
 	}
 	if w.tick < ai.alert.until || ai.patrol.returning {
 		x, y := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, parameters.AISize)
-		sameFloor := geometry.FloorAt(ai.X+parameters.AISize/2, ai.Y+parameters.AISize/2) == geometry.FloorAt(x, y)
+		sameFloor := geometry.BodyFloor(ai.X, ai.Y, parameters.AISize) == geometry.FloorAt(x, y)
 		withinLeash := ai.patrol.returning && ai.Behavior == BehaviorReturning || math.Hypot(ai.X-x, ai.Y-y) <= parameters.AIChaseLeash
 		return ai.Y < 0 && sameFloor && withinLeash
 	}

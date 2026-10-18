@@ -204,6 +204,10 @@ func (m *Map) FloorAt(x, y float64) Floor {
 	return FirstFloor
 }
 
+func (m *Map) BodyFloor(x, y, size float64) Floor {
+	return m.FloorAt(x+size/2, y+size/2)
+}
+
 func cloneRoom(room Room) Room {
 	room.Roles = append([]RoomRole(nil), room.Roles...)
 	room.Props = append([]Prop(nil), room.Props...)
