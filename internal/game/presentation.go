@@ -32,6 +32,7 @@ func (p *presentation) draw(ctx primitives.Context, scene rendering.Scene) {
 	scene.Map, scene.Feedback = p.gameMap, &p.feedback
 	sceneContext := ctx
 	sceneContext.Camera = p.dungeonAwakeningCamera(ctx.Camera, scene.Snapshot, scene.Local, time.Now())
+	sceneContext.Camera = p.feedback.ShakeCamera(sceneContext.Camera, time.Now())
 	rendering.DrawScene(sceneContext, scene)
 	width, height := ctx.WindowWidth, ctx.WindowHeight
 	snapshot, local := scene.Snapshot, scene.Local

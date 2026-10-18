@@ -28,6 +28,7 @@ type feedbackActor struct {
 	stompRemaining     float64
 	swordRemaining     float64
 	mobType            simulation.MobType
+	behavior           simulation.Behavior
 	charging           bool
 }
 
@@ -50,6 +51,11 @@ type Feedback struct {
 	spawns        map[string]time.Time
 	actors        map[string]feedbackActor
 	drops         map[string]bool
+	fruits        map[string]simulation.Fruit
+	engaged       map[string]bool
+	alerts        map[string]time.Time
+	shakeAt       time.Time
+	shakeStrength float64
 	effects       []feedbackEffect
 	hits          map[string]time.Time
 	hurtAt        time.Time
@@ -97,12 +103,14 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 			if actor.ai && existed && !actor.dead {
 				local := actors[f.localID]
 				geometry := worldmap.Default()
-				nearby := math.Hypot(actor.x-local.x, actor.y-local.y) <= 600
+				distance := math.Hypot(actor.x-local.x, actor.y-local.y)
+				nearby := distance <= 600
 				sameFloor := geometry.BodyFloor(actor.x, actor.y, actor.size) == geometry.BodyFloor(local.x, local.y, local.size)
 				if !local.dead && nearby && sameFloor {
 					impact := parameters.HeavyStompDuration - parameters.HeavyStompWindup
 					if old.stompRemaining > impact && actor.stompRemaining > 0 && actor.stompRemaining <= impact {
 						playFeedbackSound("stomp")
+						f.shake(now, parameters.StompShakeStrength*(1-distance/600))
 					}
 					attack := simulation.MobMelee(actor.mobType)
 					strike := attack.Duration - attack.Windup
@@ -200,17 +208,14 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 		recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP(),
 	}
 	for _, a := range snapshot.AIs {
-		tint := rl.Green
-		if a.Character == appearance.Triangle {
-			tint = primitives.CharacterColor(a.Character)
-		}
-		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: parameters.AISize, hp: a.Stats.HP, xp: a.Stats.XP, level: a.Stats.Level, tint: tint, ai: true, maxHP: a.Stats.MaxHP()}
+		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: parameters.AISize, hp: a.Stats.HP, xp: a.Stats.XP, level: a.Stats.Level, tint: mobTint(a.Type), ai: true, maxHP: a.Stats.MaxHP()}
 		actor := actors[a.ID]
 		actor.stone = a.Stone
 		actor.stompRemaining = a.Combat.StompRemaining
 		actor.swordRemaining = a.Combat.SwordRemaining
 		actor.mobType = a.Type
 		actor.charging = a.Combat.Phase == simulation.DashRushing
+		actor.behavior = a.Behavior
 		actors[a.ID] = actor
 	}
 	if !f.observed.IsZero() {
@@ -244,9 +249,12 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 	}
 	f.vaultGateOpen, f.vaultSeals = snapshot.Orb.GateOpen, snapshot.Orb.Seals
 	f.observeWalls(now, snapshot)
+	f.observeAlerts(now, actors)
+	f.observePickups(now, actors[localID], snapshot.Fruits)
 	f.observe(now, actors, snapshot.Fruits)
 	if at := f.hits[localID]; at == now {
 		f.hurtAt = now
+		f.shake(now, parameters.HurtShakeStrength)
 		playFeedbackSound("hurt")
 	}
 	low := !p.Dead && p.Stats.HP <= p.Stats.MaxHP()*.25
@@ -337,11 +345,14 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 					playFeedbackSound("hit")
 					active[len(active)-1].sounded = true
 				}
+				drawDeathBurst(center, e.size, p, e.tint, uint32(e.x*7)^uint32(e.y*13))
 				label := "DEFEATED"
 				primitives.DrawText(label, int32(e.x)-primitives.MeasureText(label, 18)/2, int32(e.y-e.size/2-28-22*p), 18, rl.Fade(rl.Gold, 1-p))
 			}
 			side := e.size * (1 - p) * (1 - p)
 			rl.DrawRectangleRec(rl.NewRectangle(e.x-side/2, e.y-side/2, side, side), tint)
+		case "pop":
+			drawPickupPop(center, e.size, p, e.tint)
 		case "mass":
 			for i := range 6 {
 				angle := float64(i) * math.Pi / 3

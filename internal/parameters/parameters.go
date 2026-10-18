@@ -198,6 +198,15 @@ const (
 )
 
 const (
+	AlertMarkerSeconds  = .9
+	ScreenShakeSeconds  = .22
+	HurtShakeStrength   = 4.0
+	StompShakeStrength  = 6.0
+	DeathBurstParticles = 14
+	DeathBurstDistance  = 46.0
+)
+
+const (
 	DefaultSoundVolume           float32 = .3
 	DungeonWelcomeSoundVolume    float32 = .3
 	HintSoundVolume              float32 = .08

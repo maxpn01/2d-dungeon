@@ -70,5 +70,6 @@ func DrawAIActor(ai Actor, exploration Visibility, feedback *Feedback) {
 			rl.DrawRing(center, radius, radius+2, 0, 360, 32, rl.Orange)
 		}
 		primitives.DrawTextAt(ai.Label, rl.NewVector2(bounds.X, bounds.Y-22), 18, rl.RayWhite)
+		feedback.DrawAlert(ai.ID, bounds)
 	}
 }
