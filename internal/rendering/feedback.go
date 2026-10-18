@@ -25,6 +25,9 @@ type feedbackActor struct {
 	recovery           float64
 	maxHP              float64
 	stompRemaining     float64
+	swordRemaining     float64
+	mobType            simulation.MobType
+	charging           bool
 }
 
 type feedbackEffect struct {
@@ -90,12 +93,23 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 				continue
 			}
 			old, existed := f.actors[id]
-			impact := parameters.HeavyStompDuration - parameters.HeavyStompWindup
-			if actor.ai && existed && old.stompRemaining > impact && actor.stompRemaining > 0 && actor.stompRemaining <= impact {
+			if actor.ai && existed && !actor.dead {
 				local := actors[f.localID]
 				geometry := worldmap.Default()
 				if !local.dead && math.Hypot(actor.x-local.x, actor.y-local.y) <= 600 && geometry.FloorAt(actor.x+actor.size/2, actor.y+actor.size/2) == geometry.FloorAt(local.x+local.size/2, local.y+local.size/2) {
-					playFeedbackSound("stomp")
+					impact := parameters.HeavyStompDuration - parameters.HeavyStompWindup
+					if old.stompRemaining > impact && actor.stompRemaining > 0 && actor.stompRemaining <= impact {
+						playFeedbackSound("stomp")
+					}
+					attack := simulation.MobMelee(actor.mobType)
+					strike := attack.Duration - attack.Windup
+					if attack.Duration > 0 && old.swordRemaining > strike && actor.swordRemaining <= strike || actor.mobType == simulation.Sentinel && actor.charging && !old.charging {
+						cue := "melee-swing"
+						if actor.mobType.IsHeavy() {
+							cue = "heavy-melee"
+						}
+						playFeedbackSound(cue)
+					}
 				}
 			}
 			if existed && !actor.ai && !old.dead && !actor.dead && worldmap.Default().FloorAt(old.x+old.size/2, old.y+old.size/2) != worldmap.Default().FloorAt(actor.x+actor.size/2, actor.y+actor.size/2) {
@@ -184,6 +198,9 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot, localID 
 		actor := actors[a.ID]
 		actor.stone = a.Stone
 		actor.stompRemaining = a.Combat.StompRemaining
+		actor.swordRemaining = a.Combat.SwordRemaining
+		actor.mobType = a.Type
+		actor.charging = a.Combat.Phase == simulation.DashRushing
 		actors[a.ID] = actor
 	}
 	if !f.observed.IsZero() {

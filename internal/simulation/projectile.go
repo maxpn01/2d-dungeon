@@ -19,8 +19,10 @@ type Projectile struct {
 	X                float64   `json:"x"`
 	Y                float64   `json:"y"`
 	Direction        Direction `json:"direction"`
+	Lifetime         float64   `json:"lifetime,omitempty"`
 	Remaining        float64   `json:"remaining"`
 	Damage           float64   `json:"damage"`
+	StunDuration     float64   `json:"stun_duration,omitempty"`
 	Size             float64   `json:"size"`
 }
 
@@ -111,7 +113,7 @@ func (w *World) advanceProjectiles(actors []eater) {
 			}
 			winner, first := -1, math.Inf(1)
 			for i, actor := range actors {
-				if actor.id == shot.Owner || actor.dead() || actor.protected() || (shot.Kind == "arrow" || shot.Kind == "shockwave") && actor.player == nil {
+				if actor.id == shot.Owner || actor.dead() || actor.protected() && !(shot.Kind == "shockwave" && actor.player != nil) || (shot.Kind == "arrow" || shot.Kind == "shockwave") && actor.player == nil {
 					continue
 				}
 				if t, hit := eatingContact(start, end, shot.Size, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step)/float64(steps)}, position{actor.start.x + (actor.end.x-actor.start.x)*float64(step+1)/float64(steps), actor.start.y + (actor.end.y-actor.start.y)*float64(step+1)/float64(steps)}, actor.size); hit && (t < first || t == first && (winner < 0 || actor.id < actors[winner].id)) {
@@ -133,9 +135,11 @@ func (w *World) advanceProjectiles(actors []eater) {
 					break
 				}
 				hp := target.stats.HP
-				target.stats.HP = max(0, hp-shot.Damage)
+				if !target.protected() {
+					target.stats.HP = max(0, hp-shot.Damage)
+				}
 				if shot.Kind == "shockwave" {
-					target.player.Combat = CombatState{Facing: target.player.Combat.Facing, StunRemaining: parameters.HeavyStompStun}
+					target.player.Combat = CombatState{Facing: target.player.Combat.Facing, StunRemaining: max(target.player.Combat.StunRemaining, shot.StunDuration)}
 				}
 				if target.ai != nil && target.stats.HP > 0 {
 					w.alertAI(target.ai, shot)

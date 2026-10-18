@@ -16,7 +16,7 @@ const (
 
 func (w *World) sentinelInput(ai *aiState) Direction {
 	ai.attackCooldown = max(0, ai.attackCooldown-1)
-	target := w.rangedTarget(ai)
+	target := w.sentinelTarget(ai)
 	if ai.Combat.SwordRemaining > 0 {
 		ai.Behavior = "striking"
 		elapsed := SentinelSwordDuration - ai.Combat.SwordRemaining
@@ -44,6 +44,9 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 		ai.Behavior = "charging"
 		return Direction{AimX: ai.Combat.Direction.X, AimY: ai.Combat.Direction.Y}
 	}
+	if target != nil {
+		ai.returning = false
+	}
 	if ai.returning {
 		if d, returning := w.investigateAI(ai); returning {
 			return d
@@ -60,9 +63,8 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 	dx, dy := target.X-ai.X, target.Y-ai.Y
 	distance := math.Hypot(dx, dy)
 	d := Direction{AimX: dx / max(1, distance), AimY: dy / max(1, distance)}
-	attacking, flank := w.sentinelFormation(ai, target)
 	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
-	if attacking && ai.Combat.Phase == DashIdle && ai.attackCooldown == 0 && distance <= SentinelSwordReach+PlayerSize/2+16 {
+	if ai.Combat.Phase == DashIdle && ai.attackCooldown == 0 && distance <= SentinelSwordReach+PlayerSize/2+16 {
 		intercept := meleeIntercept(target, SentinelSwordWindup)
 		sx, sy := intercept.X-ai.X, intercept.Y-ai.Y
 		length := math.Hypot(sx, sy)
@@ -75,20 +77,13 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 		d.X, d.Y = d.AimX*parameters.SentinelSwordAdvanceMultiplier, d.AimY*parameters.SentinelSwordAdvanceMultiplier
 		return limitMeleeAdvance(ai, target, d, MobMelee(ai.Type).AdvanceMultiplier)
 	}
-	goal := flank
-	ai.Behavior = "flanking"
-	if attacking {
-		ai.Behavior = "pursuing"
-		goal = meleeIntercept(target, .2)
-	}
-	if !geometry.CanOccupy(physics.Square(goal.X, goal.Y, AISize)) {
+	ai.Behavior = "pursuing"
+	goal := meleeIntercept(target, .2)
+	if !geometry.CanOccupy(physics.Square(goal.X, goal.Y, AISize)) || !geometry.RoomContains(ai.den.RoomID, physics.Square(goal.X, goal.Y, AISize)) {
 		goal = physics.Vector{X: target.X, Y: target.Y}
 	}
 	movement := ai.navigateMap(geometry, goal.X, goal.Y)
 	d.X, d.Y = movement.X, movement.Y
-	if !attacking {
-		return d
-	}
 	speed := ai.Stats.MovementSpeed() * SpeedScale * DashSpeedMultiplier
 	seconds := min(SentinelDashBurst, max(0, distance-SentinelSwordReach*.6)/speed)
 	landing := meleeIntercept(target, DashWindup+seconds)
@@ -109,6 +104,22 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 		}
 	}
 	return d
+}
+
+func (w *World) sentinelTarget(ai *aiState) *playerState {
+	geometry := worldmap.Default()
+	var target *playerState
+	best := math.Inf(1)
+	for _, p := range w.players {
+		if p.Dead || !geometry.RoomContains(ai.den.RoomID, physics.Square(p.X, p.Y, PlayerSize)) {
+			continue
+		}
+		distance := math.Hypot(p.X-ai.X, p.Y-ai.Y)
+		if target == nil || distance < best || distance == best && p.ID < target.ID {
+			target, best = p, distance
+		}
+	}
+	return target
 }
 
 func (w *World) sentinelDashContact(ai *aiState, start position, target eater) bool {

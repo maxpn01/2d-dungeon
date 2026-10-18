@@ -96,7 +96,7 @@ func drawMagicBall(center rl.Vector2, shot simulation.Projectile) {
 
 func drawStompShockwave(center rl.Vector2, shot simulation.Projectile) {
 	direction := rl.NewVector2(float32(shot.Direction.X), float32(shot.Direction.Y))
-	age := max(0, parameters.HeavyStompWaveLifetime-shot.Remaining)
+	age := max(0, shot.Lifetime-shot.Remaining)
 	fade := float32(min(1, shot.Remaining/.15))
 	base := float32(math.Atan2(shot.Direction.Y, shot.Direction.X) * 180 / math.Pi)
 	radius := float32(shot.Size * .65)

@@ -70,7 +70,6 @@ const (
 	SentinelSwordTrackingDuration  = .1
 	SentinelSwordTurnRate          = 5.5
 	SentinelSwordAdvanceMultiplier = 1.0
-	SentinelConcurrentAttackers    = 3
 	SentinelSpeedMultiplier        = 1.15
 	ShooterStrafeTurnCooldownTicks = TickRate / 2
 	SentinelFirstPerkLevel         = 14
@@ -81,6 +80,10 @@ const (
 	ShooterStrafeMinimumTicks      = TickRate
 	ShooterStrafeVariationTicks    = TickRate
 	HeavyStompCooldownTicks        = TickRate * 12 / 5
+	GateHeavyStompReach            = 420.0
+	GateHeavyStompWaveSize         = 80.0
+	GateHeavyStompDamageMultiplier = 2.0
+	GateHeavyStompStun             = 1.2
 	HeavyStompReach                = 260.0
 	HeavyStompWaveSpeed            = 1000.0
 	HeavyStompWaveSize             = 56.0
@@ -201,6 +204,8 @@ const (
 	VictorySoundVolume           float32 = .04
 	FireSoundVolume              float32 = .08
 	HeavyStompSoundVolume        float32 = .12
+	MeleeSwingSoundVolume        float32 = .12
+	HeavyMeleeSoundVolume        float32 = .14
 	SentinelAwakeningSoundVolume float32 = .09
 	LibraryDiscoverySoundVolume  float32 = .25
 	SealSoundVolume              float32 = .08

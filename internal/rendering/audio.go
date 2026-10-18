@@ -46,6 +46,8 @@ func InitFeedbackAudio() {
 		{"awaken", 0, 0, 3.0, parameters.SentinelAwakeningSoundVolume},
 		{"fire", 0, 0, .9, parameters.FireSoundVolume},
 		{"stomp", 0, 0, .45, parameters.HeavyStompSoundVolume},
+		{"melee-swing", 0, 0, .18, parameters.MeleeSwingSoundVolume},
+		{"heavy-melee", 0, 0, .26, parameters.HeavyMeleeSoundVolume},
 		{"rumble", 0, 0, DungeonAwakeningShakeDuration, parameters.OrbAwakeningSoundVolume},
 		{"gate", 0, 0, 1.6, parameters.GateSoundVolume},
 		{"seal", 330, 990, .45, parameters.SealSoundVolume},
@@ -67,6 +69,8 @@ func InitFeedbackAudio() {
 			data = libraryDiscoveryWave(cue.duration)
 		case "stomp":
 			data = heavyStompWave(cue.duration)
+		case "melee-swing", "heavy-melee":
+			data = meleeSwingWave(cue.duration, cue.name == "heavy-melee")
 		default:
 			data = feedbackWave(cue.start, cue.end, cue.duration)
 		}

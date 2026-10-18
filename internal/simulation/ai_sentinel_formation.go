@@ -2,58 +2,7 @@ package simulation
 
 import (
 	"math"
-
-	"raylib-2d-sandbox/internal/parameters"
-	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/worldmap"
 )
-
-func (w *World) sentinelFormation(ai *aiState, target *playerState) (bool, physics.Vector) {
-	guards := make([]*aiState, 0, 4)
-	slot, busy := 0, 0
-	for i := range w.ais {
-		guard := &w.ais[i]
-		if guard.Type != Sentinel || guard.den.RoomID != ai.den.RoomID || guard.respawnTick != 0 || guard.Stats.HP <= 0 || guard.Stone || guard.Awakening > 0 {
-			continue
-		}
-		if guard == ai {
-			slot = len(guards)
-		}
-		guards = append(guards, guard)
-		if guard != ai && (guard.Combat.SwordRemaining > 0 || guard.Combat.Phase == DashWinding || guard.Combat.Phase == DashRushing) {
-			busy++
-		}
-	}
-	if len(guards) <= 1 {
-		return true, physics.Vector{X: target.X, Y: target.Y}
-	}
-	ahead := 0
-	distance := math.Hypot(target.X-ai.X, target.Y-ai.Y)
-	for _, guard := range guards {
-		if guard == ai || guard.attackCooldown > 0 || guard.Combat.Phase != DashIdle || guard.Combat.SwordRemaining > 0 || !w.aiCanSeePlayer(guard, target, AIDetectionRadius) {
-			continue
-		}
-		otherDistance := math.Hypot(target.X-guard.X, target.Y-guard.Y)
-		if otherDistance < distance || otherDistance == distance && guard.ID < ai.ID {
-			ahead++
-		}
-	}
-	angle := float64(slot) * 2 * math.Pi / float64(len(guards))
-	if math.Hypot(target.velocityX, target.velocityY) > 40 {
-		angle += math.Atan2(target.velocityY, target.velocityX)
-	}
-	intercept := meleeIntercept(target, .25)
-	point := physics.Vector{X: intercept.X + math.Cos(angle)*85, Y: intercept.Y + math.Sin(angle)*85}
-	if room, ok := worldmap.Default().Room(ai.den.RoomID); ok {
-		b := physics.Square(point.X, point.Y, AISize).ClampedTo(room.Bounds().Expanded(-AISize))
-		point.X, point.Y = b.X, b.Y
-	}
-	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
-	if !geometry.CanOccupy(physics.Square(point.X, point.Y, AISize)) {
-		point = physics.Vector{X: target.X, Y: target.Y}
-	}
-	return busy+ahead < parameters.SentinelConcurrentAttackers, point
-}
 
 func (w *World) steerSentinel(ai *aiState, input Direction) Direction {
 	if ai.Combat.SwordRemaining > 0 || ai.Combat.Phase == DashWinding || ai.Combat.Phase == DashRushing || input.Dash {

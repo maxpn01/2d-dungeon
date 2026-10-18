@@ -36,6 +36,9 @@ func (w *World) aiWithinTerritory(ai *aiState) bool {
 	if room, ok := geometry.Room(ai.den.RoomID); ok && room.HasRole(worldmap.Private) {
 		return room.Bounds().Contains(body)
 	}
+	if ai.Type == Sentinel {
+		return geometry.RoomContains(ai.den.RoomID, body)
+	}
 	if w.tick < ai.alertUntil || ai.returning {
 		x, y := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, AISize)
 		return ai.Y < 0 && geometry.FloorAt(ai.X+AISize/2, ai.Y+AISize/2) == geometry.FloorAt(x, y) && ((ai.returning && ai.Behavior == "returning") || math.Hypot(ai.X-x, ai.Y-y) <= parameters.AIChaseLeash)

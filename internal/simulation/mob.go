@@ -148,12 +148,13 @@ func (w *World) steerShooter(ai *aiState, input Direction) Direction {
 
 func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 	attack := MobMelee(ai.Type)
+	stomp := MobStomp(ai.Type)
 	if ai.Combat.StompRemaining > 0 {
 		ai.Behavior = "stomping"
 		if ai.Combat.StompRemaining > parameters.HeavyStompDuration-parameters.HeavyStompWindup {
 			ai.Behavior = "winding stomp"
 			if ai.Combat.StompRemaining > parameters.HeavyStompDuration-parameters.HeavyStompWindup+parameters.HeavyStompAimLock {
-				if target := w.players[ai.aggressorID]; target != nil && w.aiCanSeePlayer(ai, target, parameters.HeavyStompReach+PlayerSize) {
+				if target := w.players[ai.aggressorID]; target != nil && w.aiCanSeePlayer(ai, target, stomp.Reach+PlayerSize) {
 					impactIn := ai.Combat.StompRemaining - (parameters.HeavyStompDuration - parameters.HeavyStompWindup)
 					travel := math.Hypot(target.X-ai.X, target.Y-ai.Y) / parameters.HeavyStompWaveSpeed
 					intercept := meleeIntercept(target, impactIn+travel)
@@ -216,7 +217,7 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 		d.X, d.Y = movement.X, movement.Y
 		return limitMeleeAdvance(ai, target, d, 1)
 	}
-	if ai.Type.IsHeavy() && distance > attack.Reach+PlayerSize/2-8 && ai.mobChargeCooldown == 0 && ai.Stats.MP >= parameters.HeavyStompCost && distance <= parameters.HeavyStompReach+PlayerSize/2 && w.aiCanSeePlayer(ai, target, parameters.HeavyStompReach+PlayerSize) {
+	if ai.Type.IsHeavy() && distance > attack.Reach+PlayerSize/2-8 && ai.mobChargeCooldown == 0 && ai.Stats.MP >= parameters.HeavyStompCost && distance <= stomp.Reach+PlayerSize/2 && w.aiCanSeePlayer(ai, target, stomp.Reach+PlayerSize) {
 		ai.Stats.MP -= parameters.HeavyStompCost
 		ai.Combat.StompRemaining = parameters.HeavyStompDuration
 		intercept := meleeIntercept(target, parameters.HeavyStompWindup+distance/parameters.HeavyStompWaveSpeed)

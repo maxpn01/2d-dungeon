@@ -93,30 +93,6 @@ func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 }
 
 func drawCombat(center rl.Vector2, size float32, c simulation.CombatState) {
-	if c.StompRemaining > 0 {
-		direction := rl.NewVector2(float32(c.StompDirection.X), float32(c.StompDirection.Y))
-		elapsed := parameters.HeavyStompDuration - c.StompRemaining
-		if elapsed < parameters.HeavyStompWindup {
-			progress := float32(elapsed / parameters.HeavyStompWindup)
-			tip := rl.NewVector2(center.X+direction.X*parameters.HeavyStompReach, center.Y+direction.Y*parameters.HeavyStompReach)
-			rl.DrawLineEx(center, tip, parameters.HeavyStompWaveSize, rl.Fade(rl.Orange, .08+.12*progress))
-			for _, side := range []float32{-1, 1} {
-				offset := side * parameters.HeavyStompWaveSize / 2
-				start := rl.NewVector2(center.X-direction.Y*offset, center.Y+direction.X*offset)
-				end := rl.NewVector2(tip.X-direction.Y*offset, tip.Y+direction.X*offset)
-				rl.DrawLineEx(start, end, 1, rl.Fade(rl.Orange, .4+.4*progress))
-			}
-			rl.DrawRing(center, size/2+3, size/2+6, -90, -90+360*progress, 32, rl.Gold)
-		} else {
-			age := elapsed - parameters.HeavyStompWindup
-			fade := float32(1 - age/(parameters.HeavyStompDuration-parameters.HeavyStompWindup))
-			radius := size/2 + float32(age)*95
-			rl.DrawCircleGradient(center, size*1.4, rl.Fade(rl.Gold, fade*.55), rl.Fade(rl.Orange, 0))
-			rl.DrawRing(center, radius, radius+5, 0, 360, 40, rl.Fade(rl.Orange, fade))
-			rl.DrawRing(center, radius*.7, radius*.7+2, 0, 360, 40, rl.Fade(rl.Gold, fade))
-			drawStompDebris(center, direction, age, fade)
-		}
-	}
 	if c.StunRemaining > 0 {
 		for i := 0; i < 3; i++ {
 			angle := rl.GetTime()*5 + float64(i)*2*math.Pi/3
@@ -155,5 +131,33 @@ func drawCombat(center rl.Vector2, size float32, c simulation.CombatState) {
 	case simulation.DashRecovering:
 		p := phaseProgress(c.Remaining, simulation.DashRecovery)
 		rl.DrawRing(center, size*0.72+3, size*0.72+4, -90+360*p, 270, 40, rl.Fade(rl.Gray, 0.65))
+	}
+}
+
+func drawStomp(center rl.Vector2, size float32, c simulation.CombatState, kind simulation.MobType) {
+	stomp := simulation.MobStomp(kind)
+	if c.StompRemaining > 0 {
+		direction := rl.NewVector2(float32(c.StompDirection.X), float32(c.StompDirection.Y))
+		elapsed := parameters.HeavyStompDuration - c.StompRemaining
+		if elapsed < parameters.HeavyStompWindup {
+			progress := float32(elapsed / parameters.HeavyStompWindup)
+			tip := rl.NewVector2(center.X+direction.X*float32(stomp.Reach), center.Y+direction.Y*float32(stomp.Reach))
+			rl.DrawLineEx(center, tip, float32(stomp.WaveSize), rl.Fade(rl.Orange, .08+.12*progress))
+			for _, side := range []float32{-1, 1} {
+				offset := side * float32(stomp.WaveSize) / 2
+				start := rl.NewVector2(center.X-direction.Y*offset, center.Y+direction.X*offset)
+				end := rl.NewVector2(tip.X-direction.Y*offset, tip.Y+direction.X*offset)
+				rl.DrawLineEx(start, end, 1, rl.Fade(rl.Orange, .4+.4*progress))
+			}
+			rl.DrawRing(center, size/2+3, size/2+6, -90, -90+360*progress, 32, rl.Gold)
+		} else {
+			age := elapsed - parameters.HeavyStompWindup
+			fade := float32(1 - age/(parameters.HeavyStompDuration-parameters.HeavyStompWindup))
+			radius := size/2 + float32(age)*95
+			rl.DrawCircleGradient(center, size*1.4, rl.Fade(rl.Gold, fade*.55), rl.Fade(rl.Orange, 0))
+			rl.DrawRing(center, radius, radius+5, 0, 360, 40, rl.Fade(rl.Orange, fade))
+			rl.DrawRing(center, radius*.7, radius*.7+2, 0, 360, 40, rl.Fade(rl.Gold, fade))
+			drawStompDebris(center, direction, age, fade)
+		}
 	}
 }
