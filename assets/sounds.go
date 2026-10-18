@@ -7,3 +7,6 @@ var RoundComplete []byte
 
 //go:embed audio/sentinel-awakening.wav
 var SentinelAwakening []byte
+
+//go:embed audio/menu-click.ogg
+var MenuClick []byte

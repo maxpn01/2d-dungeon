@@ -116,6 +116,7 @@ func (b *Briefing) Draw(width, height int32) Action {
 
 	text(footer, 623, 16, muted)
 	if b.elapsed > .2 && rl.IsWindowFocused() && (rl.IsKeyPressed(rl.KeyEnter) || hovered && rl.IsMouseButtonPressed(rl.MouseLeftButton)) {
+		rendering.PlayMenuClickSound()
 		return ActionEnterDungeon
 	}
 	return ActionNone

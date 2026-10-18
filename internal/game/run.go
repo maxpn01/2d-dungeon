@@ -46,7 +46,10 @@ func (g *Game) run(testing bool) {
 		}
 		if rl.IsKeyPressed(rl.KeyF8) {
 			rendering.ToggleFeedbackAudio()
+			rendering.PlayMenuClickSound()
 		}
+		previousScreen, previousMap := current, mapOpen
+		previousStats, previousPerks := g.world.StatsOpen(), g.world.PerksOpen()
 		if rl.IsKeyPressed(rl.KeyEscape) {
 			if current == screenSinglePlayer && g.world.StatsOpen() {
 				g.world.CloseStats()
@@ -88,6 +91,9 @@ func (g *Game) run(testing bool) {
 					mapOpen = !mapOpen
 				}
 			}
+		}
+		if current != previousScreen || mapOpen != previousMap || g.world.StatsOpen() != previousStats || g.world.PerksOpen() != previousPerks {
+			rendering.PlayMenuClickSound()
 		}
 		switch current {
 		case screenSinglePlayer:

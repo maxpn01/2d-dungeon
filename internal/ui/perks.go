@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"2d-dungeon/internal/parameters"
+	"2d-dungeon/internal/rendering"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
 	"2d-dungeon/internal/worldmap"
@@ -65,6 +66,7 @@ func (p *PerkPanel) Read(s simulation.StatueState, stats simulation.Stats, width
 		}
 		if rl.IsKeyPressed(keys[i]) || rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(rl.GetMousePosition(), rect) {
 			p.pending = true
+			rendering.PlayMenuClickSound()
 			return i
 		}
 	}

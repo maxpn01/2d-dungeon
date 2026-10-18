@@ -42,17 +42,18 @@ const (
 )
 
 type AI struct {
-	Type      MobType
-	Stone     bool
-	Awakening float64
-	Aiming    bool
-	Frenzied  bool
-	Combat    CombatState
-	Behavior  Behavior
-	Character appearance.Character
-	ID        string
-	X, Y      float64
-	Stats     Stats
+	ShotsFired uint64
+	Type       MobType
+	Stone      bool
+	Awakening  float64
+	Aiming     bool
+	Frenzied   bool
+	Combat     CombatState
+	Behavior   Behavior
+	Character  appearance.Character
+	ID         string
+	X, Y       float64
+	Stats      Stats
 }
 
 type aiState struct {
@@ -183,6 +184,7 @@ func (w *World) updateAIs() {
 		actor := Player{VaultGateOpen: w.orb.GateOpen, OpenSecrets: w.openSecrets, ID: ai.ID, ShotCooldown: ai.shotCooldown, X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character}
 		AdvancePlayer(&actor, input, parameters.StepSeconds)
 		w.fire(&actor, input)
+		ai.ShotsFired += actor.ShotsFired
 		ai.shotCooldown = actor.ShotCooldown
 		ai.X, ai.Y, ai.Stats, ai.Combat = actor.X, actor.Y, actor.Stats, actor.Combat
 		if worldmap.Default().PrivateGateCrossed(oldX, oldY, ai.X, ai.Y, parameters.AISize) || ai.den.ID != "" && !w.aiWithinTerritory(ai) {

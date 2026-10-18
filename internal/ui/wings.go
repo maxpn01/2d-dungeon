@@ -3,6 +3,7 @@ package ui
 import (
 	"image/color"
 
+	"2d-dungeon/internal/rendering"
 	"2d-dungeon/internal/rendering/primitives"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -29,6 +30,7 @@ func (p *PerkPanel) readWingOffer(width, height int32) int {
 	for i, rect := range wingOfferButtons(width, height) {
 		if rl.IsKeyPressed(keys[i]) || rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(rl.GetMousePosition(), rect) {
 			p.pending = true
+			rendering.PlayMenuClickSound()
 			return i
 		}
 	}

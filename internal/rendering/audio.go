@@ -38,9 +38,14 @@ func InitFeedbackAudio() {
 		{"library-discovery", 0, 0, 3.2, parameters.LibraryDiscoverySoundVolume},
 		{"welcome", 0, 0, 2.8, parameters.DungeonWelcomeSoundVolume},
 		{"hint", 660, 880, .18, parameters.HintSoundVolume},
+		{"menu-click", 0, 0, .085, parameters.MenuClickSoundVolume},
 		{"hit", 950, 220, .075, parameters.DefaultSoundVolume},
 		{"hurt", 180, 65, .18, parameters.DefaultSoundVolume},
 		{"mana", 240, 170, .16, parameters.DefaultSoundVolume},
+		{"eat-hp", 0, 0, .24, parameters.FoodSoundVolume},
+		{"eat-mana", 0, 0, .3, parameters.FoodSoundVolume},
+		{"player-shot", 0, 0, .18, parameters.PlayerShotSoundVolume},
+		{"mob-shot", 0, 0, .18, parameters.MobShotSoundVolume},
 		{"low", 100, 75, .3, parameters.DefaultSoundVolume},
 		{"stone", 130, 42, .14, parameters.DefaultSoundVolume},
 		{"awaken", 0, 0, 3.0, parameters.SentinelAwakeningSoundVolume},
@@ -50,6 +55,7 @@ func InitFeedbackAudio() {
 		{"heavy-melee", 0, 0, .26, parameters.HeavyMeleeSoundVolume},
 		{"rumble", 0, 0, DungeonAwakeningShakeDuration, parameters.OrbAwakeningSoundVolume},
 		{"gate", 0, 0, 1.6, parameters.GateSoundVolume},
+		{"entrance-gate", 0, 0, .6, parameters.EntranceGateSoundVolume},
 		{"seal", 330, 990, .45, parameters.SealSoundVolume},
 		{"library-tap", 620, 380, .075, parameters.DefaultSoundVolume},
 		{"library-bounce", 430, 280, .055, parameters.DefaultSoundVolume},
@@ -58,6 +64,7 @@ func InitFeedbackAudio() {
 		{"completion", 0, 0, 8, parameters.VictorySoundVolume},
 	} {
 		var data []byte
+		format := ".wav"
 		switch cue.name {
 		case "completion":
 			data = assets.RoundComplete
@@ -71,13 +78,22 @@ func InitFeedbackAudio() {
 			data = heavyStompWave(cue.duration)
 		case "melee-swing", "heavy-melee":
 			data = meleeSwingWave(cue.duration, cue.name == "heavy-melee")
+		case "eat-hp", "eat-mana":
+			data = eatingWave(cue.duration, cue.name == "eat-mana")
+		case "player-shot", "mob-shot":
+			data = shootingWave(cue.duration)
+		case "entrance-gate":
+			data = entranceGateWave(cue.duration)
+		case "menu-click":
+			data = assets.MenuClick
+			format = ".ogg"
 		default:
 			data = feedbackWave(cue.start, cue.end, cue.duration)
 		}
 		if cue.name == "fire" || cue.name == "rumble" || cue.name == "gate" {
 			data = environmentWave(cue.name, cue.duration)
 		}
-		wave := rl.LoadWaveFromMemory(".wav", data, int32(len(data)))
+		wave := rl.LoadWaveFromMemory(format, data, int32(len(data)))
 		if !rl.IsWaveValid(wave) {
 			continue
 		}
@@ -85,6 +101,9 @@ func InitFeedbackAudio() {
 		rl.UnloadWave(wave)
 		if rl.IsSoundValid(sound) {
 			rl.SetSoundVolume(sound, cue.volume)
+			if cue.name == "menu-click" {
+				rl.SetSoundPitch(sound, parameters.MenuClickSoundPitch)
+			}
 			combatAudio.sounds[cue.name] = sound
 		}
 	}
@@ -119,6 +138,8 @@ func ToggleFeedbackAudio() {
 }
 
 func PlayHintSound() { playFeedbackSound("hint") }
+
+func PlayMenuClickSound() { playFeedbackSound("menu-click") }
 
 func playFeedbackSound(kind string) {
 	if !FeedbackAudioEnabled() {

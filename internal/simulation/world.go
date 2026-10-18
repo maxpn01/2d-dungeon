@@ -38,6 +38,7 @@ type Player struct {
 	ActiveStatue   string
 	EntranceGate   EntranceGateState
 	ShotCooldown   float64
+	ShotsFired     uint64
 	Character      appearance.Character
 	TeleportCharge float64
 	portalCooldown int

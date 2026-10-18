@@ -210,6 +210,14 @@ const (
 	DefaultSoundVolume           float32 = .3
 	DungeonWelcomeSoundVolume    float32 = .3
 	HintSoundVolume              float32 = .08
+	MenuClickSoundVolume         float32 = .18
+	MenuClickSoundPitch          float32 = .88
+	FoodSoundVolume              float32 = .06
+	PlayerShotSoundVolume        float32 = .1
+	MobShotSoundVolume           float32 = .05
+	ShotSoundRadius                      = 700.0
+	PlayerShotSoundInterval              = .06
+	MobShotSoundInterval                 = .16
 	VictorySoundVolume           float32 = .04
 	FireSoundVolume              float32 = .08
 	HeavyStompSoundVolume        float32 = .12
@@ -225,4 +233,5 @@ const (
 	AmbienceBellGain                     = 1.0
 	AmbienceWhisperGain                  = .04
 	GateSoundVolume              float32 = .2
+	EntranceGateSoundVolume      float32 = .16
 )

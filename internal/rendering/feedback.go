@@ -17,6 +17,7 @@ import (
 )
 
 type feedbackActor struct {
+	shots              uint64
 	x, y, size, hp, xp float64
 	level              int
 	tint               color.RGBA
@@ -64,6 +65,7 @@ type Feedback struct {
 	localID       string
 	celebrated    bool
 	vaultGateOpen float64
+	entranceGate  simulation.EntranceGateState
 	vaultSeals    [4]bool
 	vaultFire     [worldmap.VaultFireTrapCount]uint64
 }
@@ -203,13 +205,15 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 	f.observeLibraryAudio(snapshot)
 	actors := make(map[string]feedbackActor)
 	actors[p.ID] = feedbackActor{
-		x: p.X, y: p.Y, size: parameters.PlayerSize, hp: p.Stats.HP, xp: p.Stats.XP, level: p.Stats.Level,
+		shots: p.ShotsFired,
+		x:     p.X, y: p.Y, size: parameters.PlayerSize, hp: p.Stats.HP, xp: p.Stats.XP, level: p.Stats.Level,
 		tint: primitives.CharacterColor(p.Character), dead: p.Dead, escaped: p.Escaped,
 		recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP(),
 	}
 	for _, a := range snapshot.AIs {
 		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: parameters.AISize, hp: a.Stats.HP, xp: a.Stats.XP, level: a.Stats.Level, tint: mobTint(a.Type), ai: true, maxHP: a.Stats.MaxHP()}
 		actor := actors[a.ID]
+		actor.shots = a.ShotsFired
 		actor.stone = a.Stone
 		actor.stompRemaining = a.Combat.StompRemaining
 		actor.swordRemaining = a.Combat.SwordRemaining
@@ -238,6 +242,9 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 	}
 	if !f.observed.IsZero() {
 		local := actors[localID]
+		if !local.dead && p.EntranceGate.ID == f.entranceGate.ID && p.EntranceGate.Remaining > 0 && f.entranceGate.Remaining == 0 && p.EntranceGate.Open > f.entranceGate.Open {
+			playFeedbackSound("entrance-gate")
+		}
 		if snapshot.Orb.GateOpen > 0 && f.vaultGateOpen == 0 && simulation.NearVaultGate(local.x, local.y, local.size) {
 			playFeedbackSound("gate")
 		}
@@ -248,9 +255,11 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 		}
 	}
 	f.vaultGateOpen, f.vaultSeals = snapshot.Orb.GateOpen, snapshot.Orb.Seals
+	f.entranceGate = p.EntranceGate
 	f.observeWalls(now, snapshot)
+	f.observeShootingAudio(actors)
 	f.observeAlerts(now, actors)
-	f.observePickups(now, actors[localID], snapshot.Fruits)
+	f.observePickups(now, snapshot.Tick, actors[localID], snapshot.Fruits)
 	f.observe(now, actors, snapshot.Fruits)
 	if at := f.hits[localID]; at == now {
 		f.hurtAt = now

@@ -11,7 +11,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func (f *Feedback) observePickups(now time.Time, local feedbackActor, fruits []simulation.Fruit) {
+func (f *Feedback) observePickups(now time.Time, tick uint64, local feedbackActor, fruits []simulation.Fruit) {
 	current := make(map[string]simulation.Fruit, len(fruits))
 	for _, fruit := range fruits {
 		current[fruit.ID] = fruit
@@ -22,14 +22,20 @@ func (f *Feedback) observePickups(now time.Time, local feedbackActor, fruits []s
 			if _, exists := current[id]; exists {
 				continue
 			}
+			if tick < fruit.AvailableTick || fruit.ExpiresTick != 0 && tick >= fruit.ExpiresTick {
+				continue
+			}
 			x, y := fruit.X+fruit.Size/2, fruit.Y+fruit.Size/2
 			if math.Hypot(x-local.x-local.size/2, y-local.y-local.size/2) > reach+fruit.Size {
 				continue
 			}
 			tint := HealthFoodColor
+			cue := "eat-hp"
 			if fruit.MP > 0 {
 				tint = ManaFoodColor
+				cue = "eat-mana"
 			}
+			playFeedbackSound(cue)
 			f.effects = append(f.effects, feedbackEffect{started: now, x: float32(x), y: float32(y), size: float32(fruit.Size), tint: tint, kind: "pop"})
 		}
 	}

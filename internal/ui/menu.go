@@ -4,6 +4,7 @@ import (
 	"image/color"
 
 	"2d-dungeon/internal/display"
+	"2d-dungeon/internal/rendering"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -74,6 +75,9 @@ func (btn *MenuButton) Draw() Action {
 	rl.DrawText(btn.Text, int32(textX), int32(textY), btn.FontSize, btn.TextColor)
 
 	if hovered && rl.IsMouseButtonPressed(rl.MouseLeftButton) {
+		if btn.Action != ActionNone {
+			rendering.PlayMenuClickSound()
+		}
 		return btn.Action
 	}
 

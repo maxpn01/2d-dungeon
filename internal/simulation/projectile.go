@@ -68,6 +68,7 @@ func (w *World) fire(p *Player, input Direction) {
 	if len(w.projectiles)+slots > parameters.MaxProjectiles || !PrepareShot(p, input) {
 		return
 	}
+	p.ShotsFired++
 	length := math.Hypot(input.AimX, input.AimY)
 	direction := Direction{X: input.AimX / length, Y: input.AimY / length}
 	if p.Stats.Mob {

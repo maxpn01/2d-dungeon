@@ -6,6 +6,7 @@ import (
 	"2d-dungeon/internal/appearance"
 	"2d-dungeon/internal/display"
 	"2d-dungeon/internal/preferences"
+	"2d-dungeon/internal/rendering"
 	"2d-dungeon/internal/rendering/primitives"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -57,6 +58,7 @@ func (s *Settings) Draw() Action {
 		enabled := appearance.Enabled(character)
 		if enabled && rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(rl.GetMousePosition(), card) {
 			s.character = character
+			rendering.PlayMenuClickSound()
 		}
 		tint := rl.DarkGray
 		if s.character == character {
@@ -76,6 +78,9 @@ func (s *Settings) Draw() Action {
 	bounds := rl.NewRectangle(cx-190, top+255, 380, 52)
 	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
 		s.focused = rl.CheckCollisionPointRec(rl.GetMousePosition(), bounds)
+		if s.focused {
+			rendering.PlayMenuClickSound()
+		}
 	}
 	for character := rl.GetCharPressed(); character != 0; character = rl.GetCharPressed() {
 		if s.focused && character >= 32 && character <= 126 && len(s.name) < preferences.MaxPlayerNameLength {
@@ -117,6 +122,9 @@ func (s *Settings) Draw() Action {
 		return back
 	}
 	if save != ActionNone || rl.IsKeyPressed(rl.KeyEnter) {
+		if save == ActionNone {
+			rendering.PlayMenuClickSound()
+		}
 		if strings.TrimSpace(s.name) == "" {
 			s.errorText = "Please enter a player name."
 		} else if s.save() {
