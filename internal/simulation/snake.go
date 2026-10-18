@@ -23,6 +23,8 @@ type snakeState struct {
 	attackAfter  uint64
 	surgedTick   uint64
 	slitherHit   bool
+	foe          string
+	foeUntil     uint64
 }
 
 func SnakeSegmentBody(segment physics.Vector) physics.Rect {
@@ -42,6 +44,9 @@ func (w *World) snakeInput(ai *aiState) Direction {
 	if ai.snake.biting {
 		ai.snake.biting = false
 		w.startSnakeRetreat(ai)
+	}
+	if foe := w.snakeFoe(ai); foe != nil && w.snakeTarget(ai) == nil {
+		return w.snakeFightFoe(ai, foe)
 	}
 	if ai.patrol.returning || ai.alert.aggressorID != "" && w.tick >= ai.alert.until {
 		if d, returning := w.investigateAI(ai); returning {
@@ -128,12 +133,21 @@ func (ai *aiState) chooseSnakeStopPoint(geometry *worldmap.Map, stop worldmap.Ce
 
 func (ai *aiState) followSegments() {
 	lead := physics.Vector{X: ai.X, Y: ai.Y}
+	spacing, first := parameters.SnakeSegmentSpacing, parameters.SnakeSegmentSpacing
+	if ai.Type == CaveHydra {
+		spacing = parameters.HydraTailSpacing * ai.Hydra.Scale
+		first = parameters.HydraBodySize * ai.Hydra.Scale * .45
+	}
 	for i := range ai.Segments {
 		segment := &ai.Segments[i]
+		gap := spacing
+		if i == 0 {
+			gap = first
+		}
 		dx, dy := lead.X-segment.X, lead.Y-segment.Y
-		if distance := math.Hypot(dx, dy); distance > parameters.SnakeSegmentSpacing {
-			segment.X += dx / distance * (distance - parameters.SnakeSegmentSpacing)
-			segment.Y += dy / distance * (distance - parameters.SnakeSegmentSpacing)
+		if distance := math.Hypot(dx, dy); distance > gap {
+			segment.X += dx / distance * (distance - gap)
+			segment.Y += dy / distance * (distance - gap)
 		}
 		lead = *segment
 	}
@@ -253,4 +267,49 @@ func (ai *aiState) snakeEat(food float64) {
 		}
 		ai.Segments = append(ai.Segments, tail)
 	}
+}
+
+func (w *World) provokeSnake(ai *aiState, foe string) {
+	ai.snake.foe, ai.snake.foeUntil = foe, w.tick+parameters.HydraFoeSeconds*parameters.TickRate
+}
+
+func (w *World) snakeFoe(ai *aiState) *aiState {
+	if ai.snake.foe == "" || w.tick >= ai.snake.foeUntil {
+		ai.snake.foe = ""
+		return nil
+	}
+	return w.aiByID(ai.snake.foe)
+}
+
+func (w *World) snakeFightFoe(ai *aiState, foe *aiState) Direction {
+	center := HydraCenter(foe.AI)
+	dx, dy := center.X-ai.X-parameters.AISize/2, center.Y-ai.Y-parameters.AISize/2
+	distance := math.Hypot(dx, dy)
+	d := Direction{AimX: dx / max(1, distance), AimY: dy / max(1, distance)}
+	gap := distance - HydraBodyRadius(foe.Hydra)
+	if ai.attackCooldown == 0 && gap <= parameters.SnakeBiteReach-4 {
+		attack := MobMelee(ai.Type)
+		ai.Combat.SwordRemaining = attack.Duration
+		ai.Combat.SwordDirection = Direction{X: d.AimX, Y: d.AimY}
+		ai.meleeHits = nil
+		ai.attackCooldown = int(math.Ceil((attack.Duration + 1/ai.Stats.AttackRate) * parameters.TickRate))
+		ai.Behavior = BehaviorWindingStrike
+		return d
+	}
+	ai.Behavior = BehaviorPursuing
+	if gap <= parameters.SnakeBiteReach-4 {
+		return d
+	}
+	movement := ai.navigateMap(w.geometry(), center.X-parameters.AISize/2, center.Y-parameters.AISize/2)
+	d.X, d.Y = movement.X, movement.Y
+	return d
+}
+
+func (w *World) snakeBiteReaches(ai *aiState, target eater) bool {
+	if target.ai == nil || target.ai.Type != CaveHydra || ai.snake.foe != target.id {
+		return false
+	}
+	center := HydraCenter(target.ai.AI)
+	distance := math.Hypot(center.X-ai.X-parameters.AISize/2, center.Y-ai.Y-parameters.AISize/2)
+	return distance <= MobMelee(ai.Type).Reach+HydraBodyRadius(target.ai.Hydra)
 }

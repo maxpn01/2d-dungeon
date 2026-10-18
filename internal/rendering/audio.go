@@ -62,6 +62,8 @@ func InitFeedbackAudio() {
 		{"library-bind", 440, 1100, .28, parameters.DefaultSoundVolume},
 		{"library-done", 660, 1320, .6, parameters.DefaultSoundVolume},
 		{"completion", 0, 0, 8, parameters.VictorySoundVolume},
+		{"hydra-roar", 0, 0, 1.4, parameters.HydraRoarSoundVolume},
+		{"sever", 0, 0, .5, parameters.HydraSeverSoundVolume},
 	} {
 		var data []byte
 		format := ".wav"
@@ -82,6 +84,10 @@ func InitFeedbackAudio() {
 			data = eatingWave(cue.duration, cue.name == "eat-mana")
 		case "player-shot", "mob-shot":
 			data = shootingWave(cue.duration)
+		case "hydra-roar":
+			data = hydraRoarWave(cue.duration)
+		case "sever":
+			data = severWave(cue.duration)
 		case "entrance-gate":
 			data = entranceGateWave(cue.duration)
 		case "menu-click":

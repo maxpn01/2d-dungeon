@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"time"
@@ -62,6 +63,13 @@ func main() {
 			}
 			ais = append(ais, snake)
 		}
+		if steps, err := strconv.Atoi(os.Getenv("SHOT_HYDRA")); err == nil {
+			snapshot, player = hydraSnapshot(steps, cx, cy)
+			ais = snapshot.AIs
+			x, y = player.X, player.Y
+			camera.Target = rl.NewVector2(float32(x), float32(y))
+			ctx.Camera = camera
+		}
 		feedback := &rendering.Feedback{}
 		if os.Getenv("SHOT_HIT") != "" && len(ais) > 0 {
 			feedback.Observe(time.Now(), simulation.Snapshot{Player: player, AIs: ais})
@@ -75,6 +83,9 @@ func main() {
 			rl.BeginDrawing()
 			rl.ClearBackground(rl.Black)
 			rendering.DrawScene(ctx, rendering.Scene{Snapshot: snapshot, Map: m, Local: player, RenderedPlayer: player, RenderedAIs: ais, Feedback: feedback})
+			if hydra, ok := rendering.HydraInView(ais, player, &m.Exploration); ok {
+				ui.DrawBossBar(hydra, width)
+			}
 			if os.Getenv("SHOT_POISON") != "" {
 				ui.DrawPlayer(player, "tester", width)
 				feedback.DrawCombatOverlay(time.Now(), player, width, height)
@@ -92,4 +103,36 @@ func main() {
 		}
 	}
 	rl.CloseWindow()
+}
+
+func hydraSnapshot(steps, approach, sever int) (simulation.Snapshot, simulation.Player) {
+	w := simulation.NewWorld()
+	w.EnableTesting()
+	w.TestingWarpCave()
+	for range steps {
+		s := w.Snapshot()
+		d := simulation.Direction{}
+		for _, ai := range s.AIs {
+			if ai.Type != simulation.CaveHydra {
+				continue
+			}
+			target := simulation.HydraCenter(ai)
+			if sever > 0 {
+				head := ai.Hydra.Heads[1]
+				if !head.Severed {
+					target.X, target.Y = head.X, head.Y
+				}
+			}
+			dx, dy := target.X-s.Player.X-15, target.Y-s.Player.Y-15
+			distance := math.Hypot(dx, dy)
+			d.AimX, d.AimY, d.Shoot = dx/distance, dy/distance, approach > 0 && sever >= 0
+			if distance > float64(approach) {
+				d.X, d.Y = dx/distance, dy/distance
+			}
+		}
+		w.Input(d)
+		w.Step(time.Now())
+	}
+	s := w.Snapshot()
+	return s, s.Player
 }

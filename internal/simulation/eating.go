@@ -18,10 +18,14 @@ func gridCoordinate(v float64) int { return int(math.Floor(v / foodGridSize)) }
 func indexEaters(eaters []eater) map[foodGridCell][]int {
 	grid := make(map[foodGridCell][]int, len(eaters))
 	for i, actor := range eaters {
-		minX := gridCoordinate(min(actor.start.x, actor.end.x))
-		maxX := gridCoordinate(max(actor.start.x, actor.end.x) + actor.size)
-		minY := gridCoordinate(min(actor.start.y, actor.end.y))
-		maxY := gridCoordinate(max(actor.start.y, actor.end.y) + actor.size)
+		reach := 0.0
+		if actor.ai != nil && actor.ai.Type == CaveHydra {
+			reach = parameters.HydraLungeReach * actor.ai.Hydra.Scale
+		}
+		minX := gridCoordinate(min(actor.start.x, actor.end.x) - reach)
+		maxX := gridCoordinate(max(actor.start.x, actor.end.x) + actor.size + reach)
+		minY := gridCoordinate(min(actor.start.y, actor.end.y) - reach)
+		maxY := gridCoordinate(max(actor.start.y, actor.end.y) + actor.size + reach)
 		for y := minY; y <= maxY; y++ {
 			for x := minX; x <= maxX; x++ {
 				cell := foodGridCell{x, y}
@@ -59,6 +63,7 @@ func (w *World) eaters(previous map[string]position) []eater {
 		if ai.respawnTick != 0 {
 			continue
 		}
+		ai.refreshParts()
 		body := MobBody(ai.Type, ai.X, ai.Y)
 		old := previous[ai.ID]
 		start := MobBody(ai.Type, old.x, old.y)
@@ -83,6 +88,10 @@ func (e eater) die(killer string, tick uint64) {
 	*status = StatusEffects{Poison: Poison{Dealt: status.Poison.Dealt}, Sheds: status.Sheds}
 	if e.player == nil {
 		if e.ai.respawnTick != 0 {
+			return
+		}
+		if e.ai.Type == CaveHydra {
+			e.ai.respawnTick = tick
 			return
 		}
 		e.ai.deaths++
@@ -119,13 +128,26 @@ func (w *World) consumeFruits(eaters []eater) {
 		earliest := math.Inf(1)
 		tryActor := func(i int) {
 			actor := eaters[i]
-			if actor.ai != nil && (actor.ai.Type != ForestSnake || !snakesFeeding) {
+			if actor.ai != nil && (actor.ai.Type != ForestSnake && actor.ai.Type != CaveHydra || !snakesFeeding) {
 				return
 			}
 			if actor.dead() {
 				return
 			}
 			location := position{fruit.X, fruit.Y}
+			if actor.ai != nil && actor.ai.Type == CaveHydra {
+				if !w.hydraCanEat(fruit) {
+					return
+				}
+				food := physics.Square(fruit.X, fruit.Y, fruit.Size)
+				for _, part := range actor.ai.parts {
+					if part.head != hydraTailPart && part.body.Overlaps(food) && (winner < 0 || 0 < earliest) {
+						winner, earliest = i, 0
+						return
+					}
+				}
+				return
+			}
 			contact, hit := eatingContact(actor.start, actor.end, actor.size, location, location, fruit.Size)
 			if hit && (contact < earliest || contact == earliest && (winner < 0 || actor.id < eaters[winner].id)) {
 				winner, earliest = i, contact
@@ -158,7 +180,12 @@ func (w *World) consumeFruits(eaters []eater) {
 			if fruit.Ejected || fruit.Source != "" {
 				xp = 0
 			}
-			if ai := eaters[winner].ai; ai != nil {
+			if ai := eaters[winner].ai; ai != nil && ai.Type == CaveHydra {
+				eaters[winner].gain(hp, 0, fruit.MP)
+				if fruit.Source == "" {
+					w.hydraEat(ai, hp+fruit.MP/parameters.FruitMP*parameters.FruitHP)
+				}
+			} else if ai != nil {
 				eaters[winner].gain(hp, 0, fruit.MP)
 				ai.snakeEat(hp + fruit.MP/parameters.FruitMP*parameters.FruitHP)
 			} else {

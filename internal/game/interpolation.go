@@ -38,6 +38,11 @@ func (w *World) interpolateActors() {
 					ai.Segments[j] = physics.Vector{X: before.X + (segment.X-before.X)*alpha, Y: before.Y + (segment.Y-before.Y)*alpha}
 				}
 			}
+			for j := range ai.Hydra.Heads {
+				before, after := previous.Hydra.Heads[j], current.Hydra.Heads[j]
+				ai.Hydra.Heads[j].X = before.X + (after.X-before.X)*alpha
+				ai.Hydra.Heads[j].Y = before.Y + (after.Y-before.Y)*alpha
+			}
 			break
 		}
 	}

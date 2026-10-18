@@ -27,7 +27,7 @@ func (w *World) updatePortals() {
 		p.portalCooldown = 0
 		return
 	}
-	if portal.ID == worldmap.DescentPortal && !w.orb.Consumed && !p.HasOrb {
+	if !w.portalActive(portal.ID, p) {
 		p.TeleportCharge = 0
 		return
 	}
@@ -56,6 +56,16 @@ func (w *World) updatePortals() {
 		p.portalCooldown = 2 * parameters.TickRate
 		p.direction = Direction{}
 	}
+}
+
+func (w *World) portalActive(id string, p *playerState) bool {
+	switch id {
+	case worldmap.DescentPortal:
+		return w.orb.Consumed || p.HasOrb
+	case worldmap.ForestExitPortal:
+		return w.hydraDefeated()
+	}
+	return true
 }
 
 func nearestPortal(x, y float64) (worldmap.PortalPoint, float64, bool) {

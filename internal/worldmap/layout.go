@@ -46,6 +46,8 @@ const CoverProp PropKind = "cover"
 const BookshelfProp PropKind = "bookshelf"
 const StumpProp PropKind = "stump"
 const LogProp PropKind = "log"
+const ShedSkinProp PropKind = "shed-skin"
+const TracksProp PropKind = "tracks"
 
 type FeedingStyle string
 

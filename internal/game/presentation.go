@@ -7,6 +7,7 @@ import (
 	"2d-dungeon/internal/rendering"
 	"2d-dungeon/internal/rendering/primitives"
 	maprender "2d-dungeon/internal/rendering/worldmap"
+	"2d-dungeon/internal/simulation"
 	"2d-dungeon/internal/ui"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -37,6 +38,9 @@ func (p *presentation) draw(ctx primitives.Context, scene rendering.Scene) {
 	width, height := ctx.WindowWidth, ctx.WindowHeight
 	snapshot, local := scene.Snapshot, scene.Local
 	ui.DrawPlayer(local, scene.PlayerName, width)
+	if hydra, ok := rendering.HydraInView(scene.RenderedAIs, scene.RenderedPlayer, &p.gameMap.Exploration); ok {
+		ui.DrawBossBar(hydra, width)
+	}
 	p.feedback.DrawCombatOverlay(time.Now(), local, width, height)
 	drawFrenzyAnnouncement(snapshot, local, width)
 	label := ""
@@ -71,9 +75,11 @@ func (p *presentation) drawRadar(width, height int32, scene rendering.Scene) {
 		})
 	}
 	for _, ai := range ais {
-		markers = append(markers, maprender.Marker{
-			Center: rl.NewVector2(float32(ai.X+parameters.AISize/2), float32(ai.Y+parameters.AISize/2)), Radius: 3, Tint: rl.Green,
-		})
+		marker := maprender.Marker{Center: rl.NewVector2(float32(ai.X+parameters.AISize/2), float32(ai.Y+parameters.AISize/2)), Radius: 3, Tint: rl.Green}
+		if ai.Type == simulation.CaveHydra {
+			marker.Radius, marker.Tint = 6, rendering.PoisonColor
+		}
+		markers = append(markers, marker)
 	}
 	p.gameMap.DrawRadar(width, height, playerCenter(local), markers, snapshot)
 }

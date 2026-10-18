@@ -16,7 +16,7 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 - Dying anywhere, including floor 2, restarts the whole run.
 - Clearing floor 1 still plays the completion sound and effect, and shows a "FLOOR I COMPLETE" popup for a few seconds (`parameters.FloorBannerSeconds`).
 - Reaching floor 3 plays the same completion sound and effect, shows a "FLOOR II COMPLETE" popup, and opens the results screen with the same title.
-- Until the hydra exists, floor 2 has a placeholder forest-exit portal to floor 3 that is always active. Milestone 8 replaces it with the hydra's teleport circle.
+- The forest-exit portal to floor 3 sits in the hydra's lair inside the cave. It stays sealed ("SEALED BY THE HYDRA'S BLOOD") until the hydra is dead.
 
 ### Forest map
 - Replace the current floor 2 room with a much larger forest of winding paths, dense trees and clearings.
@@ -26,11 +26,11 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 - Several routes eventually lead to a hidden cave with the boss. Shed skins and large tracks hint at where it is.
 - Keep the current food. No forest-specific food types or visuals.
 - The forest is 200×200 cells, placed east of floor 1 (origin `parameters.ForestOriginX/Y`). It is drawn by hand in `internal/worldmap/forest.txt`, which is the source of truth and is loaded with `go:embed`.
-- Map legend: `.` grass, `,` dirt path (drawn as a bridge where it crosses water), `"` bush, `T` tree, `F` fruit tree, `~` water, `#` rock, `:` cave floor, `O` giant stump, `L` fallen log, `R` ruin wall, `M` standing stone. Markers on ground: `P` return portal, `X` forest-exit portal, `S` perk statue, `f` feeding spot.
+- Map legend: `.` grass, `,` dirt path (drawn as a bridge where it crosses water), `"` bush, `T` tree, `F` fruit tree, `~` water, `#` rock, `:` cave floor, `O` giant stump, `L` fallen log, `R` ruin wall, `M` standing stone. Markers on ground: `P` return portal, `X` forest-exit portal and hydra lair, `S` perk statue, `f` feeding spot (a cave feeding spot when it sits on cave floor), `s` shed skin, `h` hydra tracks. A marker's ground is cave floor next to the cave, dirt path when at least two neighbours are path, and grass otherwise.
 - Trees, fruit trees, water and landmarks block movement but not sight. Trees and landmarks also stop projectiles; shots fly over water. Bushes are decoration only. Rock is the only terrain that blocks sight, which keeps the cave hidden.
 - Fruit trees drop a little of the current food around themselves on a timer, as small snacks between the larger feeding spots.
 - Floor 2 has 4 perk statues, one per quarter of the forest. They offer floor-1 perks until the forest pool exists (milestone 7).
-- The hidden cave sits in the north-east corner, ringed by rock, with three tunnels that connect to different forest routes. The placeholder forest-exit portal is inside the cave.
+- The hidden cave sits in the north-east corner, ringed by rock, with three tunnels that connect to different forest routes. The forest-exit portal is inside the cave, at the hydra's lair.
 - AI pathing uses A* over the cell grid so it scales to the forest's size.
 - Floor 2 has its own renderer: a tilted low-poly 3D view in the style of Polytopia, in `internal/rendering/worldmap/forest3d*.go`. Floor 1 keeps the flat 2D renderer. Gameplay stays 2D: actors, food, projectiles and effects use their existing 2D drawing, rendered into a texture laid on the ground plane, so trees in front hide them. Canopies dither away near the player, and mouse aim ray-casts onto the ground.
 - The forest mood is enchanted twilight: a warm low sun, teal ambient light, a lantern glow around the player, glowing mushrooms, fruit, crystals and runes, fireflies and light shafts in clearings.
@@ -107,6 +107,25 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 - The hydra does not respawn. Once killed, it stays dead for the rest of the run.
 - Defeating it activates the teleport circle to floor 3.
 
+### Hydra implementation
+- The hydra is a mob of type `CaveHydra`, spawned from a den at the `X` marker (`worldmap.HydraLair`). Its code lives in `simulation/hydra.go` (cycle, targeting, movement) and `simulation/hydra_heads.go` (heads, attacks, severing, regrowth). Balance numbers are the `Hydra*` values in `parameters.go`.
+- Level track: max HP is `HydraBaseHealth` (1100) plus `HydraHealthPerLevel` (110) per level, and damage is `HydraBaseDamage` (4) plus `HydraDamagePerLevel` (.4) per level. Each level also grows it by 4%, up to 1.6× size. Level costs follow the normal XP curve, and current HP scales with max HP *(tune)*.
+- Each head has its own HP: `HydraHeadHealth` (20%) of max HP. A hit on a head damages both that head and the shared pool. Hits on the body or tail, and poison, only damage the pool. One shot damages the hydra at most once, so pierce counts it as one target.
+- A severed head leaves a bleeding stump. After `HydraRegrowSeconds` (60 s) it regrows over 1.5 s, once the hydra has `HydraRegrowCost` (6) MP. While a regrowth is due within 12 s, the hydra holds back enough mana for it instead of spitting. With no heads left it cannot attack and backs away.
+- Spit volley: each free head rears back for 0.6 s with a dashed aim line, one after another, 0.3 s apart. Each aims with lead and a small spread. Globs fly at 560 px/s, deal 1× damage, poison for 3 s and cost 0.5 MP each. Volleys come every 2.2 s at 110-520 px when the lane is clear *(tune)*.
+- Lunge: one head at a time pulls back for 0.55 s under an orange lane, which turns red 0.15 s before the strike. Then it snaps out to 210 px for 2.2× damage. The body holds still during a lunge *(tune)*.
+- In a fight the hydra keeps about 190 px from its target, circles slowly, and backs off when closer than 110 px. It turns toward its target at a limited rate.
+- Sleeping: it lies coiled on the sealed circle with its eyes closed and heals 1% of max HP and 0.5 MP per second. It wakes when hurt or when the player comes within 220 px in sight, roars, and starts foraging.
+- Awake, it attacks a player it can see within 440 px while either of them is in the cave, or anywhere during a hunt. It also comes after a player who hurts it from up to 1100 px away. It gives up after losing sight for 3 s, or after being drawn 1100 px from where the fight started. The cycle timer pauses while it fights the player.
+- Foraging: it grazes cave food (`cave-feeding-*` patches) with its closest head, or wanders between the cave patches. Cave food gives it `HydraFoodXP` (0.6) XP per point of food *(tune)*. Kill loot gives only HP and MP.
+- Hunting: it picks the nearest snake within 2600 px that it can safely beat (its HP × damage is at least 4× the snake's), or roams toward forest feeding spots. After one kill it eats the loot and heads home. Its spit and lunges hurt snakes, and a snake it attacks bites back for 6 s.
+- The hydra and its cycle freeze while the player is not on floor 2, so it only starts growing once the player arrives.
+- The boss bar at the top of the screen shows the level, the state (asleep, foraging, hunting, returning or enraged), the shared HP, and each head's HP, regrowth countdown or mana need. It appears while the hydra is fighting or is visible within 900 px. The minimap shows the hydra as a large purple dot.
+- Feedback: a roar and screen shake when it wakes, a roar when a head regrows, a wet chop with a blood burst and "HEAD SEVERED" when a head is cut off, and a large burst with "THE HYDRA FALLS" when it dies. A sleeping hydra shows floating "z"s.
+- Clues: three-toed tracks lead up all three approach paths and point the way into the cave tunnels. A shed skin lies in a clearing on each route, and bones are scattered around the lair.
+- The location bar names the cave "II / THE SERPENT DEN".
+- Testing playground: F10 resets the hydra and places the player inside the cave, and F11 gives the hydra 3 levels. `forestshot` with `SHOT_HYDRA=<ticks>` runs the real simulation in the cave and takes a screenshot. In this mode the two cell arguments set how close the player walks (shooting when above 0), and the target: 1 aims at the middle head and -1 does not shoot.
+
 ## Milestones
 Build in this order. Each milestone should be playable on its own.
 
@@ -117,7 +136,7 @@ Build in this order. Each milestone should be playable on its own.
 5. **Feeding and growth** *(in playtest)*: snakes eat, grow with rising costs, 20-segment cap.
 6. **More snake attacks** *(in playtest)*: spit and fast slither.
 7. **Forest perks** *(in playtest)*: the forest pool, ranks and the mixed offers at floor 2 statues.
-8. **Cave and hydra:** cave clues, the cave arena, the hydra fight, head regrowth, feeding and hunting.
+8. **Cave and hydra** *(in playtest)*: cave clues, the cave arena, the hydra fight, head regrowth, feeding and hunting.
 9. **Floor 3:** a small volcanic room reached through the hydra's teleport circle, ending the run with the win screen.
 
 ## Out of scope for v2

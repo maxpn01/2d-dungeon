@@ -233,6 +233,73 @@ const (
 	SnakeSlitherCooldownTicks  = TickRate * 6
 )
 
+// Cave hydra.
+const (
+	HydraLevel               = 1
+	HydraBaseHealth          = 1100.0
+	HydraHealthPerLevel      = 110.0
+	HydraBaseDamage          = 4.0
+	HydraDamagePerLevel      = .4
+	HydraSpeedMultiplier     = .9
+	HydraHeadCount           = 3
+	HydraHeadHealth          = .2
+	HydraBodySize            = 84.0
+	HydraHeadSize            = 32.0
+	HydraNeckLength          = 92.0
+	HydraHeadSpread          = .55
+	HydraTailSegments        = 4
+	HydraTailSpacing         = 30.0
+	HydraTailSize            = 44.0
+	HydraGrowthPerLevel      = .04
+	HydraMaxGrowth           = 1.6
+	HydraTurnRate            = 3.2
+	HydraFoodXP              = .6
+	HydraManaRegen           = .3
+	HydraSleepSeconds        = 120.0
+	HydraForageSeconds       = 60.0
+	HydraHuntSeconds         = 60.0
+	HydraSleepHealing        = .01
+	HydraSleepManaRegen      = .5
+	HydraWakeRadius          = 220.0
+	HydraDetectionRadius     = 440.0
+	HydraChaseLeash          = 1100.0
+	HydraLoseSightTicks      = 3 * TickRate
+	HydraHuntRadius          = 2600.0
+	HydraHuntRethinkTicks    = TickRate
+	HydraSafeMargin          = 4.0
+	HydraForageRadius        = 900.0
+	HydraLootRadius          = 320.0
+	HydraGrazeReach          = 1.7
+	HydraPreferredRange      = 190.0
+	HydraCloseRange          = 110.0
+	HydraLungeReach          = 210.0
+	HydraLungeWindup         = .55
+	HydraLungeAimLock        = .15
+	HydraLungeStrike         = .14
+	HydraLungeRecover        = .45
+	HydraLungeDamage         = 2.2
+	HydraLungeCooldownTicks  = TickRate * 6 / 5
+	HydraSpitMinRange        = 110.0
+	HydraSpitRange           = 520.0
+	HydraSpitWindup          = .6
+	HydraSpitAimLock         = .15
+	HydraSpitStagger         = .3
+	HydraSpitSpeed           = 560.0
+	HydraSpitSize            = 22.0
+	HydraSpitDamage          = 1.0
+	HydraSpitSpread          = .1
+	HydraSpitPoison          = 1.0
+	HydraSpitPoisonSeconds   = 3.0
+	HydraSpitCost            = .5
+	HydraVolleyCooldownTicks = TickRate * 11 / 5
+	HydraRegrowSeconds       = 60.0
+	HydraRegrowCost          = 6.0
+	HydraRegrowGrowSeconds   = 1.5
+	HydraRegrowReserveSecs   = 12.0
+	HydraFoeSeconds          = 6
+	HydraSatedHuntSeconds    = 8.0
+)
+
 // Status effects.
 const (
 	PoisonTickSeconds  = .5
@@ -334,4 +401,6 @@ const (
 	AmbienceWhisperGain                  = .04
 	GateSoundVolume              float32 = .2
 	EntranceGateSoundVolume      float32 = .16
+	HydraRoarSoundVolume         float32 = .22
+	HydraSeverSoundVolume        float32 = .2
 )

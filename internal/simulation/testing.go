@@ -164,3 +164,36 @@ func (w *World) TestingWarp(roomID string) bool {
 	w.updateOrb()
 	return true
 }
+
+func (w *World) TestingWarpCave() bool {
+	p := w.player
+	if !p.testing || !w.TestingWarp(worldmap.Forest) {
+		return false
+	}
+	for i := range w.ais {
+		ai := &w.ais[i]
+		if ai.Type != CaveHydra {
+			continue
+		}
+		oldID := ai.ID
+		*ai = w.newDenAI(ai.den)
+		ai.ID = oldID
+		lair := ai.den.At
+		x, y := worldmap.CellPosition(lair.X-12, lair.Y+6, parameters.PlayerSize)
+		p.X, p.Y = x, y
+	}
+	return true
+}
+
+func (w *World) GrowTestingHydra() {
+	if !w.player.testing {
+		return
+	}
+	for i := range w.ais {
+		if ai := &w.ais[i]; ai.Type == CaveHydra && ai.respawnTick == 0 {
+			ai.Stats.Level = min(parameters.MaxLevel, ai.Stats.Level+3)
+			ai.Stats.XP = 0
+			ai.Stats.rebuildPerks()
+		}
+	}
+}

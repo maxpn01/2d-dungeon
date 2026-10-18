@@ -10,15 +10,16 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func DrawPortals(local simulation.Player, orb simulation.OrbState, e Visibility) {
+func DrawPortals(local simulation.Player, snapshot simulation.Snapshot, e Visibility) {
+	orb := snapshot.Orb
 	for _, portal := range worldmap.Default().Portals() {
 		position := portal.Position()
 		pad := rl.NewVector2(float32(position.X), float32(position.Y))
 		if !e.EntityVisible(float64(pad.X), float64(pad.Y), 0) {
 			continue
 		}
-		activated := orb.Consumed || portal.ID != worldmap.DescentPortal
-		active := activated || local.HasOrb
+		activated := orb.Consumed || portal.ID != worldmap.DescentPortal && portal.ID != worldmap.ForestExitPortal || portal.ID == worldmap.ForestExitPortal && snapshot.HydraDefeated
+		active := activated || local.HasOrb && portal.ID == worldmap.DescentPortal
 		tint := rl.Gray
 		label := ""
 		if active {
@@ -49,6 +50,9 @@ func DrawPortals(local simulation.Player, orb simulation.OrbState, e Visibility)
 			drawActivatedPortal(pad)
 			status := "TELEPORT ACTIVE"
 			primitives.DrawTextAt(status, rl.NewVector2(pad.X-float32(primitives.MeasureText(status, 16))/2, pad.Y-125), 16, rl.RayWhite)
+		}
+		if !active && portal.ID == worldmap.ForestExitPortal {
+			label, tint = "SEALED BY THE HYDRA'S BLOOD", rl.NewColor(236, 120, 140, 255)
 		}
 		if label != "" {
 			primitives.DrawTextAt(label, rl.NewVector2(pad.X-float32(primitives.MeasureText(label, 14))/2, pad.Y+105), 14, tint)

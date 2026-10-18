@@ -45,6 +45,10 @@ const (
 	BehaviorWindingSpit         Behavior = "winding spit"
 	BehaviorCoiling             Behavior = "coiling"
 	BehaviorSlithering          Behavior = "slithering"
+	BehaviorSleeping            Behavior = "sleeping"
+	BehaviorHunting             Behavior = "hunting"
+	BehaviorWindingLunge        Behavior = "winding lunge"
+	BehaviorCowering            Behavior = "cowering"
 )
 
 type AI struct {
@@ -60,6 +64,7 @@ type AI struct {
 	Character  appearance.Character
 	Segments   []physics.Vector
 	Snake      SnakeAttack
+	Hydra      Hydra
 	ID         string
 	X, Y       float64
 	Stats      Stats
@@ -87,6 +92,8 @@ type aiState struct {
 	shooter           shooterState
 	sentinel          sentinelState
 	snake             snakeState
+	hydra             hydraState
+	parts             []bodyPart
 }
 
 type patrolState struct {
@@ -156,6 +163,10 @@ func (w *World) newDenAI(den worldmap.Den) aiState {
 			ai.Segments[i] = physics.Vector{X: x, Y: y}
 		}
 	}
+	if den.Type == CaveHydra {
+		w.initHydra(&ai)
+	}
+	ai.refreshParts()
 	return ai
 }
 
@@ -175,7 +186,7 @@ func (w *World) updateAIs() {
 		if w.geometry().Cell(ai.den.At.X, ai.den.At.Y) == 0 && ai.den.ID != "" {
 			continue
 		}
-		if ai.Stone {
+		if ai.Stone || ai.Type == CaveHydra && !w.snakesFeeding() {
 			continue
 		}
 		if ai.Awakening > 0 {
@@ -189,7 +200,7 @@ func (w *World) updateAIs() {
 		}
 		ai.setFrenzy(w.orbTarget(ai) != nil)
 		input := w.aiInput(ai)
-		if ai.Type != ForestSnake {
+		if ai.Type != ForestSnake && ai.Type != CaveHydra {
 			input = w.avoidPlayerShots(ai, input)
 		}
 		if ai.Type == Sentinel || ai.Frenzied {
@@ -216,6 +227,9 @@ func (w *World) updateAIs() {
 				ai.Behavior = BehaviorReturning
 			}
 		}
+		if ai.Type == CaveHydra {
+			w.advanceHydraHeads(ai)
+		}
 		ai.followSegments()
 	}
 }
@@ -226,6 +240,9 @@ func (w *World) aiIntent(ai *aiState) Direction {
 	}
 	if ai.Type == ForestSnake {
 		return w.snakeInput(ai)
+	}
+	if ai.Type == CaveHydra {
+		return w.hydraInput(ai)
 	}
 	if ai.Combat.SwordRemaining > 0 || ai.Combat.StompRemaining > 0 {
 		return w.meleeGuardInput(ai, nil)
@@ -329,7 +346,7 @@ func (ai *aiState) choosePatrolTarget(geometry *worldmap.Map) {
 func (w *World) respawnEntranceGuards() {
 	for i := range w.ais {
 		ai := &w.ais[i]
-		if ai.den.RoomID == worldmap.OrbVault || ai.Type == GateHeavy || ai.den.ID == "" || ai.respawnTick == 0 || w.tick < ai.respawnTick {
+		if ai.den.RoomID == worldmap.OrbVault || ai.Type == GateHeavy || ai.Type == CaveHydra || ai.den.ID == "" || ai.respawnTick == 0 || w.tick < ai.respawnTick {
 			continue
 		}
 		x, y := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, parameters.AISize)

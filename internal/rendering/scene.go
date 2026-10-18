@@ -42,6 +42,9 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		scene.Feedback.DrawDamageNumbers(time.Now(), &scene.Map.Exploration, func(x, y float32) rl.Vector2 {
 			return scene.Map.ForestScreenPoint(ctx, x, y, parameters.DamageNumberLift)
 		})
+		DrawHydraSleep(scene.RenderedAIs, &scene.Map.Exploration, func(x, y float32) rl.Vector2 {
+			return scene.Map.ForestScreenPoint(ctx, x, y, 70)
+		})
 		scene.Map.DrawLibraryHUD(ctx, scene.Snapshot, scene.Local)
 		return
 	}
@@ -64,11 +67,11 @@ func playerLabel(scene Scene) string {
 func forestActors(scene Scene) []maprender.ForestActor {
 	player := scene.RenderedPlayer
 	if player.Dead {
-		return snakeForestActors(scene)
+		return append(snakeForestActors(scene), hydraForestActors(scene)...)
 	}
 	body := actorBody(player.X, player.Y, parameters.PlayerSize, player.Stats.HP, player.Combat, player.Character)
 	height := actorRenderSize(parameters.PlayerSize, player.Stats.HP)
-	actors := append(snakeForestActors(scene), poisonForestBubbles(player.ID, rl.NewVector2(body.X+body.Width/2, body.Y+body.Height/2), body.Width, height, player.Status.Poison)...)
+	actors := append(append(snakeForestActors(scene), hydraForestActors(scene)...), poisonForestBubbles(player.ID, rl.NewVector2(body.X+body.Width/2, body.Y+body.Height/2), body.Width, height, player.Status.Poison)...)
 	return append(actors, maprender.ForestActor{
 		ID: player.ID, Label: playerLabel(scene),
 		Center: rl.NewVector2(body.X+body.Width/2, body.Y+body.Height/2),
@@ -94,6 +97,12 @@ func drawSceneEntities(scene Scene, forest bool) {
 		}
 		if ai.Type == simulation.ForestSnake {
 			drawSnakeAttacks(ai, &scene.Map.Exploration, scene.Feedback)
+			continue
+		}
+		if ai.Type == simulation.CaveHydra {
+			if forest {
+				drawHydra(ai, &scene.Map.Exploration, scene.Feedback)
+			}
 			continue
 		}
 		tint := poisonTint(mobTint(ai.Type), ai.Status.Poison)
@@ -130,7 +139,7 @@ func drawSceneEntities(scene Scene, forest bool) {
 		}, scene.Feedback, &scene.Map.Exploration)
 	}
 	DrawProjectiles(scene.PreviousProjectiles, scene.Projectiles, scene.ProjectileAlpha, &scene.Map.Exploration)
-	DrawPortals(scene.Local, scene.Snapshot.Orb, &scene.Map.Exploration)
+	DrawPortals(scene.Local, scene.Snapshot, &scene.Map.Exploration)
 	scene.Map.DrawVaultFire(scene.Snapshot)
 	DrawTeleportCharge(scene.Player.X, scene.Player.Y, scene.Player.TeleportCharge)
 	scene.Feedback.Draw(time.Now(), &scene.Map.Exploration, !forest)

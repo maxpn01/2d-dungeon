@@ -19,6 +19,7 @@ const (
 	GateHeavy      = worldmap.GateHeavy
 	Sentinel       = worldmap.Sentinel
 	ForestSnake    = worldmap.ForestSnake
+	CaveHydra      = worldmap.CaveHydra
 )
 
 func MobBody(t MobType, x, y float64) physics.Rect {

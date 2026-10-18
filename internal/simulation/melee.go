@@ -60,7 +60,19 @@ func (w *World) advanceMobMelee(actors []eater) {
 			}
 		}
 		for _, target := range actors {
-			if target.player == nil || target.dead() {
+			if target.dead() || target.ai == ai {
+				continue
+			}
+			if target.player == nil {
+				if dashAttack || ai.Type != ForestSnake || ai.meleeHits[target.id] || !w.snakeBiteReaches(ai, target) {
+					continue
+				}
+				if ai.meleeHits == nil {
+					ai.meleeHits = make(map[string]bool)
+				}
+				ai.meleeHits[target.id] = true
+				w.provokeHydra(target.ai, ai)
+				w.mobStrike(ai, target, attack.DamageMultiplier)
 				continue
 			}
 			if dashAttack {

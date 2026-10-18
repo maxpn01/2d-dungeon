@@ -51,6 +51,9 @@ func (s Stats) MaxHP() float64 {
 	if s.Mob && s.MobType == ForestSnake {
 		hp *= parameters.SnakeHealthMultiplier
 	}
+	if s.Mob && s.MobType == CaveHydra {
+		hp = parameters.HydraBaseHealth + parameters.HydraHealthPerLevel*float64(max(1, s.Level)-1) + PerkBonus(HealthPerk, s.Perks[HealthPerk])
+	}
 	return hp
 }
 func (s Stats) MaxMP() float64 {

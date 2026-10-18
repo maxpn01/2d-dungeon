@@ -33,6 +33,7 @@ type feedbackActor struct {
 	mobType            simulation.MobType
 	behavior           simulation.Behavior
 	charging           bool
+	hydra              simulation.Hydra
 }
 
 type feedbackEffect struct {
@@ -129,6 +130,9 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 					}
 				}
 			}
+			if existed && actor.mobType == simulation.CaveHydra {
+				f.observeHydra(now, old, actor, actors[f.localID])
+			}
 			if existed && !actor.ai && !old.dead && !actor.dead && worldmap.Default().BodyFloor(old.x, old.y, old.size) != worldmap.Default().BodyFloor(actor.x, actor.y, actor.size) {
 				for _, portal := range worldmap.Default().Portals() {
 					at := portal.Position()
@@ -196,6 +200,12 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 				kind := "prey"
 				if old.ai {
 					kind = "defeat"
+					if old.mobType == simulation.CaveHydra {
+						kind = "hydra-defeat"
+						f.shake(now, parameters.DeathShakeStrength, 1.2)
+						playFeedbackSound("hydra-roar")
+						playFeedbackSound("rumble")
+					}
 				} else if id == f.localID {
 					f.shake(now, parameters.DeathShakeStrength, parameters.DeathShakeSeconds)
 				}
@@ -245,6 +255,7 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 		actor.mobType = a.Type
 		actor.charging = a.Combat.Phase == simulation.DashRushing || a.Snake.SlitherPhase == simulation.DashRushing
 		actor.behavior = a.Behavior
+		actor.hydra = a.Hydra
 		actors[a.ID] = actor
 	}
 	if !f.observed.IsZero() {
@@ -322,6 +333,12 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility, numbers bool) {
 		}
 		if e.kind == "defeat" {
 			duration = .8
+		}
+		if e.kind == "sever" || e.kind == "regrow" {
+			duration = 1.1
+		}
+		if e.kind == "hydra-defeat" {
+			duration = 2.4
 		}
 		if e.kind == "prey" {
 			duration = parameters.DeathSequenceSeconds
@@ -417,6 +434,12 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility, numbers bool) {
 			}
 			side := e.size * (1 - p) * (1 - p)
 			rl.DrawRectangleRec(rl.NewRectangle(e.x-side/2, e.y-side/2, side, side), tint)
+		case "sever":
+			drawSeverBurst(center, e.size, p)
+		case "regrow":
+			drawRegrowBloom(center, e.size, p)
+		case "hydra-defeat":
+			drawHydraDefeat(center, e.size, p)
 		case "pop":
 			drawPickupPop(center, e.size, p, e.tint)
 		case "mass":

@@ -50,6 +50,10 @@ func DrawLocation(x, y float32, width, height int32) {
 		}
 	}
 
+	if worldmap.Default().InCave(float64(x), float64(y)) {
+		name, hint = "II / THE SERPENT DEN", "Something vast nests here. Only its death opens the circle."
+	}
+
 	rl.DrawRectangle(0, height-70, width, 70, rl.Fade(rl.Black, .8))
 	primitives.DrawText(name, 24, height-57, 20, primitives.RuneColor)
 	primitives.DrawText(hint, 24, height-29, 16, rl.LightGray)

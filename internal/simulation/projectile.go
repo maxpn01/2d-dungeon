@@ -14,14 +14,16 @@ import (
 type ProjectileKind string
 
 const (
-	ArrowProjectile     ProjectileKind = "arrow"
-	ShockwaveProjectile ProjectileKind = "shockwave"
-	SpectralProjectile  ProjectileKind = "spectral"
-	VenomProjectile     ProjectileKind = "venom"
+	ArrowProjectile      ProjectileKind = "arrow"
+	ShockwaveProjectile  ProjectileKind = "shockwave"
+	SpectralProjectile   ProjectileKind = "spectral"
+	VenomProjectile      ProjectileKind = "venom"
+	HydraVenomProjectile ProjectileKind = "hydra-venom"
 )
 
 type Projectile struct {
 	MobOwned         bool
+	HitsMobs         bool
 	Kind             ProjectileKind
 	originX, originY float64
 	ID               string
@@ -135,7 +137,7 @@ func (w *World) advanceProjectiles(actors []eater) {
 				alive = false
 				break
 			}
-			winner, first := -1, math.Inf(1)
+			winner, first, winnerPart := -1, math.Inf(1), hydraBodyPart
 			for i, actor := range actors {
 				trapShot := shot.Kind == ArrowProjectile || shot.Kind == ShockwaveProjectile
 				shieldPierced := shot.Kind == ShockwaveProjectile && actor.player != nil
@@ -145,16 +147,15 @@ func (w *World) advanceProjectiles(actors []eater) {
 				from := actor.at(step, steps)
 				to := actor.at(step+1, steps)
 				if t, hit := eatingContact(start, end, shot.Size, from, to, actor.size); hit && (t < first || t == first && (winner < 0 || actor.id < actors[winner].id)) {
-					winner, first = i, t
+					winner, first, winnerPart = i, t, hydraBodyPart
 				}
 				if actor.ai == nil {
 					continue
 				}
-				for _, segment := range actor.ai.Segments {
-					body := SnakeSegmentBody(segment)
-					at := position{body.X, body.Y}
-					if t, hit := eatingContact(start, end, shot.Size, at, at, body.W); hit && t < first {
-						winner, first = i, t
+				for _, part := range actor.ai.parts {
+					at := position{part.body.X, part.body.Y}
+					if t, hit := eatingContact(start, end, shot.Size, at, at, part.body.W); hit && t < first {
+						winner, first, winnerPart = i, t, part.head
 					}
 				}
 			}
@@ -168,9 +169,12 @@ func (w *World) advanceProjectiles(actors []eater) {
 			shot.X, shot.Y = end.x, end.y
 			if winner >= 0 {
 				target := actors[winner]
-				if shot.MobOwned && target.ai != nil {
+				if shot.MobOwned && target.ai != nil && !shot.HitsMobs {
 					alive = false
 					break
+				}
+				if shot.HitsMobs && target.ai != nil && target.ai.Type == ForestSnake {
+					w.provokeSnake(target.ai, shot.Owner)
 				}
 				if shot.PoisonDamage > 0 {
 					target.status().ApplyPoison(shot.PoisonDamage, shot.PoisonSeconds)
@@ -182,11 +186,14 @@ func (w *World) advanceProjectiles(actors []eater) {
 				}
 				if !target.protected() {
 					target.stats.HP = max(0, hp-damage)
+					if target.ai != nil && target.ai.Type == CaveHydra {
+						w.hydraPartHit(target.ai, winnerPart, damage)
+					}
 				}
 				if shot.Kind == ShockwaveProjectile {
 					target.player.Combat = CombatState{Facing: target.player.Combat.Facing, StunRemaining: max(target.player.Combat.StunRemaining, shot.StunDuration)}
 				}
-				if target.ai != nil && target.stats.HP > 0 {
+				if target.ai != nil && target.ai.Type != CaveHydra && target.stats.HP > 0 {
 					w.alertAI(target.ai, shot)
 				}
 				if target.stats.HP == 0 {

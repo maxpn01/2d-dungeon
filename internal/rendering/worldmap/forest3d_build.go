@@ -212,12 +212,17 @@ func (f *forestRenderer) build(world *mapdata.Map) {
 	}
 	var props meshBuilder
 	for _, prop := range room.Props {
+		if prop.Kind == mapdata.TracksProp || prop.Kind == mapdata.ShedSkinProp {
+			f.buildClue(world, room.WorldArea(prop.Area), prop.Kind, &props)
+			continue
+		}
 		f.buildProp(room.WorldArea(prop.Area), prop.Kind, &props)
 	}
+	f.buildLair(world, &props)
 	for _, portal := range world.Portals() {
 		if portal.Floor == mapdata.SecondFloor {
 			position := portal.Position()
-			f.buildPortalRing(rl.NewVector2(float32(position.X), float32(position.Y)), &props)
+			f.buildPortalRing(rl.NewVector2(float32(position.X), float32(position.Y)), portal.ID != mapdata.ForestExitPortal, &props)
 		}
 	}
 	if !props.empty() {
@@ -562,7 +567,7 @@ func (f *forestRenderer) buildProp(area mapdata.CellRect, kind mapdata.PropKind,
 	}
 }
 
-func (f *forestRenderer) buildPortalRing(center rl.Vector2, solid *meshBuilder) {
+func (f *forestRenderer) buildPortalRing(center rl.Vector2, glow bool, solid *meshBuilder) {
 	for i := range 10 {
 		angle := float64(i) * 2 * math.Pi / 10
 		at := v3(center.X+float32(math.Cos(angle))*112, 0, center.Y+float32(math.Sin(angle))*112)
@@ -570,5 +575,7 @@ func (f *forestRenderer) buildPortalRing(center rl.Vector2, solid *meshBuilder) 
 		solid.prism(at, 9, 5, height, 5, float32(angle), stoneTint, stoneTop, uint32(i))
 		solid.blob(v3(at.X, height+3, at.Z), 3, 3, glowing(portalGlow, 1), uint32(i))
 	}
-	f.glows = append(f.glows, forestGlow{at: v3(center.X, 1.5, center.Y), size: 340, tint: color.RGBA{120, 220, 255, 110}, phase: 0, pulses: true, flat: true})
+	if glow {
+		f.glows = append(f.glows, forestGlow{at: v3(center.X, 1.5, center.Y), size: 340, tint: color.RGBA{120, 220, 255, 110}, phase: 0, pulses: true, flat: true})
+	}
 }

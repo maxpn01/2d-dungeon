@@ -45,7 +45,7 @@ func DrawProjectiles(previous, shots []simulation.Projectile, alpha float64, exp
 			drawStompShockwave(center, shot)
 			continue
 		}
-		if shot.Kind == simulation.VenomProjectile {
+		if shot.Kind == simulation.VenomProjectile || shot.Kind == simulation.HydraVenomProjectile {
 			drawVenomSpit(center, shot)
 			continue
 		}

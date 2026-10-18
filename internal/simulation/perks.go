@@ -153,6 +153,9 @@ func (s *Stats) rebuildPerks() {
 			s.Speed *= parameters.PursuerSpeedMultiplier
 		case ForestSnake:
 			s.Speed *= parameters.SnakeSpeedMultiplier
+		case CaveHydra:
+			s.Speed *= parameters.HydraSpeedMultiplier
+			s.Damage = (parameters.HydraBaseDamage + parameters.HydraDamagePerLevel*float64(max(1, s.Level)-1)) * (1 + b(DamagePerk) + b(HeavyPerk))
 		case DungeonHeavy, GateHeavy:
 			s.Speed *= parameters.HeavySpeedMultiplier
 		}

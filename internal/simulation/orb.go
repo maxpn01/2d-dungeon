@@ -101,7 +101,7 @@ func (w *World) interactObjective(p *playerState) bool {
 	}
 	portal, distance, found := nearestPortal(x, y)
 	if found && distance <= 60 {
-		if p.portalCooldown == 0 && (portal.ID != worldmap.DescentPortal || w.orb.Consumed || p.HasOrb) {
+		if p.portalCooldown == 0 && w.portalActive(portal.ID, p) {
 			p.TeleportCharge = parameters.StepSeconds
 		}
 		return true

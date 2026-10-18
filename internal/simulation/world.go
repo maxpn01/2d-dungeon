@@ -172,6 +172,7 @@ func (w *World) Step(now time.Time) {
 	w.advanceProjectiles(eaters)
 	w.advanceMobMelee(eaters)
 	w.advanceSnakeSlithers(eaters)
+	w.advanceHydraLunges(eaters)
 	w.advanceHeavyStomps()
 	w.advanceVaultTraps(eaters)
 	w.advanceLibraries()
@@ -237,6 +238,7 @@ type Snapshot struct {
 	Tick              uint64
 	Player            Player
 	Fruits            []Fruit
+	HydraDefeated     bool
 }
 
 func (w *World) Snapshot() Snapshot {
@@ -265,7 +267,7 @@ func (w *World) Snapshot() Snapshot {
 		SecretWallHits: hits, DungeonLayout: w.dungeonLayout, WingDoorOpen: w.wingDoorOpen,
 		WinnerID: w.winnerID, FinishedTick: w.finishedTick, OpenSecrets: append([]string(nil), w.openSecrets...),
 		Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...),
-		Tick: w.tick, Player: player, Fruits: fruits, AIs: ais,
+		Tick: w.tick, Player: player, Fruits: fruits, AIs: ais, HydraDefeated: w.hydraDefeated(),
 	}
 }
 
