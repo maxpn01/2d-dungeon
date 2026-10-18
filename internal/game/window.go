@@ -22,7 +22,6 @@ func (w *Window) initWindow() {
 	rl.SetConfigFlags(rl.FlagWindowHidden)
 	rl.InitWindow(w.width, w.height, w.title)
 	rl.SetWindowMonitor(0)
-	rl.ClearWindowState(rl.FlagWindowHidden)
 	rl.SetWindowState(rl.FlagFullscreenMode)
 	rl.SetWindowMonitor(0)
 	rl.SetTargetFPS(60)
@@ -43,6 +42,9 @@ func (w *Window) beginDrawing() {
 
 func (w *Window) endDrawing() {
 	rl.EndDrawing()
+	if rl.IsWindowHidden() {
+		rl.ClearWindowState(rl.FlagWindowHidden)
+	}
 }
 
 func (w *Window) close() {
