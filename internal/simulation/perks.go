@@ -21,8 +21,16 @@ const (
 	ManaRecoveryPerk
 	HealthRecoveryPerk
 	ShotSizePerk
+	VenomPerk
+	PiercePerk
+	ShedskinPerk
+	HunterPerk
 	PerkFamilyCount
 )
+
+const FirstForestPerk = VenomPerk
+
+func (f PerkFamily) Forest() bool { return f >= FirstForestPerk && f < PerkFamilyCount }
 
 const MaxPerkRank = 6
 
@@ -43,7 +51,7 @@ func (c PerkCard) Valid() bool {
 }
 
 func PerkName(family PerkFamily) string {
-	names := [...]string{"FORCE", "HASTE", "INSIGHT", "VITALITY", "STRIDE", "OVERDRIVE", "HEAVY HAND", "CHANNELING", "RENEWAL", "MAGNIFY"}
+	names := [...]string{"FORCE", "HASTE", "INSIGHT", "VITALITY", "STRIDE", "OVERDRIVE", "HEAVY HAND", "CHANNELING", "RENEWAL", "MAGNIFY", "VENOM", "PIERCE", "SHEDSKIN", "HUNTER'S INSTINCT"}
 	if family < 0 || family >= PerkFamilyCount {
 		return "UNKNOWN"
 	}
@@ -94,6 +102,19 @@ func (c PerkCard) DescriptionFor(hasWings bool) string {
 		return fmt.Sprintf("Recover %.2f HP per second", b)
 	case ShotSizePerk:
 		return fmt.Sprintf("+%.0f%% shot diameter / +%.0f%% shot MP cost", b*100, b*100)
+	case VenomPerk:
+		return fmt.Sprintf("Hits poison for %.0f%% damage every %.1fs for %.0fs", b*100, parameters.PoisonTickSeconds, parameters.VenomPoisonSeconds)
+	case PiercePerk:
+		targets := parameters.PiercePerkTargets[c.Rank-1]
+		enemies := "enemy"
+		if targets > 1 {
+			enemies = "enemies"
+		}
+		return fmt.Sprintf("Shots pass through %d more %s / %.0f%% damage after each", targets, enemies, b*100)
+	case ShedskinPerk:
+		return fmt.Sprintf("Shed poison every %.0fs / immune for %.2gs after", b, parameters.ShedskinWardSeconds[c.Rank-1])
+	case HunterPerk:
+		return fmt.Sprintf("+%.0f%% damage to enemies above %.0f%% HP", b*100, parameters.HunterHPThreshold*100)
 	}
 	return ""
 }
@@ -143,33 +164,53 @@ func (s *Stats) rebuildPerks() {
 	s.BoostCost = parameters.BoostMPPerSecond * (1 + PerkPenalty(BoostPerk, s.Perks[BoostPerk]))
 }
 
-func perkUpgradeOffer(stats Stats) []PerkCard {
-	return generatePerkOffer(stats.Perks)
+func perkPool(forest bool) []PerkFamily {
+	count := FirstForestPerk
+	if forest {
+		count = PerkFamilyCount
+	}
+	pool := make([]PerkFamily, count)
+	for i := range pool {
+		pool[i] = PerkFamily(i)
+	}
+	return pool
 }
 
-func refreshPerkOffer(previous []PerkCard, stats Stats) []PerkCard {
+func perkUpgradeOffer(stats Stats) []PerkCard {
+	return generatePerkOffer(stats.Perks, perkPool(false), 3)
+}
+
+func refreshPerkOffer(previous []PerkCard, stats Stats, forest bool) []PerkCard {
 	cards := make([]PerkCard, 0, 3)
 	excluded := make([]PerkFamily, 0, 3)
 	for _, card := range previous {
-		if card.Valid() && card.Rank > stats.Perks[card.Family] {
+		if card.Valid() && card.Rank > stats.Perks[card.Family] && (forest || !card.Family.Forest()) {
 			cards = append(cards, card)
 			excluded = append(excluded, card.Family)
 		}
 	}
-	for _, card := range generatePerkOffer(stats.Perks, excluded...) {
-		if len(cards) == 3 {
-			break
+	kept := len(cards)
+	if forest && len(cards) < 3 && !slices.ContainsFunc(cards, func(c PerkCard) bool { return c.Family.Forest() }) {
+		for _, card := range generatePerkOffer(stats.Perks, perkPool(true)[FirstForestPerk:], 1, excluded...) {
+			cards = append(cards, card)
+			excluded = append(excluded, card.Family)
 		}
-		cards = append(cards, card)
+	}
+	cards = append(cards, generatePerkOffer(stats.Perks, perkPool(forest), 3-len(cards), excluded...)...)
+	if kept == 0 {
+		rand.Shuffle(len(cards), func(i, j int) { cards[i], cards[j] = cards[j], cards[i] })
 	}
 	return cards
 }
 
-func generatePerkOffer(minimumRanks [PerkFamilyCount]int, excluded ...PerkFamily) []PerkCard {
-	families := rand.Perm(int(PerkFamilyCount))
-	cards := make([]PerkCard, 0, 3)
-	for _, f := range families {
-		if slices.Contains(excluded, PerkFamily(f)) {
+func generatePerkOffer(minimumRanks [PerkFamilyCount]int, pool []PerkFamily, count int, excluded ...PerkFamily) []PerkCard {
+	cards := make([]PerkCard, 0, max(0, count))
+	for _, i := range rand.Perm(len(pool)) {
+		if len(cards) >= count {
+			break
+		}
+		f := pool[i]
+		if slices.Contains(excluded, f) {
 			continue
 		}
 		owned := minimumRanks[f]
@@ -184,13 +225,36 @@ func generatePerkOffer(minimumRanks [PerkFamilyCount]int, excluded ...PerkFamily
 		for rank := owned; rank < MaxPerkRank; rank++ {
 			roll -= max(0, parameters.PerkRankWeights[rank])
 			if roll < 0 {
-				cards = append(cards, PerkCard{Family: PerkFamily(f), Rank: rank + 1})
+				cards = append(cards, PerkCard{Family: f, Rank: rank + 1})
 				break
 			}
 		}
-		if len(cards) == 3 {
-			break
-		}
 	}
 	return cards
+}
+
+func (s Stats) VenomDamage() float64 {
+	return s.Damage * PerkBonus(VenomPerk, s.Perks[VenomPerk])
+}
+
+func (s Stats) PierceTargets() int {
+	if rank := s.Perks[PiercePerk]; rank > 0 {
+		return parameters.PiercePerkTargets[rank-1]
+	}
+	return 0
+}
+
+func (s Stats) HunterDamage() float64 {
+	return s.Damage * (1 + PerkBonus(HunterPerk, s.Perks[HunterPerk]))
+}
+
+func (s Stats) perkShot(shot Projectile) Projectile {
+	if rank := s.Perks[VenomPerk]; rank > 0 {
+		shot.PoisonDamage = shot.Damage * PerkBonus(VenomPerk, rank)
+		shot.PoisonSeconds = parameters.VenomPoisonSeconds
+	}
+	shot.Pierces = s.PierceTargets()
+	shot.PierceDamage = PerkBonus(PiercePerk, s.Perks[PiercePerk])
+	shot.HunterBonus = PerkBonus(HunterPerk, s.Perks[HunterPerk])
+	return shot
 }

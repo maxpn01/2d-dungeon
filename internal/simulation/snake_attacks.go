@@ -134,7 +134,7 @@ func (w *World) spitVenom(ai *aiState) {
 		Kind: VenomProjectile, ID: fmt.Sprintf("venom-%d", w.nextProjectile), Owner: ai.ID, MobOwned: true,
 		X: x, Y: y, originX: x, originY: y, Direction: ai.Snake.SpitDirection, Size: size,
 		Remaining: lifetime, Lifetime: lifetime, Damage: ai.Stats.Damage * parameters.SnakeSpitDamage,
-		PoisonDamage: PoisonStrength(ai.Stats, len(ai.Segments)),
+		PoisonDamage: PoisonStrength(ai.Stats, len(ai.Segments)), PoisonSeconds: parameters.SnakeSpitPoisonSeconds,
 	})
 }
 

@@ -79,7 +79,8 @@ func (e eater) die(killer string, tick uint64) {
 		e.stats.HP = e.stats.MaxHP()
 		return
 	}
-	e.status().Poison = Poison{Dealt: e.status().Poison.Dealt}
+	status := e.status()
+	*status = StatusEffects{Poison: Poison{Dealt: status.Poison.Dealt}, Sheds: status.Sheds}
 	if e.player == nil {
 		if e.ai.respawnTick != 0 {
 			return

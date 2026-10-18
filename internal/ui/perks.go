@@ -129,6 +129,17 @@ func perkPreview(stats simulation.Stats, card simulation.PerkCard, hasWings bool
 		return fmt.Sprintf("HP/sec %.2f -> %.2f", stats.HPRecoveryPerSecond(), next.HPRecoveryPerSecond())
 	case simulation.ShotSizePerk:
 		return fmt.Sprintf("Diameter %.1f -> %.1f. MP/shot %.3f -> %.3f.", stats.ShotSize(), next.ShotSize(), stats.ShotMPCost(), next.ShotMPCost())
+	case simulation.VenomPerk:
+		return fmt.Sprintf("Poison per tick %.2f -> %.2f", stats.VenomDamage(), next.VenomDamage())
+	case simulation.PiercePerk:
+		return fmt.Sprintf("Enemies per shot %d -> %d", 1+stats.PierceTargets(), 1+next.PierceTargets())
+	case simulation.ShedskinPerk:
+		if stats.Perks[card.Family] == 0 {
+			return fmt.Sprintf("Sheds every %.0fs. Snake venom fades fast.", simulation.PerkBonus(card.Family, card.Rank))
+		}
+		return fmt.Sprintf("Shed every %.0fs -> %.0fs", simulation.PerkBonus(card.Family, stats.Perks[card.Family]), simulation.PerkBonus(card.Family, card.Rank))
+	case simulation.HunterPerk:
+		return fmt.Sprintf("Damage vs healthy foes %.2f -> %.2f", stats.HunterDamage(), next.HunterDamage())
 	}
 	return ""
 }

@@ -79,13 +79,16 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 - Visuals: the HUD HP bar turns purple with a poison icon, a countdown ring and the remaining seconds; the screen edge pulses purple; poisoned actors pulse purple and give off rising bubbles; poison ticks show as small purple numbers without the hurt flash, shake or sound.
 
 ### Perks
-- Add a forest perk pool. Like the existing perks, each forest perk has ranks Eâ€“S.
+- Add a forest perk pool. Like the existing perks, each forest perk has ranks E–S.
 - Floor 2 statues offer a mix of first-floor and forest perks. If the player already has every first-floor perk at max rank, they offer only forest perks.
-- Forest perks change mechanics and use the existing controls. Starting candidates *(tune)*:
-  - **Venom:** hits apply a short poison; repeated hits refresh it.
-  - **Pierce:** a projectile passes through extra enemies with reduced damage. One shot damages each snake at most once.
-  - **Shedskin:** periodically clears poison and briefly blocks it from being reapplied.
-  - **Hunter's Instinct:** bonus damage against enemies above a high HP threshold (for example 70%), rewarding early attacks on growing snakes.
+- Forest perks change mechanics and use the existing controls:
+  - **Venom:** hits poison the target for `VenomPoisonSeconds` (2 s); each poison tick deals 8/10/12/15/18/24% of the shot's damage *(tune)*. Repeated hits refresh it.
+  - **Pierce:** a shot passes through 1/1/2/2/3/4 extra enemies, keeping 45/55/60/65/70/80% of its damage (and venom) after each hit *(tune)*. One shot damages each enemy at most once, so a snake's head and body count as one target. Walls and trees still stop it.
+  - **Shedskin:** when poisoned, the player sheds it after `ShedskinDelaySeconds` (0.35 s) and is immune to poison for 1/1.25/1.5/2/2.5/3 s, then it recharges for 20/17/14/12/10/8 s *(tune)*. The HUD shows its state, and a shed ring bursts around the player.
+  - **Hunter's Instinct:** +15/25/35/50/65/85% damage against targets at or above `HunterHPThreshold` (70%) HP *(tune)*.
+- Forest perks are `PerkFamily` values from `FirstForestPerk` on, so they share the perk arrays (`parameters.PerkBonuses`), ranks, cards and stats panel with floor-1 perks.
+- A forest statue's offer always holds at least one forest card while one can still be upgraded; the rest are drawn from both pools. Floor-1 statues and mob perk milestones use only the floor-1 pool.
+- Spectral echo shots carry the same forest perk effects.
 
 ### Cave boss: three-headed hydra
 - One shared HP bar. Both the heads and the body can be damaged.
@@ -113,7 +116,7 @@ Build in this order. Each milestone should be playable on its own.
 4. **Status effects** *(in playtest)*: the shared system, poison, and its HUD and visuals.
 5. **Feeding and growth** *(in playtest)*: snakes eat, grow with rising costs, 20-segment cap.
 6. **More snake attacks** *(in playtest)*: spit and fast slither.
-7. **Forest perks:** the forest pool, ranks and the mixed offers at floor 2 statues.
+7. **Forest perks** *(in playtest)*: the forest pool, ranks and the mixed offers at floor 2 statues.
 8. **Cave and hydra:** cave clues, the cave arena, the hydra fight, head regrowth, feeding and hunting.
 9. **Floor 3:** a small volcanic room reached through the hydra's teleport circle, ending the run with the win screen.
 

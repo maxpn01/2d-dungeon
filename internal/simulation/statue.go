@@ -30,6 +30,10 @@ func (s StatueState) Near(x, y float64, open ...[]string) bool {
 	return math.Hypot(x+parameters.PlayerSize/2-s.X, y+parameters.PlayerSize/2-s.Y) <= StatueInteractionRadius && geometry.Visible(x+parameters.PlayerSize/2, y+parameters.PlayerSize/2, s.X, s.Y)
 }
 
+func (s StatueState) Forest() bool {
+	return worldmap.Default().FloorAt(s.X, s.Y) == worldmap.SecondFloor
+}
+
 func (w *World) interactStatue(p *playerState) bool {
 	if p.Flight.Flying {
 		return false
@@ -52,7 +56,7 @@ func (w *World) interactStatue(p *playerState) bool {
 		return w.startLibrary(s, p)
 	}
 	if !worldmap.IsWingStatue(s.ID) {
-		s.Cards = refreshPerkOffer(s.Cards, p.Stats)
+		s.Cards = refreshPerkOffer(s.Cards, p.Stats, s.Forest())
 	}
 	p.ActiveStatue = s.ID
 	return true

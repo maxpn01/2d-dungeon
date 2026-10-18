@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
+	"slices"
 
 	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
@@ -33,6 +34,11 @@ type Projectile struct {
 	Damage           float64
 	StunDuration     float64
 	PoisonDamage     float64
+	PoisonSeconds    float64
+	Pierces          int
+	PierceDamage     float64
+	HunterBonus      float64
+	hit              []string
 	Size             float64
 }
 
@@ -80,18 +86,18 @@ func (w *World) fire(p *Player, input Direction) {
 	}
 	size := p.Stats.ShotSize()
 	w.nextProjectile++
-	w.projectiles = append(w.projectiles, Projectile{
+	w.projectiles = append(w.projectiles, p.Stats.perkShot(Projectile{
 		ID: fmt.Sprintf("shot-%d", w.nextProjectile), Owner: p.ID, originX: p.X, originY: p.Y, MobOwned: p.Stats.Mob,
 		X: p.X + (parameters.PlayerSize-size)/2, Y: p.Y + (parameters.PlayerSize-size)/2,
 		Direction: direction, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage, Size: size,
-	})
+	}))
 	if p.Stats.SpectralShots && len(w.projectiles) < parameters.MaxProjectiles {
 		w.nextProjectile++
-		w.projectiles = append(w.projectiles, Projectile{
+		w.projectiles = append(w.projectiles, p.Stats.perkShot(Projectile{
 			ID: fmt.Sprintf("echo-%d", w.nextProjectile), Owner: p.ID, Kind: SpectralProjectile, MobOwned: p.Stats.Mob,
 			originX: p.X, originY: p.Y, X: p.X + (parameters.PlayerSize-size)/2 - direction.Y*16, Y: p.Y + (parameters.PlayerSize-size)/2 + direction.X*16,
 			Direction: direction, Remaining: parameters.ShotLifetime, Damage: p.Stats.Damage * .6, Size: size,
-		})
+		}))
 	}
 }
 
@@ -133,7 +139,7 @@ func (w *World) advanceProjectiles(actors []eater) {
 			for i, actor := range actors {
 				trapShot := shot.Kind == ArrowProjectile || shot.Kind == ShockwaveProjectile
 				shieldPierced := shot.Kind == ShockwaveProjectile && actor.player != nil
-				if actor.id == shot.Owner || actor.dead() || actor.protected() && !shieldPierced || trapShot && actor.player == nil {
+				if actor.id == shot.Owner || actor.dead() || slices.Contains(shot.hit, actor.id) || actor.protected() && !shieldPierced || trapShot && actor.player == nil {
 					continue
 				}
 				from := actor.at(step, steps)
@@ -167,11 +173,15 @@ func (w *World) advanceProjectiles(actors []eater) {
 					break
 				}
 				if shot.PoisonDamage > 0 {
-					target.status().ApplyPoison(shot.PoisonDamage, parameters.SnakeSpitPoisonSeconds)
+					target.status().ApplyPoison(shot.PoisonDamage, shot.PoisonSeconds)
 				}
 				hp := target.stats.HP
+				damage := shot.Damage
+				if shot.HunterBonus > 0 && hp >= target.stats.MaxHP()*parameters.HunterHPThreshold {
+					damage *= 1 + shot.HunterBonus
+				}
 				if !target.protected() {
-					target.stats.HP = max(0, hp-shot.Damage)
+					target.stats.HP = max(0, hp-damage)
 				}
 				if shot.Kind == ShockwaveProjectile {
 					target.player.Combat = CombatState{Facing: target.player.Combat.Facing, StunRemaining: max(target.player.Combat.StunRemaining, shot.StunDuration)}
@@ -188,6 +198,13 @@ func (w *World) advanceProjectiles(actors []eater) {
 						}
 					}
 					target.die(shot.Owner, w.tick)
+				}
+				if shot.Pierces > 0 && target.ai != nil && !wallBlocked {
+					shot.Pierces--
+					shot.hit = append(slices.Clip(shot.hit), target.id)
+					shot.Damage *= shot.PierceDamage
+					shot.PoisonDamage *= shot.PierceDamage
+					continue
 				}
 				alive = false
 				break

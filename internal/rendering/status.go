@@ -13,6 +13,7 @@ import (
 var (
 	PoisonColor     = rl.NewColor(178, 92, 230, 255)
 	poisonDarkColor = rl.NewColor(74, 30, 104, 255)
+	ShedColor       = rl.NewColor(214, 196, 132, 255)
 )
 
 func DrawPoisonIcon(center rl.Vector2, size float32, tint color.RGBA) {

@@ -27,6 +27,7 @@ type feedbackActor struct {
 	recovery           float64
 	maxHP              float64
 	poisonDealt        float64
+	sheds              int
 	stompRemaining     float64
 	swordRemaining     float64
 	mobType            simulation.MobType
@@ -157,6 +158,9 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 					playFeedbackSound("completion")
 				}
 			}
+			if existed && !old.dead && !actor.dead && actor.sheds > old.sheds {
+				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, ShedColor, "shed")
+			}
 			if existed && !old.dead && !actor.dead && actor.level > old.level && !actor.ai {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, primitives.RuneColor, "level")
 			}
@@ -229,7 +233,7 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 		shots: p.ShotsFired,
 		x:     p.X, y: p.Y, size: parameters.PlayerSize, hp: p.Stats.HP, xp: p.Stats.XP, level: p.Stats.Level,
 		tint: primitives.CharacterColor(p.Character), dead: p.Dead, escaped: p.FloorCleared, won: p.ID == snapshot.WinnerID,
-		recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP(), poisonDealt: p.Status.Poison.Dealt,
+		recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP(), poisonDealt: p.Status.Poison.Dealt, sheds: p.Status.Sheds,
 	}
 	for _, a := range snapshot.AIs {
 		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: parameters.AISize, hp: a.Stats.HP, xp: a.Stats.XP, level: a.Stats.Level, tint: mobTint(a.Type), ai: true, maxHP: a.Stats.MaxHP(), poisonDealt: a.Status.Poison.Dealt}
@@ -300,6 +304,9 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility, numbers bool) {
 		duration := .35
 		if e.kind == "level" {
 			duration = 1.6
+		}
+		if e.kind == "shed" {
+			duration = .9
 		}
 		if e.kind == "completion" {
 			duration = 4.5
@@ -376,6 +383,13 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility, numbers bool) {
 				b := rl.NewVector2(center.X+float32(math.Cos(angle))*outer, center.Y+float32(math.Sin(angle))*outer)
 				rl.DrawLineEx(a, b, 2, rl.Fade(e.tint, .7*glow))
 			}
+		case "shed":
+			for i := range 3 {
+				radius := e.size*.6 + float32(i)*9 + 34*p
+				rl.DrawRing(center, radius, radius+2*(1-p)+.5, float32(i)*40, float32(i)*40+250, 36, rl.Fade(e.tint, .8*(1-p)))
+			}
+			label := "SHED"
+			primitives.DrawText(label, int32(e.x)-primitives.MeasureText(label, 16)/2, int32(e.y-44-24*p), 16, tint)
 		case "level":
 			label := "LEVEL UP / +5 MAX HP & MP"
 			primitives.DrawText(label, int32(e.x)-primitives.MeasureText(label, 16)/2, int32(e.y-50-30*p), 16, tint)

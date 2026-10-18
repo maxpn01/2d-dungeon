@@ -240,9 +240,20 @@ const (
 	PoisonSegmentBonus = .04
 )
 
+// Forest perks.
+const (
+	VenomPoisonSeconds   = 2.0
+	ShedskinDelaySeconds = .35
+	HunterHPThreshold    = .7
+)
+
+var PiercePerkTargets = [6]int{1, 1, 2, 2, 3, 4}
+
+var ShedskinWardSeconds = [6]float64{1, 1.25, 1.5, 2, 2.5, 3}
+
 var PerkRankWeights = [6]int{40, 28, 16, 9, 5, 2}
 
-var PerkBonuses = [10][6]float64{
+var PerkBonuses = [14][6]float64{
 	{.10, .20, .30, .45, .60, .80},
 	{.10, .20, .30, .40, .50, .65},
 	{2, 4, 6, 8, 10, 15},
@@ -253,9 +264,13 @@ var PerkBonuses = [10][6]float64{
 	{.10, .20, .35, .50, .75, 1.00},
 	{.10, .20, .30, .45, .65, 1.00},
 	{.15, .30, .45, .65, .85, 1.20},
+	{.08, .10, .12, .15, .18, .24},
+	{.45, .55, .60, .65, .70, .80},
+	{20, 17, 14, 12, 10, 8},
+	{.15, .25, .35, .50, .65, .85},
 }
 
-var PerkPenalties = [10][6]float64{
+var PerkPenalties = [14][6]float64{
 	5: {.05, .10, .15, .20, .25, .30},
 	6: {.05, .08, .11, .14, .17, .20},
 }

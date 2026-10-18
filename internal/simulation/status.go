@@ -7,7 +7,10 @@ import (
 )
 
 type StatusEffects struct {
-	Poison Poison
+	Poison       Poison
+	ShedCooldown float64
+	ShedWard     float64
+	Sheds        int
 }
 
 type Poison struct {
@@ -24,6 +27,9 @@ func (s *StatusEffects) ApplyPoison(damage, seconds float64) {
 	if damage <= 0 || seconds <= 0 || math.IsNaN(damage) || math.IsInf(damage, 0) {
 		return
 	}
+	if s.ShedWard > 0 {
+		return
+	}
 	p := &s.Poison
 	if !p.Active() {
 		p.Damage, p.NextTick = 0, parameters.PoisonTickSeconds
@@ -38,8 +44,17 @@ func PoisonStrength(attacker Stats, segments int) float64 {
 }
 
 func (s *StatusEffects) advance(stats *Stats, protected bool) {
+	s.ShedWard = max(0, s.ShedWard-parameters.StepSeconds)
+	s.ShedCooldown = max(0, s.ShedCooldown-parameters.StepSeconds)
 	p := &s.Poison
 	if !p.Active() {
+		return
+	}
+	if rank := stats.Perks[ShedskinPerk]; rank > 0 && s.ShedCooldown == 0 && p.Duration-p.Remaining >= parameters.ShedskinDelaySeconds-1e-9 {
+		*p = Poison{Dealt: p.Dealt}
+		s.ShedWard = parameters.ShedskinWardSeconds[rank-1]
+		s.ShedCooldown = PerkBonus(ShedskinPerk, rank)
+		s.Sheds++
 		return
 	}
 	p.Remaining = max(0, p.Remaining-parameters.StepSeconds)

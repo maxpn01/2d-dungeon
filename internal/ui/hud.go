@@ -27,6 +27,18 @@ type playerView struct {
 	Speed                            float32
 	Damage, AttackRate, Boost        float32
 	Poison                           simulation.Poison
+	Status                           simulation.StatusEffects
+}
+
+func (p playerView) height() int32 {
+	height := int32(220)
+	if p.SpectralShots {
+		height += 25
+	}
+	if p.Perks[simulation.ShedskinPerk] > 0 {
+		height += 25
+	}
+	return height
 }
 
 func drawPlayer(p playerView, windowWidth int32) {
@@ -36,10 +48,7 @@ func drawPlayer(p playerView, windowWidth int32) {
 		return
 	}
 	background := rl.Fade(rl.Black, .8)
-	height := int32(220)
-	if p.SpectralShots {
-		height += 25
-	}
+	height := p.height()
 	rl.DrawRectangle(x, y, width, height, background)
 
 	rl.DrawRectangle(x+12, y+10, 36, 36, color.RGBA{48, 48, 48, 255})
@@ -95,6 +104,20 @@ func drawPlayer(p playerView, windowWidth int32) {
 	if p.SpectralShots {
 		primitives.DrawText("SPECTRAL SHOTS / +25% MP", x+12, y+222, 16, rl.NewColor(177, 163, 236, 255))
 	}
+	if p.Perks[simulation.ShedskinPerk] > 0 {
+		drawShedskinStatus(x+12, y+height-25, p.Status)
+	}
+}
+
+func drawShedskinStatus(x, y int32, status simulation.StatusEffects) {
+	label, tint := "SHEDSKIN READY", rendering.ShedColor
+	switch {
+	case status.ShedWard > 0:
+		label = fmt.Sprintf("SHEDSKIN / IMMUNE %.1fs", status.ShedWard)
+	case status.ShedCooldown > 0:
+		label, tint = fmt.Sprintf("SHEDSKIN %.1fs", status.ShedCooldown), color.RGBA{160, 170, 180, 255}
+	}
+	primitives.DrawText(label, x, y, 16, tint)
 }
 
 func drawPoisonStatus(x, y int32, poison simulation.Poison) {
@@ -133,13 +156,14 @@ func playerDetails(player simulation.Player, name string) playerView {
 		SpectralShots: stats.SpectralShots, Perks: stats.Perks, Character: player.Character, Name: name, Avatar: primitives.CharacterColor(player.Character),
 		Level: stats.Level, MaxLevel: parameters.MaxLevel, HP: hp, MaxHP: float32(stats.MaxHP()),
 		MP: float32(stats.MP), MaxMP: float32(stats.MaxMP()), XP: float32(stats.XP), NextXP: float32(simulation.XPForNextLevel(stats.Level)),
-		Speed: float32(player.MovementSpeed()), Poison: player.Status.Poison,
+		Speed: float32(player.MovementSpeed()), Poison: player.Status.Poison, Status: player.Status,
 		Damage: float32(stats.Damage), ShotMPCost: float32(stats.ShotMPCost()), AttackRate: float32(stats.AttackRate), Boost: float32(stats.BoostMultiplier),
 	}
 }
 
 func DrawPlayer(player simulation.Player, name string, width int32) {
-	drawPlayer(playerDetails(player, name), width)
+	details := playerDetails(player, name)
+	drawPlayer(details, width)
 	label := ""
 	tint := rl.LightGray
 	if player.HasWings {
@@ -151,8 +175,9 @@ func DrawPlayer(player simulation.Player, name string, width int32) {
 		tint = primitives.RuneColor
 	}
 	if label != "" && width >= 420 && !player.Dead {
+		top := details.height()
 		panelWidth := primitives.MeasureText(label, 16) + 24
-		rl.DrawRectangle(0, 220, panelWidth, 30, rl.Fade(rl.Black, .8))
-		primitives.DrawText(label, 12, 227, 16, tint)
+		rl.DrawRectangle(0, top, panelWidth, 30, rl.Fade(rl.Black, .8))
+		primitives.DrawText(label, 12, top+7, 16, tint)
 	}
 }
