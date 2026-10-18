@@ -1,2 +1,18 @@
 - do not waste time on adding tests yet
 - do not add comments unless asked
+
+## Project
+- 2D roguelike dungeon crawler in Go with raylib (`github.com/gen2brain/raylib-go`). Module name: `2d-dungeon`.
+- Run: `go run ./cmd`. Developer playground: `go run ./cmd --testing`. Check that it compiles: `go build ./...`.
+
+## Code map
+- `internal/worldmap`: map layout data (rooms, passages, feeding areas, dens, portals, statues) and floor geometry. `default.go` defines the dungeon.
+- `internal/simulation`: game logic that runs at a fixed tick rate (players, mobs, AI, combat, eating, perks, portals).
+- `internal/rendering`: drawing and audio. `rendering/worldmap` draws each floor's environment.
+- `internal/ui`: HUD, menus and overlays.
+- `internal/game`: the main loop that ties simulation, rendering and input together.
+- `internal/parameters/parameters.go`: balance numbers. New tunable values go here.
+- `_archive/`: old prototype code, used only as reference. It is not part of the build.
+
+## Current work
+- v2 (forest second floor) design, decisions and milestones: `docs/v2-forest.md`. Read it before working on v2, and update its decisions and milestones when they change.
