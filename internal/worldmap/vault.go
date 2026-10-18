@@ -100,7 +100,7 @@ func (m *Map) WithVaultGate(open float64) *Map {
 	m.vaultGateOnce.Do(func() {
 		variant := m.variant()
 		variant.vaultGateClosed = true
-		variant.collisionWorld = physics.World{CanOccupy: variant.CanOccupy, MaxStep: parameters.Tile / 5}
+		variant.bindCollision()
 		m.closedVaultGate = variant
 	})
 	return m.closedVaultGate

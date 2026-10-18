@@ -12,6 +12,32 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+func (f *Feedback) HitFlash(id string) float32 {
+	if f == nil {
+		return 0
+	}
+	at, ok := f.hits[id]
+	if !ok {
+		return 0
+	}
+	elapsed := time.Since(at).Seconds()
+	if elapsed < 0 || elapsed > .22 {
+		return 0
+	}
+	return float32(1 - elapsed/.22)
+}
+
+func (f *Feedback) SpawnProgress(id string) float32 {
+	if f == nil {
+		return 1
+	}
+	started, ok := f.spawns[id]
+	if !ok {
+		return 1
+	}
+	return min(1, max(0, float32(time.Since(started).Seconds()/materializeDuration.Seconds())))
+}
+
 func (f *Feedback) DrawHit(id string, bounds rl.Rectangle, character appearance.Character) {
 	if f == nil {
 		return

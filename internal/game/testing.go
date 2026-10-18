@@ -29,7 +29,7 @@ func (w *World) ReadTestingInput() bool {
 	case rl.IsKeyPressed(rl.KeyF4):
 		w.simulation.TestingWarp(worldmap.TeleportSanctum)
 	case rl.IsKeyPressed(rl.KeyF5):
-		w.simulation.TestingWarp(worldmap.FeastHall)
+		w.simulation.TestingWarp(worldmap.Forest)
 	case rl.IsKeyPressed(rl.KeyF6):
 		w.simulation.CycleTestingLevel()
 	case rl.IsKeyPressed(rl.KeyF8):

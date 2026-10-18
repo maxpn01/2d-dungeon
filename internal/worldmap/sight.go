@@ -1,6 +1,7 @@
 package worldmap
 
 import (
+	"container/heap"
 	"math"
 
 	"2d-dungeon/internal/parameters"
@@ -88,34 +89,60 @@ func (m *Map) nextStep(x, y, tx, ty, size float64, canOccupy func(physics.Rect) 
 	if start == goal {
 		return tx, ty, true
 	}
-	queue := [][2]int{goal}
-	seen := map[[2]int]bool{goal: true}
-	next := map[[2]int][2]int{}
 	gx, gy := CellPosition(goal[0], goal[1], size)
 	if !canOccupy(physics.Square(gx, gy, size)) {
 		return x, y, false
 	}
-	for len(queue) > 0 && len(seen) < 20000 {
-		c := queue[0]
-		queue = queue[1:]
+	estimate := func(c [2]int) int { return abs(c[0]-start[0]) + abs(c[1]-start[1]) }
+	open := &pathQueue{{cell: goal, cost: estimate(goal)}}
+	distance := map[[2]int]int{goal: 0}
+	next := map[[2]int][2]int{}
+	for open.Len() > 0 && len(distance) < 20000 {
+		c := heap.Pop(open).(pathNode).cell
+		if c == start {
+			v := next[start]
+			px, py := CellPosition(v[0], v[1], size)
+			return px, py, true
+		}
 		for _, d := range steps {
 			n := [2]int{c[0] + d[0], c[1] + d[1]}
-			if seen[n] {
+			cost := distance[c] + 1
+			if known, ok := distance[n]; ok && known <= cost {
 				continue
 			}
 			px, py := CellPosition(n[0], n[1], size)
-			if !canOccupy(physics.Square(px, py, size)) {
+			if n != start && !canOccupy(physics.Square(px, py, size)) {
 				continue
 			}
-			seen[n] = true
+			distance[n] = cost
 			next[n] = c
-			if n == start {
-				v := next[start]
-				px, py = CellPosition(v[0], v[1], size)
-				return px, py, true
-			}
-			queue = append(queue, n)
+			heap.Push(open, pathNode{cell: n, cost: cost + estimate(n)})
 		}
 	}
 	return x, y, false
+}
+
+type pathNode struct {
+	cell [2]int
+	cost int
+}
+
+type pathQueue []pathNode
+
+func (q pathQueue) Len() int           { return len(q) }
+func (q pathQueue) Less(i, j int) bool { return q[i].cost < q[j].cost }
+func (q pathQueue) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
+func (q *pathQueue) Push(v any)        { *q = append(*q, v.(pathNode)) }
+func (q *pathQueue) Pop() any {
+	old := *q
+	v := old[len(old)-1]
+	*q = old[:len(old)-1]
+	return v
+}
+
+func abs(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
 }

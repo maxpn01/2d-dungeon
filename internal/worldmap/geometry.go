@@ -48,8 +48,23 @@ func (m *Map) build() map[[2]int]int {
 	for _, area := range m.passages {
 		carve(area, 1)
 	}
+	m.terrain = make(map[[2]int]Terrain)
 	for i, room := range m.layout.Rooms {
-		carve(room.Area, i+2)
+		if len(room.Terrain) == 0 {
+			carve(room.Area, i+2)
+			continue
+		}
+		for y, row := range room.Terrain {
+			for x := range len(row) {
+				kind := Terrain(row[x])
+				if kind == Rock {
+					continue
+				}
+				cell := [2]int{room.Area.X + x, room.Area.Y + y}
+				floors[cell] = i + 2
+				m.terrain[cell] = kind
+			}
+		}
 	}
 	for _, pool := range m.pools {
 		for y := pool.Area.Y; y < pool.Area.Bottom(); y++ {
@@ -61,7 +76,9 @@ func (m *Map) build() map[[2]int]int {
 	return floors
 }
 
-func (m *Map) Cell(x, y int) int { return m.floors[[2]int{x, y}] }
+func (m *Map) Cell(x, y int) int           { return m.floors[[2]int{x, y}] }
+func (m *Map) Terrain(x, y int) Terrain    { return m.terrain[[2]int{x, y}] }
+func (m *Map) TerrainBlocks(x, y int) bool { return m.terrain[[2]int{x, y}].Blocks() }
 func (m *Map) Bounds() (left, top, right, bottom int) {
 	left, right, bottom = 0, parameters.SurfaceCells, parameters.SurfaceCells
 	for c := range m.floors {
@@ -79,7 +96,18 @@ func (m *Map) Walkable(x, y, w, h float64) bool {
 	return m.walkableLayout(x, y, w, h)
 }
 
+func (m *Map) ShotPassable(x, y, w, h float64) bool {
+	if m.vaultGateClosed && (physics.Rect{X: x, Y: y, W: w, H: h}).Overlaps(m.VaultGateBarrier()) {
+		return false
+	}
+	return m.passable(x, y, w, h, Terrain.StopsShots)
+}
+
 func (m *Map) walkableLayout(x, y, w, h float64) bool {
+	return m.passable(x, y, w, h, Terrain.Blocks)
+}
+
+func (m *Map) passable(x, y, w, h float64, blocks func(Terrain) bool) bool {
 	if !(physics.Rect{X: x, Y: y, W: w, H: h}).Valid() || !insideWorld(x, y, w, h) {
 		return false
 	}
@@ -90,7 +118,7 @@ func (m *Map) walkableLayout(x, y, w, h float64) bool {
 	}
 	for cy := int(math.Floor(y / parameters.Tile)); cy <= int(math.Floor(math.Nextafter((y+h)/parameters.Tile, math.Inf(-1)))); cy++ {
 		for cx := int(math.Floor(x / parameters.Tile)); cx <= int(math.Floor(math.Nextafter((x+w)/parameters.Tile, math.Inf(-1)))); cx++ {
-			if m.Cell(cx, cy) == 0 || m.solid[[2]int{cx, cy}] {
+			if m.Cell(cx, cy) == 0 || m.solid[[2]int{cx, cy}] || blocks(m.terrain[[2]int{cx, cy}]) {
 				return false
 			}
 		}
@@ -135,6 +163,10 @@ func (m *Map) MoveBody(body physics.Rect, delta physics.Vector) physics.Motion {
 
 func (m *Map) MovementLimit(x, y, dx, dy, w, h float64) (float64, bool) {
 	return m.collisionWorld.MovementLimit(physics.Rect{X: x, Y: y, W: w, H: h}, physics.Vector{X: dx, Y: dy})
+}
+
+func (m *Map) ShotLimit(x, y, dx, dy, w, h float64) (float64, bool) {
+	return m.shotWorld.MovementLimit(physics.Rect{X: x, Y: y, W: w, H: h}, physics.Vector{X: dx, Y: dy})
 }
 
 func overlapsSpawnAltar(x, y, w, h float64) bool {

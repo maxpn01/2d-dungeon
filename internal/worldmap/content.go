@@ -85,12 +85,12 @@ func (m *Map) Validate() error {
 	for cell := range m.floors {
 		x, y := CellPosition(cell[0], cell[1], parameters.ActorSize)
 		sanctuaryWall := m.SanctuaryCell(cell[0], cell[1]) && !m.Walkable(x, y, parameters.ActorSize, parameters.ActorSize)
-		if cell[1] < 0 && !seen[cell] && !sanctuaryWall && !m.solid[cell] {
+		if cell[1] < 0 && !seen[cell] && !sanctuaryWall && !m.solid[cell] && !m.TerrainBlocks(cell[0], cell[1]) {
 			return fmt.Errorf("unreachable floor cell %v", cell)
 		}
 	}
 	for _, patch := range m.patches {
-		if !seen[patch.At.key()] {
+		if !reachableAround(seen, patch.At, patch.Radius) {
 			return fmt.Errorf("unreachable feeding area %s", patch.ID)
 		}
 	}
@@ -114,6 +114,18 @@ func (m *Map) Validate() error {
 		}
 	}
 	return nil
+}
+
+func reachableAround(seen map[[2]int]bool, at Cell, radius int) bool {
+	area := Around(at, radius)
+	for y := area.Y; y < area.Bottom(); y++ {
+		for x := area.X; x < area.Right(); x++ {
+			if seen[[2]int{x, y}] {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (m *Map) FruitCapacity() int {

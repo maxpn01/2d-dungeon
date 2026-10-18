@@ -13,7 +13,7 @@ const (
 	StillwaterCourt      = "the-stillwater-bridge"
 	CrownArena           = "the-crown-boss-arena"
 	TeleportSanctum      = "the-descent"
-	FeastHall            = "floor-two"
+	Forest               = "floor-two"
 	EntranceGate         = "entrance-gate"
 	DescentPortal        = "descent"
 	ReturnPortal         = "return"
@@ -50,7 +50,7 @@ func DefaultLayout() Layout {
 			stillwaterCourt(),
 			crownArena(),
 			teleportSanctum(),
-			feastHall(),
+			forest(),
 			emberHollow(),
 			sideRoom(WestArchive, "THE SUNKEN ARCHIVE", Cells(-32, -106, 20, 20), "archive-inscription"),
 			sideRoom(WestGallery, "THE WEST GALLERY", Cells(-32, -134, 20, 20), "column-inscription"),
@@ -215,25 +215,6 @@ func teleportSanctum() Room {
 	}
 }
 
-func feastHall() Room {
-	return Room{
-		ID:   FeastHall,
-		Name: "THE FEAST",
-		FeedingAreas: []FeedingArea{
-			feastFood("feast-northwest", At(5, 5)),
-			feastFood("feast-northeast", At(18, 5)),
-			feastFood("feast-southwest", At(5, 18)),
-			feastFood("feast-southeast", At(18, 18)),
-		},
-		Area:  Cells(6, -196, 24, 24),
-		Floor: SecondFloor,
-		Portals: []Portal{
-			{ID: ReturnPortal, At: At(12, 17), Destination: DescentPortal},
-			{ID: ForestExitPortal, At: At(12, 5), Destination: EmberArrivalPortal},
-		},
-	}
-}
-
 func emberHollow() Room {
 	return Room{
 		ID:    EmberHollow,
@@ -284,8 +265,4 @@ func orbVault() Room {
 		r.FeedingAreas = append(r.FeedingAreas, encounter)
 	}
 	return r
-}
-
-func feastFood(id string, at Cell) FeedingArea {
-	return FeedingArea{ID: id, At: at, Radius: 3, Style: VioletGarden, Food: FoodSource{Capacity: 20, Respawn: 20 * time.Second}}
 }

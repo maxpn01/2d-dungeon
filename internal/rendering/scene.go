@@ -30,9 +30,51 @@ type Scene struct {
 
 func DrawScene(ctx primitives.Context, scene Scene) {
 	scene.Map.PrepareLibraryFrame(scene.PreviousStatues, scene.PreviousTick, scene.Tick, scene.ProjectileAlpha, scene.RenderedPlayer)
+	scene.Map.Prepare(scene.Snapshot, scene.Local)
+	if scene.Map.InForest() {
+		focus := rl.NewVector2(float32(scene.RenderedPlayer.X+parameters.PlayerSize/2), float32(scene.RenderedPlayer.Y+parameters.PlayerSize/2))
+		scene.Map.DrawForest3D(ctx, focus, forestActors(scene), func(camera rl.Camera2D) {
+			rl.BeginMode2D(camera)
+			scene.Map.DrawForestDecals(scene.Snapshot, scene.Local)
+			drawSceneEntities(scene, true)
+			rl.EndMode2D()
+		})
+		scene.Map.DrawLibraryHUD(ctx, scene.Snapshot, scene.Local)
+		return
+	}
 	rl.BeginMode2D(ctx.Camera)
 	scene.Map.Draw(ctx, scene.Snapshot, scene.Local)
 	scene.Map.DrawVaultArrowWarning(scene.Snapshot)
+	drawSceneEntities(scene, false)
+	rl.EndMode2D()
+	scene.Map.DrawFog(ctx)
+	rl.BeginMode2D(ctx.Camera)
+	scene.Map.DrawVisibleVaultGate(scene.Orb, scene.Local)
+	rl.EndMode2D()
+	scene.Map.DrawLibraryHUD(ctx, scene.Snapshot, scene.Local)
+}
+
+func playerLabel(scene Scene) string {
+	return fmt.Sprintf("%s Lv.%d (you)", preferences.NormalizePlayerName(scene.PlayerName), scene.RenderedPlayer.Stats.Level)
+}
+
+func forestActors(scene Scene) []maprender.ForestActor {
+	player := scene.RenderedPlayer
+	if player.Dead {
+		return nil
+	}
+	body := actorBody(player.X, player.Y, parameters.PlayerSize, player.Stats.HP, player.Combat, player.Character)
+	return []maprender.ForestActor{{
+		ID: player.ID, Label: playerLabel(scene),
+		Center: rl.NewVector2(body.X+body.Width/2, body.Y+body.Height/2),
+		Width:  body.Width, Depth: body.Height, Height: actorRenderSize(parameters.PlayerSize, player.Stats.HP),
+		Tint:  primitives.CharacterColor(player.Character),
+		Flash: scene.Feedback.HitFlash(player.ID), Spawn: scene.Feedback.SpawnProgress(player.ID),
+		Wings: player.HasWings, Flying: player.Flight.Flying,
+	}}
+}
+
+func drawSceneEntities(scene Scene, forest bool) {
 	scene.Feedback.DrawWallDebris(time.Now(), &scene.Map.Exploration)
 	playerColors := map[string]color.RGBA{scene.Player.ID: primitives.CharacterColor(scene.Player.Character)}
 	for _, fruit := range scene.Fruits {
@@ -50,9 +92,12 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 			Aiming: ai.Aiming, Frenzied: ai.Frenzied, Combat: ai.Combat, Tint: tint,
 		}, &scene.Map.Exploration, scene.Feedback)
 	}
-	if player := scene.RenderedPlayer; !player.Dead {
+	if player := scene.RenderedPlayer; forest && !player.Dead {
+		size := actorRenderSize(parameters.PlayerSize, player.Stats.HP)
+		drawCombat(rl.NewVector2(float32(player.X+parameters.PlayerSize/2), float32(player.Y+parameters.PlayerSize/2)), size, player.Combat)
+	} else if !player.Dead {
 		tint := primitives.CharacterColor(player.Character)
-		label := fmt.Sprintf("%s Lv.%d (you)", preferences.NormalizePlayerName(scene.PlayerName), player.Stats.Level)
+		label := playerLabel(scene)
 		lift := float64(0)
 		if player.HasWings {
 			lift = DrawWings(player.X, player.Y, parameters.PlayerSize, player.Flight.Flying)
@@ -74,10 +119,4 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 	scene.Map.DrawVaultFire(scene.Snapshot)
 	DrawTeleportCharge(scene.Player.X, scene.Player.Y, scene.Player.TeleportCharge)
 	scene.Feedback.Draw(time.Now(), &scene.Map.Exploration)
-	rl.EndMode2D()
-	scene.Map.DrawFog(ctx)
-	rl.BeginMode2D(ctx.Camera)
-	scene.Map.DrawVisibleVaultGate(scene.Orb, scene.Local)
-	rl.EndMode2D()
-	scene.Map.DrawLibraryHUD(ctx, scene.Snapshot, scene.Local)
 }

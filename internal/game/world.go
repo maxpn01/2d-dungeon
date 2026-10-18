@@ -95,7 +95,8 @@ func (w *World) ReadInput(camera rl.Camera2D, width, height int32) {
 		w.direction = simulation.Direction{}
 		return
 	}
-	next := w.controls.read(camera, w.Center(), p.Combat.Facing)
+	toWorld := func(screen rl.Vector2) rl.Vector2 { return w.gameMap.ScreenToWorld(camera, width, height, screen) }
+	next := w.controls.read(toWorld, w.Center(), p.Combat.Facing)
 	w.feedback.CheckCombatInput(time.Now(), next, p)
 	next.Shoot = !w.controls.suppressShootUntilRelease && (next.Shoot || w.direction.Shoot)
 	next.Dash = next.Dash || w.direction.Dash

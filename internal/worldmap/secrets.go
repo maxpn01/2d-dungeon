@@ -3,7 +3,6 @@ package worldmap
 import (
 	"slices"
 
-	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 )
 
@@ -41,7 +40,7 @@ func (m *Map) WithSecrets(open []string) *Map {
 			}
 		}
 	}
-	variant.collisionWorld = physics.World{CanOccupy: variant.CanOccupy, MaxStep: parameters.Tile / 5}
+	variant.bindCollision()
 	cached, _ := m.secretVariants.LoadOrStore(mask, variant)
 	return cached.(*Map)
 }
@@ -70,7 +69,7 @@ func (m *Map) SecretHidden(x, y float64) bool {
 func (m *Map) variant() *Map {
 	return &Map{
 		dungeonLayout: m.dungeonLayout, layout: m.layout, floors: m.floors, flightCells: m.flightCells,
-		cover: m.cover, solid: m.solid, passages: m.passages, pools: m.pools, patches: m.patches,
+		cover: m.cover, solid: m.solid, terrain: m.terrain, passages: m.passages, pools: m.pools, patches: m.patches,
 		dens: m.dens, gates: m.gates, portals: m.portals, statues: m.statues,
 	}
 }

@@ -44,12 +44,15 @@ type PropKind string
 
 const CoverProp PropKind = "cover"
 const BookshelfProp PropKind = "bookshelf"
+const StumpProp PropKind = "stump"
+const LogProp PropKind = "log"
 
 type FeedingStyle string
 
 const (
-	TealGarden   FeedingStyle = "teal"
-	VioletGarden FeedingStyle = "violet"
+	TealGarden     FeedingStyle = "teal"
+	VioletGarden   FeedingStyle = "violet"
+	FruitTreeStyle FeedingStyle = "fruit-tree"
 )
 
 type Room struct {
@@ -64,6 +67,7 @@ type Room struct {
 	Gates        []Gate
 	Portals      []Portal
 	Statues      []Statue
+	Terrain      []string
 }
 
 type Prop struct {

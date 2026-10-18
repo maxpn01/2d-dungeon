@@ -47,7 +47,6 @@ func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 	bounds := actorBounds(x, y, size, hp)
 	center := rl.NewVector2(float32(x+size/2), float32(y+size/2))
 	dir := rl.NewVector2(float32(c.Direction.X), float32(c.Direction.Y))
-	stretch, offset := float32(0), float32(0)
 	if c.Boosting {
 		for i := 3; i > 0; i-- {
 			trail := bounds
@@ -56,31 +55,15 @@ func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 			primitives.DrawCharacterShape(character, trail, rl.Fade(tint, .18/float32(i)))
 		}
 	}
-	switch c.Phase {
-	case simulation.DashWinding:
-		p := phaseProgress(c.Remaining, parameters.DashWindup)
-		stretch, offset = -0.18*p, -4*p
-	case simulation.DashRushing:
-		burst := parameters.DashBurst
-		if character == appearance.Triangle {
-			burst = parameters.SentinelDashBurst
-		}
-		stretch = 0.3 * (1 - 0.4*phaseProgress(c.Remaining, burst))
+	if c.Phase == simulation.DashRushing {
 		for i := 3; i > 0; i-- {
 			trail := bounds
 			trail.X -= dir.X * float32(i) * 13
 			trail.Y -= dir.Y * float32(i) * 13
 			primitives.DrawCharacterShape(character, trail, rl.Fade(tint, 0.19/float32(i)))
 		}
-	case simulation.DashBumped:
-		duration := parameters.BumpStun
-		p := phaseProgress(c.Remaining, duration)
-		stretch = -0.28 * (1 - p)
-		offset = float32(math.Sin(float64(p)*math.Pi*4)) * 4 * (1 - p)
 	}
-	width := bounds.Width * (1 + stretch*float32(math.Abs(float64(dir.X))) - stretch*0.5*float32(math.Abs(float64(dir.Y))))
-	height := bounds.Height * (1 + stretch*float32(math.Abs(float64(dir.Y))) - stretch*0.5*float32(math.Abs(float64(dir.X))))
-	body := rl.NewRectangle(center.X-width/2+dir.X*offset, center.Y-height/2+dir.Y*offset, width, height)
+	body := actorBody(x, y, size, hp, c, character)
 	shadow := body
 	shadow.Y += 3
 	primitives.DrawCharacterShape(character, shadow, rl.Fade(rl.Black, 0.35))
@@ -91,6 +74,31 @@ func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 		drawSentinelSword(center, bounds.Width, c)
 	}
 	return bounds
+}
+
+func actorBody(x, y, size, hp float64, c simulation.CombatState, character appearance.Character) rl.Rectangle {
+	bounds := actorBounds(x, y, size, hp)
+	center := rl.NewVector2(float32(x+size/2), float32(y+size/2))
+	dir := rl.NewVector2(float32(c.Direction.X), float32(c.Direction.Y))
+	stretch, offset := float32(0), float32(0)
+	switch c.Phase {
+	case simulation.DashWinding:
+		p := phaseProgress(c.Remaining, parameters.DashWindup)
+		stretch, offset = -0.18*p, -4*p
+	case simulation.DashRushing:
+		burst := parameters.DashBurst
+		if character == appearance.Triangle {
+			burst = parameters.SentinelDashBurst
+		}
+		stretch = 0.3 * (1 - 0.4*phaseProgress(c.Remaining, burst))
+	case simulation.DashBumped:
+		p := phaseProgress(c.Remaining, parameters.BumpStun)
+		stretch = -0.28 * (1 - p)
+		offset = float32(math.Sin(float64(p)*math.Pi*4)) * 4 * (1 - p)
+	}
+	width := bounds.Width * (1 + stretch*float32(math.Abs(float64(dir.X))) - stretch*0.5*float32(math.Abs(float64(dir.Y))))
+	height := bounds.Height * (1 + stretch*float32(math.Abs(float64(dir.Y))) - stretch*0.5*float32(math.Abs(float64(dir.X))))
+	return rl.NewRectangle(center.X-width/2+dir.X*offset, center.Y-height/2+dir.Y*offset, width, height)
 }
 
 func drawCombat(center rl.Vector2, size float32, c simulation.CombatState) {

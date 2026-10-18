@@ -25,6 +25,16 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 - Landmarks, food patches and perk statues sit along the routes so the extra space has a purpose.
 - Several routes eventually lead to a hidden cave with the boss. Shed skins and large tracks hint at where it is.
 - Keep the current food. No forest-specific food types or visuals.
+- The forest is 200×200 cells, placed east of floor 1 (origin `parameters.ForestOriginX/Y`). It is drawn by hand in `internal/worldmap/forest.txt`, which is the source of truth and is loaded with `go:embed`.
+- Map legend: `.` grass, `,` dirt path (drawn as a bridge where it crosses water), `"` bush, `T` tree, `F` fruit tree, `~` water, `#` rock, `:` cave floor, `O` giant stump, `L` fallen log, `R` ruin wall, `M` standing stone. Markers on ground: `P` return portal, `X` forest-exit portal, `S` perk statue, `f` feeding spot.
+- Trees, fruit trees, water and landmarks block movement but not sight. Trees and landmarks also stop projectiles; shots fly over water. Bushes are decoration only. Rock is the only terrain that blocks sight, which keeps the cave hidden.
+- Fruit trees drop a little of the current food around themselves on a timer, as small snacks between the larger feeding spots.
+- Floor 2 has 4 perk statues, one per quarter of the forest. They offer floor-1 perks until the forest pool exists (milestone 7).
+- The hidden cave sits in the north-east corner, ringed by rock, with three tunnels that connect to different forest routes. The placeholder forest-exit portal is inside the cave.
+- AI pathing uses A* over the cell grid so it scales to the forest's size.
+- Floor 2 has its own renderer: a tilted low-poly 3D view in the style of Polytopia, in `internal/rendering/worldmap/forest3d*.go`. Floor 1 keeps the flat 2D renderer. Gameplay stays 2D: actors, food, projectiles and effects use their existing 2D drawing, rendered into a texture laid on the ground plane, so trees in front hide them. Canopies dither away near the player, and mouse aim ray-casts onto the ground.
+- The forest mood is enchanted twilight: a warm low sun, teal ambient light, a lantern glow around the player, glowing mushrooms, fruit, crystals and runes, fireflies and light shafts in clearings.
+- In the forest, fog of war dims unexplored and remembered terrain instead of hiding it; enemies and items are still hidden outside vision.
 
 ### Patrolling snakes
 - Green snakes start with 2 body segments and patrol routes between feeding spots.
@@ -79,7 +89,7 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 Build in this order. Each milestone should be playable on its own.
 
 1. **Progression** *(done)*: the descent portal leads into floor 2 without ending the run; the win screen moves to a floor 3 placeholder.
-2. **Forest map:** the new layout method, the forest itself, and navigation (minimap, fog of war, AI pathing).
+2. **Forest map** *(in playtest)*: the new layout method, the forest itself, and navigation (minimap, fog of war, AI pathing).
 3. **Basic snake:** segmented body, patrol routes, bite attack, respawn.
 4. **Status effects:** the shared system, poison, and its HUD and visuals.
 5. **Feeding and growth:** snakes eat, grow with rising costs, 20-segment cap.

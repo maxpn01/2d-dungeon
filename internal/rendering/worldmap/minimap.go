@@ -80,7 +80,7 @@ func (v *radarView) begin(m *Map) {
 			} else if m.world.Cell(x, y) != 0 {
 				tint := paleStone
 				if m.floor == mapdata.SecondFloor {
-					tint = forestGrass
+					tint = forestRadarTint(m.world.Terrain(x, y))
 				}
 				if m.floor == mapdata.ThirdFloor {
 					tint = color.RGBA{150, 64, 38, 255}
@@ -227,4 +227,24 @@ func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker,
 		}
 	}
 	v.end(focus)
+}
+
+func forestRadarTint(terrain mapdata.Terrain) color.RGBA {
+	switch terrain {
+	case mapdata.Tree:
+		return color.RGBA{24, 52, 30, 255}
+	case mapdata.FruitTree:
+		return color.RGBA{150, 62, 50, 255}
+	case mapdata.Water:
+		return color.RGBA{44, 96, 132, 255}
+	case mapdata.DirtPath:
+		return color.RGBA{140, 112, 72, 255}
+	case mapdata.CaveFloor:
+		return color.RGBA{96, 88, 84, 255}
+	case mapdata.Stump, mapdata.FallenLog:
+		return color.RGBA{110, 80, 48, 255}
+	case mapdata.Ruin, mapdata.Menhir:
+		return color.RGBA{150, 150, 156, 255}
+	}
+	return color.RGBA{77, 128, 48, 255}
 }

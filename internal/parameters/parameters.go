@@ -5,7 +5,7 @@ package parameters
 const (
 	Tile         = 40
 	MinCellX     = -57
-	MaxCellX     = 112
+	MaxCellX     = 326
 	MinCellY     = -358
 	SurfaceCells = 36
 	MaxCellY     = SurfaceCells
@@ -160,6 +160,17 @@ const (
 )
 
 const StatueRechargeSeconds = 60
+
+// Forest floor.
+const (
+	ForestOriginX          = 122
+	ForestOriginY          = -230
+	ForestPatchRadius      = 3
+	ForestPatchCapacity    = 8
+	ForestPatchRespawnSecs = 30
+	FruitTreeCapacity      = 2
+	FruitTreeRespawnSecs   = 45
+)
 
 var PerkRankWeights = [6]int{40, 28, 16, 9, 5, 2}
 

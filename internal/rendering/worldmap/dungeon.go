@@ -20,15 +20,12 @@ func dungeonRect(x, y, w, h int, c color.RGBA) {
 }
 
 func (m *Map) drawDungeon(ctx primitives.Context) {
-	sanctumID, feastID := 0, 0
+	sanctumID := 0
 	rooms := m.world.Rooms()
 	secretDoors := m.world.SecretDoors()
 	for i, room := range rooms {
 		if room.HasRole(mapdata.PortalSanctum) {
 			sanctumID = i + 2
-		}
-		if room.ID == mapdata.FeastHall {
-			feastID = i + 2
 		}
 	}
 	zoom := max(ctx.Camera.Zoom, .1)
@@ -36,10 +33,6 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 	right := int(math.Ceil(float64(ctx.Camera.Target.X+(float32(ctx.WindowWidth)-ctx.Camera.Offset.X)/zoom)/40)) + 1
 	top := int(math.Floor(float64(ctx.Camera.Target.Y-ctx.Camera.Offset.Y/zoom)/40)) - 1
 	bottom := min(parameters.MaxCellY, int(math.Ceil(float64(ctx.Camera.Target.Y+(float32(ctx.WindowHeight)-ctx.Camera.Offset.Y)/zoom)/40))+1)
-	if m.floor == mapdata.SecondFloor {
-		m.drawForest(left, top, right, bottom)
-		return
-	}
 	for y := max(parameters.MinCellY, top); y < bottom; y++ {
 		for x := max(parameters.MinCellX, left); x < min(parameters.MaxCellX, right); x++ {
 			if m.world.SanctuaryCell(x, y) || m.world.CellFloor(x, y) != m.floor {
@@ -53,9 +46,6 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 				c := color.RGBA{26 + tone, 32 + tone, 40 + tone, 255}
 				if id == sanctumID {
 					c = color.RGBA{22 + tone, 40 + tone, 46 + tone, 255}
-				}
-				if id == feastID {
-					c = color.RGBA{33 + tone, 32 + tone, 36 + tone, 255}
 				}
 				if m.floor == mapdata.ThirdFloor {
 					c = color.RGBA{48 + tone, 24 + tone/2, 20, 255}
@@ -161,9 +151,6 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 		}
 		if room.ID == mapdata.WingChamber && m.world.Cell(room.Area.X, room.Area.Y) != 0 && room.Area.Right() >= left && room.Area.X <= right && room.Area.Bottom() >= top && room.Area.Y <= bottom {
 			drawWingHall(room)
-		}
-		if room.ID == mapdata.FeastHall && room.Area.Y+room.Area.Height >= top && room.Area.Y <= bottom {
-			drawFeastRoom(room)
 		}
 		if room.HasRole(mapdata.PortalSanctum) && room.Area.Y+room.Area.Height >= top && room.Area.Y <= bottom {
 			if len(room.Portals) == 0 {
@@ -312,24 +299,6 @@ func drawSecretCrack(x, y, damage int) {
 	}
 	for i := 0; i < damage; i++ {
 		dungeonRect(x+6+i*7, y+30+i%2*3, 4+i%2, 3, color.RGBA{100, 109, 117, 255})
-	}
-}
-
-func drawFeastRoom(room mapdata.Room) {
-	bounds := room.Bounds()
-	tint := color.RGBA{181, 155, 97, 255}
-	rl.DrawRectangleLinesEx(rl.NewRectangle(float32(bounds.X+18), float32(bounds.Y+18), float32(bounds.W-36), float32(bounds.H-36)), 2, rl.Fade(tint, .3))
-	center := room.WorldCell(mapdata.At(room.Area.Width/2, room.Area.Height/2)).Center()
-	at := rl.NewVector2(float32(center.X), float32(center.Y))
-	pulse := float32(.7 + .12*math.Sin(rl.GetTime()*1.2))
-	rl.DrawCircleGradient(at, 180, rl.Fade(tint, .10*pulse), rl.Blank)
-	rl.DrawPolyLines(at, 8, 120, 22.5, rl.Fade(tint, .25*pulse))
-	rl.DrawCircleLinesV(at, 96, rl.Fade(tint, .2*pulse))
-	for _, offset := range []mapdata.Cell{mapdata.At(2, 2), mapdata.At(room.Area.Width-3, 2), mapdata.At(2, room.Area.Height-3), mapdata.At(room.Area.Width-3, room.Area.Height-3)} {
-		p := room.WorldCell(offset).Center()
-		pos := rl.NewVector2(float32(p.X), float32(p.Y))
-		rl.DrawCircleGradient(pos, 52, rl.Fade(tint, .18*pulse), rl.Blank)
-		rl.DrawPolyLines(pos, 4, 10, 45, rl.Fade(tint, .6*pulse))
 	}
 }
 

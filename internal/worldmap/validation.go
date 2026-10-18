@@ -41,6 +41,19 @@ func validateLayout(layout Layout) error {
 			return fmt.Errorf("room %s needs a positive floor number", room.ID)
 		}
 		local := Cells(0, 0, room.Area.Width, room.Area.Height)
+		if len(room.Terrain) > 0 && len(room.Terrain) != room.Area.Height {
+			return fmt.Errorf("room %s terrain needs %d rows", room.ID, room.Area.Height)
+		}
+		for y, row := range room.Terrain {
+			if len(row) != room.Area.Width {
+				return fmt.Errorf("room %s terrain row %d needs %d cells", room.ID, y, room.Area.Width)
+			}
+			for x := range len(row) {
+				if !Terrain(row[x]).Valid() {
+					return fmt.Errorf("room %s has unknown terrain %q at %d,%d", room.ID, row[x], x, y)
+				}
+			}
+		}
 		for _, role := range room.Roles {
 			if !slices.Contains([]RoomRole{Entrance, Private, ExplorationRoom, Refuge, BossArena, PortalSanctum}, role) {
 				return fmt.Errorf("room %s has unknown role %q", room.ID, role)
@@ -54,7 +67,7 @@ func validateLayout(layout Layout) error {
 			if err := uniqueID(propIDs, prop.ID, "room "+room.ID+" prop"); err != nil {
 				return err
 			}
-			if prop.Kind != CoverProp && prop.Kind != BookshelfProp {
+			if prop.Kind != CoverProp && prop.Kind != BookshelfProp && prop.Kind != StumpProp && prop.Kind != LogProp {
 				return fmt.Errorf("room %s has unknown prop kind %q", room.ID, prop.Kind)
 			}
 			if !local.ContainsArea(prop.Area) {
@@ -76,7 +89,7 @@ func validateLayout(layout Layout) error {
 			if area.Radius <= 0 || area.Radius > max(local.Width, local.Height) || !local.Contains(area.At) || !local.ContainsArea(Around(area.At, area.Radius)) {
 				return fmt.Errorf("feeding area %s must fit inside room %s", area.ID, room.ID)
 			}
-			if area.Style != "" && area.Style != TealGarden && area.Style != VioletGarden {
+			if area.Style != "" && area.Style != TealGarden && area.Style != VioletGarden && area.Style != FruitTreeStyle {
 				return fmt.Errorf("feeding area %s has unknown style %q", area.ID, area.Style)
 			}
 			if area.Food.Capacity < 0 || area.Food.Capacity > 0 && area.Food.Respawn <= 0 {

@@ -56,6 +56,7 @@ type Map struct {
 	floors          map[[2]int]int
 	flightCells     map[[2]int]bool
 	cover           map[[2]int]bool
+	terrain         map[[2]int]Terrain
 	solid           map[[2]int]bool
 	passages        []CellRect
 	pools           []Pool
@@ -65,6 +66,7 @@ type Map struct {
 	portals         []PortalPoint
 	statues         []StatuePoint
 	collisionWorld  physics.World
+	shotWorld       physics.World
 }
 
 var defaultMap = mustBuild(DefaultLayout())
@@ -129,6 +131,9 @@ func New(layout Layout) (*Map, error) {
 	m.flightCells = m.buildFlightCells()
 	for _, room := range layout.Rooms {
 		for _, prop := range room.Props {
+			if prop.Kind != CoverProp && prop.Kind != BookshelfProp {
+				continue
+			}
 			area := room.WorldArea(prop.Area)
 			for y := area.Y; y < area.Bottom(); y++ {
 				for x := area.X; x < area.Right(); x++ {
@@ -143,11 +148,16 @@ func New(layout Layout) (*Map, error) {
 			}
 		}
 	}
-	m.collisionWorld = physics.World{CanOccupy: m.CanOccupy, MaxStep: parameters.Tile / 5}
+	m.bindCollision()
 	if err := m.Validate(); err != nil {
 		return nil, err
 	}
 	return m, nil
+}
+
+func (m *Map) bindCollision() {
+	m.collisionWorld = physics.World{CanOccupy: m.CanOccupy, MaxStep: parameters.Tile / 5}
+	m.shotWorld = physics.World{CanOccupy: func(body physics.Rect) bool { return m.ShotPassable(body.X, body.Y, body.W, body.H) }, MaxStep: parameters.Tile / 5}
 }
 
 func (m *Map) CanOccupy(body physics.Rect) bool  { return m.Walkable(body.X, body.Y, body.W, body.H) }
@@ -222,6 +232,7 @@ func cloneRoom(room Room) Room {
 	room.Gates = append([]Gate(nil), room.Gates...)
 	room.Portals = append([]Portal(nil), room.Portals...)
 	room.Statues = append([]Statue(nil), room.Statues...)
+	room.Terrain = append([]string(nil), room.Terrain...)
 	return room
 }
 func cloneRooms(rooms []Room) []Room {

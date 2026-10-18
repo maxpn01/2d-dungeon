@@ -51,7 +51,7 @@ func PrepareShot(p *Player, input Direction) bool {
 		return false
 	}
 	geometry := p.geometry()
-	if !geometry.Walkable(p.X, p.Y, parameters.PlayerSize, parameters.PlayerSize) || worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, parameters.PlayerSize)) {
+	if !geometry.ShotPassable(p.X, p.Y, parameters.PlayerSize, parameters.PlayerSize) || worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, parameters.PlayerSize)) {
 		return false
 	}
 	p.Stats.MP -= p.Stats.ShotMPCost()
@@ -114,7 +114,7 @@ func (w *World) advanceProjectiles(actors []eater) {
 				break
 			}
 			body := ProjectileWallBody(shot)
-			wallFraction, wallBlocked := w.geometry().MovementLimit(body.X, body.Y, end.x-start.x, end.y-start.y, body.W, body.H)
+			wallFraction, wallBlocked := w.geometry().ShotLimit(body.X, body.Y, end.x-start.x, end.y-start.y, body.W, body.H)
 			if worldmap.Default().PrivateGateCrossed(body.X, body.Y, body.X+end.x-start.x, body.Y+end.y-start.y, body.W) {
 				alive = false
 				break

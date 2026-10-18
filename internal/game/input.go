@@ -15,9 +15,9 @@ func (c *controls) releaseShoot() {
 	}
 }
 
-func (c *controls) read(camera rl.Camera2D, center rl.Vector2, facing simulation.Direction) simulation.Direction {
+func (c *controls) read(toWorld func(rl.Vector2) rl.Vector2, center rl.Vector2, facing simulation.Direction) simulation.Direction {
 	c.releaseShoot()
-	aim := mouseAim(camera, center, facing)
+	aim := mouseAim(toWorld, center, facing)
 	direction := simulation.Direction{
 		Shoot:    !c.suppressShootUntilRelease && rl.IsMouseButtonDown(rl.MouseLeftButton),
 		Interact: rl.IsKeyPressed(rl.KeyE),
@@ -44,8 +44,8 @@ func playerCenter(p simulation.Player) rl.Vector2 {
 	return rl.NewVector2(float32(p.X+parameters.PlayerSize/2), float32(p.Y+parameters.PlayerSize/2))
 }
 
-func mouseAim(camera rl.Camera2D, center rl.Vector2, fallback simulation.Direction) rl.Vector2 {
-	target := rl.GetScreenToWorld2D(rl.GetMousePosition(), camera)
+func mouseAim(toWorld func(rl.Vector2) rl.Vector2, center rl.Vector2, fallback simulation.Direction) rl.Vector2 {
+	target := toWorld(rl.GetMousePosition())
 	delta := rl.Vector2Subtract(target, center)
 	if rl.Vector2Length(delta) > 1 {
 		return rl.Vector2Normalize(delta)

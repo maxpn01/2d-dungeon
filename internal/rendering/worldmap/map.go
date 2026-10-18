@@ -44,7 +44,7 @@ func NewMap() *Map {
 	}
 }
 
-func (m *Map) Draw(ctx primitives.Context, snapshot simulation.Snapshot, local simulation.Player) {
+func (m *Map) Prepare(snapshot simulation.Snapshot, local simulation.Player) {
 	m.Exploration.SetSecrets(snapshot.OpenSecrets, snapshot.Orb.GateOpen)
 	m.Exploration.Reveal(rl.NewVector2(float32(local.X+parameters.PlayerSize/2), float32(local.Y+parameters.PlayerSize/2)), local.HasWings, local.Flight.Flying)
 	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
@@ -53,7 +53,14 @@ func (m *Map) Draw(ctx primitives.Context, snapshot simulation.Snapshot, local s
 	m.floor = m.world.BodyFloor(local.X, local.Y, parameters.PlayerSize)
 	m.gatePrompt = !local.Dead && simulation.NearEntranceGateFor(local.EntranceID, local.X, local.Y)
 	m.nearGateID = mapdata.EntranceGate
+}
 
+func (m *Map) DrawForestDecals(snapshot simulation.Snapshot, local simulation.Player) {
+	drawStatues(snapshot.Statues, local.ActiveStatue, local.X, local.Y, local.Dead, &m.Exploration)
+}
+
+func (m *Map) Draw(ctx primitives.Context, snapshot simulation.Snapshot, local simulation.Player) {
+	m.Prepare(snapshot, local)
 	if m.floor == mapdata.FirstFloor {
 		m.drawSanctuary(ctx)
 		m.drawSanctuaryAltar(ctx)
