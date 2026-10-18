@@ -63,6 +63,13 @@ func main() {
 			ais = append(ais, snake)
 		}
 		feedback := &rendering.Feedback{}
+		if os.Getenv("SHOT_HIT") != "" && len(ais) > 0 {
+			feedback.Observe(time.Now(), simulation.Snapshot{Player: player, AIs: ais})
+			ais[0].Stats.HP -= 3.4
+			player.Status.Poison.Dealt += .4
+			player.Stats.HP -= .4
+			feedback.Observe(time.Now(), simulation.Snapshot{Player: player, AIs: ais})
+		}
 		for frame := 0; frame < 4; frame++ {
 			started := time.Now()
 			rl.BeginDrawing()

@@ -41,6 +41,7 @@ const (
 	BehaviorWindingCharge       Behavior = "winding charge"
 	BehaviorRecoveringStrike    Behavior = "recovering strike"
 	BehaviorRetreating          Behavior = "retreating"
+	BehaviorFeeding             Behavior = "feeding"
 )
 
 type AI struct {

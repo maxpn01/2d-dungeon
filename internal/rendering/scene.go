@@ -39,6 +39,9 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 			drawSceneEntities(scene, true)
 			rl.EndMode2D()
 		})
+		scene.Feedback.DrawDamageNumbers(time.Now(), &scene.Map.Exploration, func(x, y float32) rl.Vector2 {
+			return scene.Map.ForestScreenPoint(ctx, x, y, parameters.DamageNumberLift)
+		})
 		scene.Map.DrawLibraryHUD(ctx, scene.Snapshot, scene.Local)
 		return
 	}
@@ -130,5 +133,5 @@ func drawSceneEntities(scene Scene, forest bool) {
 	DrawPortals(scene.Local, scene.Snapshot.Orb, &scene.Map.Exploration)
 	scene.Map.DrawVaultFire(scene.Snapshot)
 	DrawTeleportCharge(scene.Player.X, scene.Player.Y, scene.Player.TeleportCharge)
-	scene.Feedback.Draw(time.Now(), &scene.Map.Exploration)
+	scene.Feedback.Draw(time.Now(), &scene.Map.Exploration, !forest)
 }

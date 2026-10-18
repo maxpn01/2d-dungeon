@@ -16,6 +16,8 @@ type snakeState struct {
 	side         float64
 	lastHP       float64
 	recentDamage float64
+	forageTicks  int
+	forageAfter  uint64
 }
 
 func SnakeSegmentBody(segment physics.Vector) physics.Rect {
@@ -69,6 +71,9 @@ func (w *World) snakeTarget(ai *aiState) *playerState {
 }
 
 func (w *World) snakePatrolInput(ai *aiState) Direction {
+	if d, feeding := w.snakeForageInput(ai); feeding {
+		return d
+	}
 	route := ai.den.Route
 	if len(route) == 0 {
 		return ai.patrolInput(w.geometry())
@@ -178,4 +183,63 @@ func (w *World) snakeWeave(ai *aiState, target *playerState, d Direction) Direct
 	}
 	d.X, d.Y = x, y
 	return d
+}
+
+func (w *World) snakesFeeding() bool {
+	return !w.player.Dead && worldmap.Default().BodyFloor(w.player.X, w.player.Y, parameters.PlayerSize) == worldmap.SecondFloor
+}
+
+func (w *World) snakeForageInput(ai *aiState) (Direction, bool) {
+	if w.tick < ai.snake.forageAfter || !w.snakesFeeding() {
+		return Direction{}, false
+	}
+	body := MobBody(ai.Type, ai.X, ai.Y)
+	headX, headY := body.X+body.W/2, body.Y+body.H/2
+	best, bestX, bestY := parameters.SnakeForageRadius, 0.0, 0.0
+	for _, fruit := range w.fruits {
+		if w.tick < fruit.AvailableTick || fruit.ExpiresTick != 0 && w.tick >= fruit.ExpiresTick {
+			continue
+		}
+		x, y := fruit.X+fruit.Size/2, fruit.Y+fruit.Size/2
+		if distance := math.Hypot(x-headX, y-headY); distance < best {
+			best, bestX, bestY = distance, x, y
+		}
+	}
+	if best >= parameters.SnakeForageRadius {
+		ai.snake.forageTicks = 0
+		return Direction{}, false
+	}
+	if ai.snake.forageTicks++; ai.snake.forageTicks > parameters.SnakeForageTimeoutTicks {
+		ai.snake.forageTicks = 0
+		ai.snake.forageAfter = w.tick + parameters.SnakeForageTimeoutTicks
+		return Direction{}, false
+	}
+	ai.Behavior = BehaviorFeeding
+	d := ai.navigateMap(w.geometry(), bestX-parameters.AISize/2, bestY-parameters.AISize/2)
+	d.X, d.Y = d.X*parameters.SnakePatrolSpeed, d.Y*parameters.SnakePatrolSpeed
+	return d, true
+}
+
+func (ai *aiState) snakeEat(food float64) {
+	if len(ai.Segments) >= parameters.SnakeMaxSegments {
+		return
+	}
+	level, maxHP := ai.Stats.Level, ai.Stats.MaxHP()
+	ai.Stats.GainXP(food * parameters.SnakeFoodXP)
+	if ai.Stats.Level == level {
+		return
+	}
+	if room := parameters.SnakeMaxSegments - len(ai.Segments); ai.Stats.Level-level >= room {
+		ai.Stats.Level, ai.Stats.XP = level+room, 0
+		ai.Stats.rebuildPerks()
+	}
+	ai.Stats.HP *= ai.Stats.MaxHP() / maxHP
+	ai.spawnMaxHP = max(ai.spawnMaxHP, ai.Stats.MaxHP())
+	for range ai.Stats.Level - level {
+		tail := physics.Vector{X: ai.X, Y: ai.Y}
+		if len(ai.Segments) > 0 {
+			tail = ai.Segments[len(ai.Segments)-1]
+		}
+		ai.Segments = append(ai.Segments, tail)
+	}
 }

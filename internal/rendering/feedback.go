@@ -294,7 +294,7 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 	f.lowHP = low
 }
 
-func (f *Feedback) Draw(now time.Time, exploration Visibility) {
+func (f *Feedback) Draw(now time.Time, exploration Visibility, numbers bool) {
 	active := f.effects[:0]
 	for _, e := range f.effects {
 		duration := .35
@@ -340,8 +340,9 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 				}
 				active[len(active)-1].sounded = true
 			}
-			label := fmt.Sprintf("-%.1f", e.amount)
-			primitives.DrawText(label, int32(e.x)-primitives.MeasureText(label, 20)/2, int32(e.y-e.size/2-56-28*p), 20, tint)
+			if numbers {
+				drawHitNumber(e, rl.NewVector2(e.x, e.y-e.size/2-56), p)
+			}
 			if p < .4 {
 				for i := range 6 {
 					angle := float64(i) * math.Pi / 3
@@ -352,11 +353,9 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 				}
 			}
 		case "poison":
-			label := fmt.Sprintf("-%.1f", e.amount)
-			drift := float32(math.Sin(float64(p)*math.Pi*2)) * 6
-			at := rl.NewVector2(e.x+e.size*.45+drift, e.y-e.size/2-34-24*p)
-			primitives.DrawTextAt(label, rl.NewVector2(at.X+1, at.Y+1), 16, rl.Fade(poisonDarkColor, 1-p))
-			primitives.DrawTextAt(label, at, 16, tint)
+			if numbers {
+				drawPoisonNumber(e, rl.NewVector2(e.x+e.size*.45, e.y-e.size/2-34), p)
+			}
 			if p < .5 {
 				for i := range 4 {
 					angle := float64(i)*math.Pi/2 + math.Pi/4
@@ -416,6 +415,44 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 		}
 	}
 	f.effects = active
+}
+
+func effectProgress(now time.Time, e feedbackEffect, duration float64) float32 {
+	return float32(max(0, now.Sub(e.started).Seconds()) / duration)
+}
+
+func (f *Feedback) DrawDamageNumbers(now time.Time, exploration Visibility, project func(x, y float32) rl.Vector2) {
+	for _, e := range f.effects {
+		if e.kind != "hit" && e.kind != "poison" || !exploration.EntityVisible(float64(e.x), float64(e.y), 0) {
+			continue
+		}
+		at := project(e.x, e.y)
+		if e.kind == "hit" {
+			if p := effectProgress(now, e, .65); p < 1 {
+				drawHitNumber(e, rl.NewVector2(at.X, at.Y-20), p)
+			}
+			continue
+		}
+		if p := effectProgress(now, e, .8); p < 1 {
+			drawPoisonNumber(e, rl.NewVector2(at.X+e.size*.45, at.Y), p)
+		}
+	}
+}
+
+func drawHitNumber(e feedbackEffect, at rl.Vector2, p float32) {
+	label := fmt.Sprintf("-%.1f", e.amount)
+	size := primitives.MeasureText(label, 20)
+	at = rl.NewVector2(at.X-float32(size)/2, at.Y-28*p)
+	primitives.DrawTextAt(label, rl.NewVector2(at.X+1, at.Y+1), 20, rl.Fade(rl.Black, .6*(1-p)))
+	primitives.DrawTextAt(label, at, 20, rl.Fade(e.tint, 1-p))
+}
+
+func drawPoisonNumber(e feedbackEffect, at rl.Vector2, p float32) {
+	label := fmt.Sprintf("-%.1f", e.amount)
+	drift := float32(math.Sin(float64(p)*math.Pi*2)) * 6
+	at = rl.NewVector2(at.X+drift, at.Y-24*p)
+	primitives.DrawTextAt(label, rl.NewVector2(at.X+1, at.Y+1), 16, rl.Fade(poisonDarkColor, 1-p))
+	primitives.DrawTextAt(label, at, 16, rl.Fade(e.tint, 1-p))
 }
 
 const materializeDuration = 850 * time.Millisecond

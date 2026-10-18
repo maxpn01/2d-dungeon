@@ -51,6 +51,11 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 - Snakes are slippery instead of relentless: after each bite they back off (to about 170 px, for under a second) while still facing the player, then weave back in with a side-to-side sway that makes them harder to hit. Taking a burst of damage (20% of max HP in a short window) also makes them back off.
 - Body segments follow the head and can be hit by projectiles; damage goes to the snake's single HP pool.
 - Snakes are drawn as low-poly 3D actors in the forest view: a head with eyes and a tapered, banded body.
+- In the forest view, hit and poison damage numbers are drawn in screen space above the actor (`parameters.DamageNumberLift`), so the 3D bodies and trees never hide them.
+- Snakes eat with their head only, any food the player can eat (patch food, fruit-tree drops and kill drops). While patrolling or pausing at a stop, a snake slithers to the nearest food within `parameters.SnakeForageRadius` (170 px) and gives up on a piece it cannot reach after `SnakeForageTimeoutTicks` (6 s). Chasing the player takes priority over feeding. Snakes only forage and eat while the player is on floor 2, so they don't grow while the player is still on floor 1.
+- Snakes grow through levels. Each piece of food heals, restores mana and gives `parameters.SnakeFoodXP` (20) XP per point of food value (its HP, or mana converted at the `FruitMP`:`FruitHP` rate) *(tune)*. Each level gained adds one tail segment, so a snake's level shows how much it has grown. The level costs follow the normal XP curve, so each step needs a bit more food than the last, and stats rise at the normal per-level rates. Current HP scales with the new max HP.
+- At `SnakeMaxSegments` (20) a snake stops gaining XP and levels, though it still eats to heal and keeps the food from the player.
+- A grown snake drops loot for its grown max HP. A respawned snake starts again at its respawn level with 3–4 segments.
 
 ### Snake attacks
 - **Bite:** close-range snap that deals damage and applies poison. Short head pullback and a cooldown.
@@ -102,7 +107,7 @@ Build in this order. Each milestone should be playable on its own.
 2. **Forest map** *(in playtest)*: the new layout method, the forest itself, and navigation (minimap, fog of war, AI pathing).
 3. **Basic snake** *(in playtest)*: segmented body, patrol routes, bite attack, respawn.
 4. **Status effects** *(in playtest)*: the shared system, poison, and its HUD and visuals.
-5. **Feeding and growth:** snakes eat, grow with rising costs, 20-segment cap.
+5. **Feeding and growth** *(in playtest)*: snakes eat, grow with rising costs, 20-segment cap.
 6. **More snake attacks:** spit and fast slither.
 7. **Forest perks:** the forest pool, ranks and the mixed offers at floor 2 statues.
 8. **Cave and hydra:** cave clues, the cave arena, the hydra fight, head regrowth, feeding and hunting.

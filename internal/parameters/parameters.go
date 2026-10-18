@@ -205,6 +205,10 @@ const (
 	SnakeWeaveSeconds          = 1.1
 	SnakeWeaveStrength         = .6
 	SnakePoisonSeconds         = 4.0
+	SnakeMaxSegments           = 20
+	SnakeFoodXP                = 20.0
+	SnakeForageRadius          = 170.0
+	SnakeForageTimeoutTicks    = 6 * TickRate
 )
 
 // Status effects.
@@ -262,6 +266,7 @@ const (
 	PlayerDeathRingRadius = 70.0
 	DeathBurstParticles   = 14
 	DeathBurstDistance    = 46.0
+	DamageNumberLift      = 125.0
 )
 
 const (

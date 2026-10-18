@@ -14,6 +14,7 @@ import (
 var idleBehaviors = map[simulation.Behavior]bool{
 	simulation.BehaviorPatrolling:    true,
 	simulation.BehaviorWatching:      true,
+	simulation.BehaviorFeeding:       true,
 	simulation.BehaviorReturning:     true,
 	simulation.BehaviorSearching:     true,
 	simulation.BehaviorInvestigating: true,

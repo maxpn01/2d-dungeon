@@ -150,6 +150,10 @@ func (m *Map) DrawForest3D(ctx primitives.Context, focus rl.Vector2, actors []Fo
 	f.drawActorLabels(poses, ctx.WindowWidth, ctx.WindowHeight)
 }
 
+func (m *Map) ForestScreenPoint(ctx primitives.Context, x, y, lift float32) rl.Vector2 {
+	return rl.GetWorldToScreenEx(v3(x, lift, y), forest3D.camera, ctx.WindowWidth, ctx.WindowHeight)
+}
+
 func (f *forestRenderer) setUniforms(ctx primitives.Context, focus rl.Vector2) {
 	set := func(name string, values []float32, kind rl.ShaderUniformDataType) {
 		rl.SetShaderValue(f.shader, f.locs[name], values, kind)

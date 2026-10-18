@@ -104,6 +104,7 @@ func (w *World) consumeFruits(eaters []eater) {
 		grid = indexEaters(eaters)
 		seen = make([]int, len(eaters))
 	}
+	snakesFeeding := w.snakesFeeding()
 	remaining := w.fruits[:0]
 	for fruitIndex, fruit := range w.fruits {
 		if fruit.ExpiresTick != 0 && w.tick >= fruit.ExpiresTick {
@@ -117,7 +118,7 @@ func (w *World) consumeFruits(eaters []eater) {
 		earliest := math.Inf(1)
 		tryActor := func(i int) {
 			actor := eaters[i]
-			if actor.ai != nil {
+			if actor.ai != nil && (actor.ai.Type != ForestSnake || !snakesFeeding) {
 				return
 			}
 			if actor.dead() {
@@ -156,7 +157,12 @@ func (w *World) consumeFruits(eaters []eater) {
 			if fruit.Ejected || fruit.Source != "" {
 				xp = 0
 			}
-			eaters[winner].gain(hp, xp, fruit.MP)
+			if ai := eaters[winner].ai; ai != nil {
+				eaters[winner].gain(hp, 0, fruit.MP)
+				ai.snakeEat(hp + fruit.MP/parameters.FruitMP*parameters.FruitHP)
+			} else {
+				eaters[winner].gain(hp, xp, fruit.MP)
+			}
 		}
 	}
 	w.fruits = remaining
