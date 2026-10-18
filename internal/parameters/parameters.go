@@ -209,6 +209,28 @@ const (
 	SnakeFoodXP                = 20.0
 	SnakeForageRadius          = 170.0
 	SnakeForageTimeoutTicks    = 6 * TickRate
+	SnakeSpecialGapTicks       = TickRate * 3 / 2
+	SnakeSpitMinRange          = 130.0
+	SnakeSpitRange             = 340.0
+	SnakeSpitWindup            = .6
+	SnakeSpitAimLock           = .15
+	SnakeSpitSpeed             = 520.0
+	SnakeSpitSize              = 18.0
+	SnakeSpitDamage            = .7
+	SnakeSpitPoisonSeconds     = 3.0
+	SnakeSpitCost              = 1.0
+	SnakeSpitCooldownTicks     = TickRate * 4
+	SnakeSpitPullback          = 14.0
+	SnakeSlitherMinRange       = 140.0
+	SnakeSlitherRange          = 300.0
+	SnakeSlitherCoil           = .65
+	SnakeSlitherAimLock        = .2
+	SnakeSlitherSurge          = .5
+	SnakeSlitherSpeed          = 2.8
+	SnakeSlitherTurnRate       = 1.4
+	SnakeSlitherRecovery       = .45
+	SnakeSlitherDamage         = 1.2
+	SnakeSlitherCooldownTicks  = TickRate * 6
 )
 
 // Status effects.

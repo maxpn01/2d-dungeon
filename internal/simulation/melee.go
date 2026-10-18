@@ -89,19 +89,23 @@ func (w *World) advanceMobMelee(actors []eater) {
 				}
 				ai.meleeHits[target.id] = true
 			}
-			if ai.Type == ForestSnake {
-				target.status().ApplyPoison(PoisonStrength(ai.Stats, len(ai.Segments)), parameters.SnakePoisonSeconds)
-			}
-			if target.protected() {
-				continue
-			}
-			hp := target.stats.HP
-			target.stats.HP = max(0, hp-ai.Stats.Damage*attack.DamageMultiplier)
-			if target.stats.HP == 0 {
-				w.dropKillLoot(target, hp, target.ownerStats().MP)
-				ai.Stats.GainXP(float64(target.stats.Level) * parameters.KillXPPerLevel)
-				target.die(ai.ID, w.tick)
-			}
+			w.mobStrike(ai, target, attack.DamageMultiplier)
 		}
+	}
+}
+
+func (w *World) mobStrike(ai *aiState, target eater, multiplier float64) {
+	if ai.Type == ForestSnake {
+		target.status().ApplyPoison(PoisonStrength(ai.Stats, len(ai.Segments)), parameters.SnakePoisonSeconds)
+	}
+	if target.protected() {
+		return
+	}
+	hp := target.stats.HP
+	target.stats.HP = max(0, hp-ai.Stats.Damage*multiplier)
+	if target.stats.HP == 0 {
+		w.dropKillLoot(target, hp, target.ownerStats().MP)
+		ai.Stats.GainXP(float64(target.stats.Level) * parameters.KillXPPerLevel)
+		target.die(ai.ID, w.tick)
 	}
 }

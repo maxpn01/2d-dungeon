@@ -18,6 +18,11 @@ type snakeState struct {
 	recentDamage float64
 	forageTicks  int
 	forageAfter  uint64
+	spitReady    uint64
+	slitherReady uint64
+	attackAfter  uint64
+	surgedTick   uint64
+	slitherHit   bool
 }
 
 func SnakeSegmentBody(segment physics.Vector) physics.Rect {
@@ -27,6 +32,9 @@ func SnakeSegmentBody(segment physics.Vector) physics.Rect {
 
 func (w *World) snakeInput(ai *aiState) Direction {
 	ai.trackSnakeDamage()
+	if d, busy := w.snakeAttackInput(ai); busy {
+		return d
+	}
 	if ai.Combat.SwordRemaining > 0 {
 		ai.snake.biting = true
 		return w.meleeGuardInput(ai, nil)
@@ -47,6 +55,9 @@ func (w *World) snakeInput(ai *aiState) Direction {
 		}
 		if w.tick < ai.snake.retreatUntil {
 			return w.snakeRetreatInput(ai, target)
+		}
+		if d, started := w.startSnakeAttack(ai, target); started {
+			return d
 		}
 		return w.snakeWeave(ai, target, w.meleeGuardInput(ai, target))
 	}

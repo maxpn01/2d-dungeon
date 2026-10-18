@@ -61,6 +61,10 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 - **Bite:** close-range snap that deals damage and applies poison. Short head pullback and a cooldown.
 - **Spit:** a clearly telegraphed poison projectile.
 - **Fast slither:** the snake briefly coils, then surges forward with limited turning, so the player can dodge out of its path.
+- Spit and slither are used while chasing, outside bite range and only with a clear lane: spit at 130-340 px when a shot can reach the player, slither at 140-300 px when the snake can move straight there. If both are ready the snake picks one at random. Each has its own cooldown (spit 4 s, slither 6 s, plus up to 1 s jitter), and a 1.5 s gap follows any special attack *(tune)*.
+- Spit: the head rears back for 0.6 s while a venom glob grows in its mouth and a dashed aim line points at the player; the aim tracks the player (with lead) until 0.15 s before release, when the line turns green. The glob flies at 520 px/s, deals 0.7× the snake's damage and poisons for `SnakeSpitPoisonSeconds` (3 s), using the same poison strength as the bite. Costs 1 MP. Blocked by trees and landmarks like other shots *(tune)*.
+- Fast slither: the snake coils for 0.65 s with a shaking head and an orange lane with moving chevrons showing the charge; it aims freely until 0.2 s before the surge. The surge lasts 0.5 s at 2.8× its speed, turning at most 1.4 rad/s toward the player. Contact deals 1.2× damage plus bite poison, once per surge. The surge ends on a hit or when it runs into terrain, then the snake recovers for 0.45 s and backs off like after a bite *(tune)*.
+- Snakes commit to spit and slither: taking damage does not cancel them.
 
 ### Status effects and poison
 - Add a shared status-effect system that works on players and mobs. Poison is the first effect.
@@ -108,7 +112,7 @@ Build in this order. Each milestone should be playable on its own.
 3. **Basic snake** *(in playtest)*: segmented body, patrol routes, bite attack, respawn.
 4. **Status effects** *(in playtest)*: the shared system, poison, and its HUD and visuals.
 5. **Feeding and growth** *(in playtest)*: snakes eat, grow with rising costs, 20-segment cap.
-6. **More snake attacks:** spit and fast slither.
+6. **More snake attacks** *(in playtest)*: spit and fast slither.
 7. **Forest perks:** the forest pool, ranks and the mixed offers at floor 2 statues.
 8. **Cave and hydra:** cave clues, the cave arena, the hydra fight, head regrowth, feeding and hunting.
 9. **Floor 3:** a small volcanic room reached through the hydra's teleport circle, ending the run with the win screen.

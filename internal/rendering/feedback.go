@@ -119,7 +119,7 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 					}
 					attack := simulation.MobMelee(actor.mobType)
 					strike := attack.Duration - attack.Windup
-					if attack.Duration > 0 && old.swordRemaining > strike && actor.swordRemaining <= strike || actor.mobType == simulation.Sentinel && actor.charging && !old.charging {
+					if attack.Duration > 0 && old.swordRemaining > strike && actor.swordRemaining <= strike || (actor.mobType == simulation.Sentinel || actor.mobType == simulation.ForestSnake) && actor.charging && !old.charging {
 						cue := "melee-swing"
 						if actor.mobType.IsHeavy() {
 							cue = "heavy-melee"
@@ -239,7 +239,7 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 		actor.stompRemaining = a.Combat.StompRemaining
 		actor.swordRemaining = a.Combat.SwordRemaining
 		actor.mobType = a.Type
-		actor.charging = a.Combat.Phase == simulation.DashRushing
+		actor.charging = a.Combat.Phase == simulation.DashRushing || a.Snake.SlitherPhase == simulation.DashRushing
 		actor.behavior = a.Behavior
 		actors[a.ID] = actor
 	}

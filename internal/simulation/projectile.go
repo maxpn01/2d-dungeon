@@ -16,6 +16,7 @@ const (
 	ArrowProjectile     ProjectileKind = "arrow"
 	ShockwaveProjectile ProjectileKind = "shockwave"
 	SpectralProjectile  ProjectileKind = "spectral"
+	VenomProjectile     ProjectileKind = "venom"
 )
 
 type Projectile struct {
@@ -31,6 +32,7 @@ type Projectile struct {
 	Remaining        float64
 	Damage           float64
 	StunDuration     float64
+	PoisonDamage     float64
 	Size             float64
 }
 
@@ -163,6 +165,9 @@ func (w *World) advanceProjectiles(actors []eater) {
 				if shot.MobOwned && target.ai != nil {
 					alive = false
 					break
+				}
+				if shot.PoisonDamage > 0 {
+					target.status().ApplyPoison(shot.PoisonDamage, parameters.SnakeSpitPoisonSeconds)
 				}
 				hp := target.stats.HP
 				if !target.protected() {

@@ -45,8 +45,32 @@ func DrawProjectiles(previous, shots []simulation.Projectile, alpha float64, exp
 			drawStompShockwave(center, shot)
 			continue
 		}
+		if shot.Kind == simulation.VenomProjectile {
+			drawVenomSpit(center, shot)
+			continue
+		}
 		drawMagicBall(center, shot)
 	}
+}
+
+func drawVenomSpit(center rl.Vector2, shot simulation.Projectile) {
+	direction := rl.NewVector2(float32(shot.Direction.X), float32(shot.Direction.Y))
+	radius := float32(shot.Size * .5)
+	age := max(0, shot.Lifetime-shot.Remaining)
+	trail := float32(min(42, age*parameters.SnakeSpitSpeed))
+	rl.BeginBlendMode(rl.BlendAdditive)
+	rl.DrawCircleGradient(center, radius*2.6, rl.Fade(PoisonColor, .5), rl.Fade(PoisonColor, 0))
+	rl.EndBlendMode()
+	for i := 1; i <= 5; i++ {
+		fraction := float32(i) / 5
+		wobble := float32(math.Sin(age*30+float64(i)*1.7)) * 3
+		point := rl.NewVector2(center.X-direction.X*trail*fraction-direction.Y*wobble, center.Y-direction.Y*trail*fraction+direction.X*wobble)
+		rl.DrawCircleV(point, radius*(1-.75*fraction), rl.Fade(venomTint, .75*(1-fraction)))
+	}
+	pulse := 1 + .12*float32(math.Sin(age*24))
+	rl.DrawCircleV(center, radius*pulse, PoisonColor)
+	rl.DrawCircleV(rl.NewVector2(center.X+direction.X*radius*.2, center.Y+direction.Y*radius*.2), radius*.72*pulse, venomTint)
+	rl.DrawCircleV(rl.NewVector2(center.X-radius*.3, center.Y-radius*.3), radius*.28, rl.Fade(rl.RayWhite, .85))
 }
 
 func drawVaultArrow(center rl.Vector2, shot simulation.Projectile) {

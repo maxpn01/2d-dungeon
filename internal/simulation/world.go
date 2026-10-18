@@ -171,6 +171,7 @@ func (w *World) Step(now time.Time) {
 	w.advanceVaultArrows(eaters)
 	w.advanceProjectiles(eaters)
 	w.advanceMobMelee(eaters)
+	w.advanceSnakeSlithers(eaters)
 	w.advanceHeavyStomps()
 	w.advanceVaultTraps(eaters)
 	w.advanceLibraries()

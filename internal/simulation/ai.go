@@ -42,6 +42,9 @@ const (
 	BehaviorRecoveringStrike    Behavior = "recovering strike"
 	BehaviorRetreating          Behavior = "retreating"
 	BehaviorFeeding             Behavior = "feeding"
+	BehaviorWindingSpit         Behavior = "winding spit"
+	BehaviorCoiling             Behavior = "coiling"
+	BehaviorSlithering          Behavior = "slithering"
 )
 
 type AI struct {
@@ -56,6 +59,7 @@ type AI struct {
 	Behavior   Behavior
 	Character  appearance.Character
 	Segments   []physics.Vector
+	Snake      SnakeAttack
 	ID         string
 	X, Y       float64
 	Stats      Stats
@@ -201,6 +205,9 @@ func (w *World) updateAIs() {
 		ai.ShotsFired += actor.ShotsFired
 		ai.shotCooldown = actor.ShotCooldown
 		ai.X, ai.Y, ai.Stats, ai.Combat = actor.X, actor.Y, actor.Stats, actor.Combat
+		if ai.Snake.SlitherPhase == DashRushing {
+			w.surgeSnake(ai)
+		}
 		if worldmap.Default().PrivateGateCrossed(oldX, oldY, ai.X, ai.Y, parameters.AISize) || ai.den.ID != "" && !w.aiWithinTerritory(ai) {
 			ai.X, ai.Y = oldX, oldY
 			if ai.alert.aggressorID != "" {

@@ -93,7 +93,7 @@ func drawSceneEntities(scene Scene, forest bool) {
 			drawPoisonBubbles(ai.X, ai.Y, parameters.AISize, ai.Status.Poison, &scene.Map.Exploration)
 		}
 		if ai.Type == simulation.ForestSnake {
-			drawSnakeBite(ai, &scene.Map.Exploration, scene.Feedback)
+			drawSnakeAttacks(ai, &scene.Map.Exploration, scene.Feedback)
 			continue
 		}
 		tint := poisonTint(mobTint(ai.Type), ai.Status.Poison)
