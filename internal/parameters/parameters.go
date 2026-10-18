@@ -198,12 +198,16 @@ const (
 )
 
 const (
-	AlertMarkerSeconds  = .9
-	ScreenShakeSeconds  = .22
-	HurtShakeStrength   = 4.0
-	StompShakeStrength  = 6.0
-	DeathBurstParticles = 14
-	DeathBurstDistance  = 46.0
+	AlertMarkerSeconds    = .9
+	ScreenShakeSeconds    = .22
+	HurtShakeStrength     = 4.0
+	StompShakeStrength    = 6.0
+	DeathShakeStrength    = 10.0
+	DeathShakeSeconds     = .6
+	DeathSequenceSeconds  = 1.3
+	PlayerDeathRingRadius = 70.0
+	DeathBurstParticles   = 14
+	DeathBurstDistance    = 46.0
 )
 
 const (

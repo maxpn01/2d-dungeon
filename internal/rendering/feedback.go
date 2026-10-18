@@ -57,6 +57,7 @@ type Feedback struct {
 	alerts        map[string]time.Time
 	shakeAt       time.Time
 	shakeStrength float64
+	shakeSeconds  float64
 	effects       []feedbackEffect
 	hits          map[string]time.Time
 	hurtAt        time.Time
@@ -112,7 +113,7 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 					impact := parameters.HeavyStompDuration - parameters.HeavyStompWindup
 					if old.stompRemaining > impact && actor.stompRemaining > 0 && actor.stompRemaining <= impact {
 						playFeedbackSound("stomp")
-						f.shake(now, parameters.StompShakeStrength*(1-distance/600))
+						f.shake(now, parameters.StompShakeStrength*(1-distance/600), parameters.ScreenShakeSeconds)
 					}
 					attack := simulation.MobMelee(actor.mobType)
 					strike := attack.Duration - attack.Windup
@@ -173,6 +174,8 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 				kind := "prey"
 				if old.ai {
 					kind = "defeat"
+				} else if id == f.localID {
+					f.shake(now, parameters.DeathShakeStrength, parameters.DeathShakeSeconds)
 				}
 				emit(old.x+old.size/2, old.y+old.size/2, float64(actorRenderSize(old.size, old.hp)), old.tint, kind)
 			}
@@ -263,7 +266,7 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 	f.observe(now, actors, snapshot.Fruits)
 	if at := f.hits[localID]; at == now {
 		f.hurtAt = now
-		f.shake(now, parameters.HurtShakeStrength)
+		f.shake(now, parameters.HurtShakeStrength, parameters.ScreenShakeSeconds)
 		playFeedbackSound("hurt")
 	}
 	low := !p.Dead && p.Stats.HP <= p.Stats.MaxHP()*.25
@@ -291,6 +294,9 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 		}
 		if e.kind == "defeat" {
 			duration = .8
+		}
+		if e.kind == "prey" {
+			duration = parameters.DeathSequenceSeconds
 		}
 		p := float32(max(0, now.Sub(e.started).Seconds()) / duration)
 		if p >= 1 {
@@ -357,6 +363,10 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 				drawDeathBurst(center, e.size, p, e.tint, uint32(e.x*7)^uint32(e.y*13))
 				label := "DEFEATED"
 				primitives.DrawText(label, int32(e.x)-primitives.MeasureText(label, 18)/2, int32(e.y-e.size/2-28-22*p), 18, rl.Fade(rl.Gold, 1-p))
+			}
+			if e.kind == "prey" {
+				drawPlayerDeath(center, e.size, p, e.tint, uint32(e.x*7)^uint32(e.y*13))
+				break
 			}
 			side := e.size * (1 - p) * (1 - p)
 			rl.DrawRectangleRec(rl.NewRectangle(e.x-side/2, e.y-side/2, side, side), tint)

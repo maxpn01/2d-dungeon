@@ -39,7 +39,7 @@ func (g *Game) run(testing bool) {
 		g.window.syncSize()
 		g.camera.Offset = g.window.getWindowCenter()
 		dt := rl.GetFrameTime()
-		singlePlayerDeadAtFrameStart := current == screenSinglePlayer && g.world.Dead()
+		singlePlayerDeadAtFrameStart := current == screenSinglePlayer && g.world.GameOverReady()
 		if current == screenSinglePlayer && g.world.ReadTestingInput() {
 			mapOpen = false
 			g.cameraFollowPlayer()
@@ -125,6 +125,8 @@ func (g *Game) run(testing bool) {
 			if g.world.ResultsOpen() {
 				g.world.Draw(g.camera, g.window.width, g.window.height)
 				action = g.world.DrawResults(g.window.width, g.window.height)
+			} else if g.world.Dead() && !g.world.GameOverReady() {
+				g.world.Draw(g.camera, g.window.width, g.window.height)
 			} else if g.world.Dead() {
 				action = g.gameOver.Draw()
 				if !singlePlayerDeadAtFrameStart {

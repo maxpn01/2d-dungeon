@@ -29,6 +29,7 @@ type World struct {
 	direction           simulation.Direction
 	name                string
 	started             bool
+	diedAt              time.Time
 }
 
 func NewWorld() *World {
@@ -110,6 +111,9 @@ func (w *World) ClosePerks() {
 
 func (w *World) syncSimulation() {
 	snapshot := w.simulation.Snapshot()
+	if snapshot.Player.Dead && !w.player.Dead {
+		w.diedAt = time.Now()
+	}
 	w.feedback.Observe(time.Now(), snapshot)
 	w.previousSnapshot, w.snapshot = w.snapshot, snapshot
 	w.player = snapshot.Player
@@ -126,8 +130,11 @@ func (w *World) SetName(name string) {
 }
 func (w *World) Character() appearance.Character { return w.player.Character }
 func (w *World) Dead() bool                      { return w.player.Dead }
-func (w *World) PerksOpen() bool                 { return w.snapshot.Player.ActiveStatue != "" }
-func (w *World) Center() rl.Vector2              { return playerCenter(w.player) }
+func (w *World) GameOverReady() bool {
+	return w.player.Dead && time.Since(w.diedAt).Seconds() >= parameters.DeathSequenceSeconds
+}
+func (w *World) PerksOpen() bool    { return w.snapshot.Player.ActiveStatue != "" }
+func (w *World) Center() rl.Vector2 { return playerCenter(w.player) }
 
 func (w *World) Start(name string) {
 	if err := worldmap.SetDungeonLayout(w.snapshot.DungeonLayout); err != nil {
