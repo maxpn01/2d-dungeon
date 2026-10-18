@@ -44,6 +44,7 @@ type Player struct {
 	TeleportCharge float64
 	portalCooldown int
 	Combat         CombatState
+	Status         StatusEffects
 	Dead           bool
 	KilledBy       string
 	Stats          Stats
@@ -173,6 +174,7 @@ func (w *World) Step(now time.Time) {
 	w.advanceHeavyStomps()
 	w.advanceVaultTraps(eaters)
 	w.advanceLibraries()
+	w.advanceStatusEffects()
 	for i := range eaters {
 		e := &eaters[i]
 		if e.player != nil {

@@ -204,6 +204,14 @@ const (
 	SnakeFlinchDecay           = .25
 	SnakeWeaveSeconds          = 1.1
 	SnakeWeaveStrength         = .6
+	SnakePoisonSeconds         = 4.0
+)
+
+// Status effects.
+const (
+	PoisonTickSeconds  = .5
+	PoisonDamageRatio  = .15
+	PoisonSegmentBonus = .04
 )
 
 var PerkRankWeights = [6]int{40, 28, 16, 9, 5, 2}

@@ -12,6 +12,7 @@ import (
 	"2d-dungeon/internal/rendering/primitives"
 	maprender "2d-dungeon/internal/rendering/worldmap"
 	"2d-dungeon/internal/simulation"
+	"2d-dungeon/internal/ui"
 	"2d-dungeon/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -36,6 +37,10 @@ func main() {
 		player.Flight.Flying = os.Getenv("SHOT_WINGS") == "fly"
 		player.Combat.Facing = simulation.Direction{X: .8, Y: .6}
 		player.Stats.HP = 10
+		poison := simulation.Poison{Damage: .3, Remaining: 2.6, Duration: 4}
+		if os.Getenv("SHOT_POISON") != "" {
+			player.Status.Poison = poison
+		}
 		m := maprender.NewMap()
 		camera := rl.NewCamera2D(rl.NewVector2(float32(width)/2, float32(height)/2), rl.NewVector2(float32(x), float32(y)), 0, 1)
 		ctx := primitives.Context{Camera: camera, WindowWidth: width, WindowHeight: height}
@@ -44,6 +49,9 @@ func main() {
 		if os.Getenv("SHOT_SNAKE") != "" {
 			snake := simulation.AI{ID: "snake", Type: simulation.ForestSnake, X: x + 60, Y: y + 110, Stats: simulation.NewStatsAtLevel(parameters.SnakeLevel)}
 			snake.Combat.Facing = simulation.Direction{X: -1}
+			if os.Getenv("SHOT_POISON") != "" {
+				snake.Status.Poison = poison
+			}
 			for i := range 6 {
 				snake.Segments = append(snake.Segments, physics.Vector{X: snake.X + float64(i+1)*parameters.SnakeSegmentSpacing, Y: snake.Y + float64(i*i)*2})
 			}
@@ -54,11 +62,16 @@ func main() {
 			}
 			ais = append(ais, snake)
 		}
+		feedback := &rendering.Feedback{}
 		for frame := 0; frame < 4; frame++ {
 			started := time.Now()
 			rl.BeginDrawing()
 			rl.ClearBackground(rl.Black)
-			rendering.DrawScene(ctx, rendering.Scene{Snapshot: snapshot, Map: m, Local: player, RenderedPlayer: player, RenderedAIs: ais, Feedback: &rendering.Feedback{}})
+			rendering.DrawScene(ctx, rendering.Scene{Snapshot: snapshot, Map: m, Local: player, RenderedPlayer: player, RenderedAIs: ais, Feedback: feedback})
+			if os.Getenv("SHOT_POISON") != "" {
+				ui.DrawPlayer(player, "tester", width)
+				feedback.DrawCombatOverlay(time.Now(), player, width, height)
+			}
 			if frame == 0 || frame == 3 {
 				fmt.Println(cx, cy, "frame", frame, time.Since(started))
 			}

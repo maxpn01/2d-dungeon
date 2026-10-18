@@ -64,6 +64,10 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 - When poison is reapplied it refreshes the duration instead of stacking. A stronger poison replaces a weaker one; a weaker hit never downgrades it.
 - Show it clearly: the health bar turns purple, plus a poison icon with the remaining time, and readable damage ticks.
 - In god mode and during invulnerability windows the effect is still shown but deals no damage.
+- Effects live in `simulation.StatusEffects`, carried by both `Player` and `AI` and advanced once per tick in `World.Step`. They clear when the carrier dies.
+- Poison ticks every `parameters.PoisonTickSeconds` (0.5 s). Damage per tick is the attacker's damage × `PoisonDamageRatio` (0.15) × (1 + `PoisonSegmentBonus` (0.04) per body segment) *(tune)*. A snake bite poisons for `SnakePoisonSeconds` (4 s) *(tune)*.
+- Reapplying keeps the stronger damage and the longer remaining time, without resetting the tick timer.
+- Visuals: the HUD HP bar turns purple with a poison icon, a countdown ring and the remaining seconds; the screen edge pulses purple; poisoned actors pulse purple and give off rising bubbles; poison ticks show as small purple numbers without the hurt flash, shake or sound.
 
 ### Perks
 - Add a forest perk pool. Like the existing perks, each forest perk has ranks Eâ€“S.
@@ -97,7 +101,7 @@ Build in this order. Each milestone should be playable on its own.
 1. **Progression** *(done)*: the descent portal leads into floor 2 without ending the run; the win screen moves to a floor 3 placeholder.
 2. **Forest map** *(in playtest)*: the new layout method, the forest itself, and navigation (minimap, fog of war, AI pathing).
 3. **Basic snake** *(in playtest)*: segmented body, patrol routes, bite attack, respawn.
-4. **Status effects:** the shared system, poison, and its HUD and visuals.
+4. **Status effects** *(in playtest)*: the shared system, poison, and its HUD and visuals.
 5. **Feeding and growth:** snakes eat, grow with rising costs, 20-segment cap.
 6. **More snake attacks:** spit and fast slither.
 7. **Forest perks:** the forest pool, ranks and the mixed offers at floor 2 statues.

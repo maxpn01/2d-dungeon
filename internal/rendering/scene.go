@@ -64,11 +64,13 @@ func forestActors(scene Scene) []maprender.ForestActor {
 		return snakeForestActors(scene)
 	}
 	body := actorBody(player.X, player.Y, parameters.PlayerSize, player.Stats.HP, player.Combat, player.Character)
-	return append(snakeForestActors(scene), maprender.ForestActor{
+	height := actorRenderSize(parameters.PlayerSize, player.Stats.HP)
+	actors := append(snakeForestActors(scene), poisonForestBubbles(player.ID, rl.NewVector2(body.X+body.Width/2, body.Y+body.Height/2), body.Width, height, player.Status.Poison)...)
+	return append(actors, maprender.ForestActor{
 		ID: player.ID, Label: playerLabel(scene),
 		Center: rl.NewVector2(body.X+body.Width/2, body.Y+body.Height/2),
-		Width:  body.Width, Depth: body.Height, Height: actorRenderSize(parameters.PlayerSize, player.Stats.HP),
-		Tint:  primitives.CharacterColor(player.Character),
+		Width:  body.Width, Depth: body.Height, Height: height,
+		Tint:  poisonTint(primitives.CharacterColor(player.Character), player.Status.Poison),
 		Flash: scene.Feedback.HitFlash(player.ID), Spawn: scene.Feedback.SpawnProgress(player.ID),
 		Wings: player.HasWings, Flying: player.Flight.Flying,
 	})
@@ -84,11 +86,14 @@ func drawSceneEntities(scene Scene, forest bool) {
 		DrawFruit(float32(fruit.X), float32(fruit.Y), float32(fruit.Size), MassColor(fruit.Source, playerColors), fruit.Source != "", fruit.MP > 0)
 	}
 	for _, ai := range scene.RenderedAIs {
+		if !forest {
+			drawPoisonBubbles(ai.X, ai.Y, parameters.AISize, ai.Status.Poison, &scene.Map.Exploration)
+		}
 		if ai.Type == simulation.ForestSnake {
 			drawSnakeBite(ai, &scene.Map.Exploration, scene.Feedback)
 			continue
 		}
-		tint := mobTint(ai.Type)
+		tint := poisonTint(mobTint(ai.Type), ai.Status.Poison)
 		DrawAIActor(Actor{
 			Type: ai.Type, Level: ai.Stats.Level, Stone: ai.Stone, Awakening: ai.Awakening,
 			ID: ai.ID, Label: fmt.Sprintf("%s Lv.%d", mobName(ai.Type), ai.Stats.Level),
@@ -96,11 +101,14 @@ func drawSceneEntities(scene Scene, forest bool) {
 			Aiming: ai.Aiming, Frenzied: ai.Frenzied, Combat: ai.Combat, Tint: tint,
 		}, &scene.Map.Exploration, scene.Feedback)
 	}
+	if player := scene.RenderedPlayer; !forest && !player.Dead {
+		drawPoisonBubbles(player.X, player.Y, parameters.PlayerSize, player.Status.Poison, &scene.Map.Exploration)
+	}
 	if player := scene.RenderedPlayer; forest && !player.Dead {
 		size := actorRenderSize(parameters.PlayerSize, player.Stats.HP)
 		drawCombat(rl.NewVector2(float32(player.X+parameters.PlayerSize/2), float32(player.Y+parameters.PlayerSize/2)), size, player.Combat)
 	} else if !player.Dead {
-		tint := primitives.CharacterColor(player.Character)
+		tint := poisonTint(primitives.CharacterColor(player.Character), player.Status.Poison)
 		label := playerLabel(scene)
 		lift := float64(0)
 		if player.HasWings {

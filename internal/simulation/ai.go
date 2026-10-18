@@ -51,6 +51,7 @@ type AI struct {
 	Aiming     bool
 	Frenzied   bool
 	Combat     CombatState
+	Status     StatusEffects
 	Behavior   Behavior
 	Character  appearance.Character
 	Segments   []physics.Vector

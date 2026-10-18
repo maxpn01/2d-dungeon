@@ -55,6 +55,7 @@ func snakeForestActors(scene Scene) []maprender.ForestActor {
 			if i%2 == 0 {
 				tint = snakeBandTint
 			}
+			tint = poisonTint(tint, ai.Status.Poison)
 			actors = append(actors, maprender.ForestActor{
 				ID: ai.ID, Center: rl.NewVector2(float32(body.X+body.W/2), float32(body.Y+body.H/2)),
 				Width: float32(body.W) * taper, Depth: float32(body.H) * taper, Height: 16 * taper,
@@ -72,8 +73,9 @@ func snakeForestActors(scene Scene) []maprender.ForestActor {
 		actors = append(actors, maprender.ForestActor{
 			ID: ai.ID, Label: fmt.Sprintf("%s Lv.%d", mobName(ai.Type), ai.Stats.Level),
 			Center: center, Width: size, Depth: size, Height: height,
-			Tint: snakeTint, Flash: flash, Spawn: spawn,
+			Tint: poisonTint(snakeTint, ai.Status.Poison), Flash: flash, Spawn: spawn,
 		})
+		actors = append(actors, poisonForestBubbles(ai.ID, center, size, height, ai.Status.Poison)...)
 		for _, side := range []float32{-1, 1} {
 			eye := rl.NewVector2(center.X+facing.X*size*.3-facing.Y*side*size*.24, center.Y+facing.Y*size*.3+facing.X*side*size*.24)
 			actors = append(actors, maprender.ForestActor{

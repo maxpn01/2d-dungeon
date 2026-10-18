@@ -26,6 +26,7 @@ type feedbackActor struct {
 	stone              bool
 	recovery           float64
 	maxHP              float64
+	poisonDealt        float64
 	stompRemaining     float64
 	swordRemaining     float64
 	mobType            simulation.MobType
@@ -163,6 +164,15 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 			if actor.ai && actor.level != old.level && old.maxHP > 0 {
 				previousHP = old.hp / old.maxHP * actor.maxHP
 			}
+			poison := 0.0
+			if existed && !old.dead && actor.poisonDealt > old.poisonDealt+1e-6 {
+				poison = actor.poisonDealt - old.poisonDealt
+				previousHP -= poison
+				f.effects = append(f.effects, feedbackEffect{
+					started: now, x: float32(actor.x + actor.size/2), y: float32(actor.y + actor.size/2), size: float32(actor.size),
+					tint: PoisonColor, kind: "poison", amount: poison, owner: id,
+				})
+			}
 			if existed && !old.dead && actor.hp < previousHP-1e-6 {
 				if f.hits == nil {
 					f.hits = make(map[string]time.Time)
@@ -219,10 +229,10 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 		shots: p.ShotsFired,
 		x:     p.X, y: p.Y, size: parameters.PlayerSize, hp: p.Stats.HP, xp: p.Stats.XP, level: p.Stats.Level,
 		tint: primitives.CharacterColor(p.Character), dead: p.Dead, escaped: p.FloorCleared, won: p.ID == snapshot.WinnerID,
-		recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP(),
+		recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP(), poisonDealt: p.Status.Poison.Dealt,
 	}
 	for _, a := range snapshot.AIs {
-		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: parameters.AISize, hp: a.Stats.HP, xp: a.Stats.XP, level: a.Stats.Level, tint: mobTint(a.Type), ai: true, maxHP: a.Stats.MaxHP()}
+		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: parameters.AISize, hp: a.Stats.HP, xp: a.Stats.XP, level: a.Stats.Level, tint: mobTint(a.Type), ai: true, maxHP: a.Stats.MaxHP(), poisonDealt: a.Status.Poison.Dealt}
 		actor := actors[a.ID]
 		actor.shots = a.ShotsFired
 		actor.stone = a.Stone
@@ -300,6 +310,9 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 		if e.kind == "hit" {
 			duration = .65
 		}
+		if e.kind == "poison" {
+			duration = .8
+		}
 		if e.kind == "defeat" {
 			duration = .8
 		}
@@ -336,6 +349,19 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 					a := rl.NewVector2(e.x+float32(math.Cos(angle))*radius, e.y+float32(math.Sin(angle))*radius)
 					b := rl.NewVector2(a.X+float32(math.Cos(angle))*7, a.Y+float32(math.Sin(angle))*7)
 					rl.DrawLineEx(a, b, 2, rl.Fade(rl.RayWhite, 1-p/.4))
+				}
+			}
+		case "poison":
+			label := fmt.Sprintf("-%.1f", e.amount)
+			drift := float32(math.Sin(float64(p)*math.Pi*2)) * 6
+			at := rl.NewVector2(e.x+e.size*.45+drift, e.y-e.size/2-34-24*p)
+			primitives.DrawTextAt(label, rl.NewVector2(at.X+1, at.Y+1), 16, rl.Fade(poisonDarkColor, 1-p))
+			primitives.DrawTextAt(label, at, 16, tint)
+			if p < .5 {
+				for i := range 4 {
+					angle := float64(i)*math.Pi/2 + math.Pi/4
+					radius := e.size/2 + 18*p
+					rl.DrawCircleV(rl.NewVector2(e.x+float32(math.Cos(angle))*radius, e.y+float32(math.Sin(angle))*radius), 3*(1-p/.5), rl.Fade(PoisonColor, 1-p/.5))
 				}
 			}
 		case "completion":

@@ -26,6 +26,7 @@ type playerView struct {
 	HP, MaxHP, MP, MaxMP, XP, NextXP float32
 	Speed                            float32
 	Damage, AttackRate, Boost        float32
+	Poison                           simulation.Poison
 }
 
 func drawPlayer(p playerView, windowWidth int32) {
@@ -59,6 +60,13 @@ func drawPlayer(p playerView, windowWidth int32) {
 		hpLabel = "HP / LOW"
 		hpTint = rl.Fade(rl.Red, float32(.65+.35*math.Sin(rl.GetTime()*9)))
 	}
+	if p.Poison.Active() {
+		hpLabel = "HP"
+		hpTint = rendering.PoisonColor
+		if p.HP > 0 && p.HP <= p.MaxHP*.25 {
+			hpTint = rl.Fade(rendering.PoisonColor, float32(.65+.35*math.Sin(rl.GetTime()*9)))
+		}
+	}
 	if p.MP < p.ShotMPCost {
 		mpLabel = "MP / LOW"
 		mpTint = rl.Orange
@@ -67,6 +75,9 @@ func drawPlayer(p playerView, windowWidth int32) {
 		mpLabel = "MP / EMPTY"
 	}
 	drawHUDMeter(x+12, y+58, barWidth, hpLabel, fmt.Sprintf("%.2f / %.0f", p.HP, p.MaxHP), p.HP, p.MaxHP, hpTint)
+	if p.Poison.Active() {
+		drawPoisonStatus(x+12+primitives.MeasureText(hpLabel, 18)+18, y+58, p.Poison)
+	}
 	drawHUDMeter(x+12, y+100, barWidth, mpLabel, fmt.Sprintf("%.2f / %.0f", p.MP, p.MaxMP), p.MP, p.MaxMP, mpTint)
 	xpLabel := fmt.Sprintf("%.2f / %.2f", p.XP, p.NextXP)
 	xp, nextXP := p.XP, p.NextXP
@@ -84,6 +95,17 @@ func drawPlayer(p playerView, windowWidth int32) {
 	if p.SpectralShots {
 		primitives.DrawText("SPECTRAL SHOTS / +25% MP", x+12, y+222, 16, rl.NewColor(177, 163, 236, 255))
 	}
+}
+
+func drawPoisonStatus(x, y int32, poison simulation.Poison) {
+	center := rl.NewVector2(float32(x+8), float32(y+9))
+	rendering.DrawPoisonIcon(center, 18, rendering.PoisonColor)
+	if poison.Duration > 0 {
+		left := float32(poison.Remaining / poison.Duration)
+		rl.DrawRing(center, 11, 13, -90, -90+360*left, 24, rl.Fade(rendering.PoisonColor, .8))
+	}
+	label := fmt.Sprintf("POISON %.1fs", poison.Remaining)
+	primitives.DrawText(label, x+26, y, 18, rendering.PoisonColor)
 }
 
 func drawHUDMeter(x, y, width int32, label, value string, current, maximum float32, tint color.RGBA) {
@@ -111,7 +133,7 @@ func playerDetails(player simulation.Player, name string) playerView {
 		SpectralShots: stats.SpectralShots, Perks: stats.Perks, Character: player.Character, Name: name, Avatar: primitives.CharacterColor(player.Character),
 		Level: stats.Level, MaxLevel: parameters.MaxLevel, HP: hp, MaxHP: float32(stats.MaxHP()),
 		MP: float32(stats.MP), MaxMP: float32(stats.MaxMP()), XP: float32(stats.XP), NextXP: float32(simulation.XPForNextLevel(stats.Level)),
-		Speed:  float32(player.MovementSpeed()),
+		Speed: float32(player.MovementSpeed()), Poison: player.Status.Poison,
 		Damage: float32(stats.Damage), ShotMPCost: float32(stats.ShotMPCost()), AttackRate: float32(stats.AttackRate), Boost: float32(stats.BoostMultiplier),
 	}
 }

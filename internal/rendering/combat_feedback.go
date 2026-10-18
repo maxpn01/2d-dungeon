@@ -84,6 +84,10 @@ func (f *Feedback) DrawCombatOverlay(now time.Time, player simulation.Player, wi
 	if low {
 		rl.DrawRectangleLinesEx(rl.NewRectangle(2, 2, float32(width-4), float32(height-4)), 4, rl.Fade(rl.Red, .18+.2*pulse))
 	}
+	if player.Status.Poison.Active() {
+		poisonPulse := float32(.5 + .5*math.Sin(float64(now.UnixMilli())*.006))
+		rl.DrawRectangleLinesEx(rl.NewRectangle(0, 0, float32(width), float32(height)), 8, rl.Fade(PoisonColor, .12+.14*poisonPulse))
+	}
 	hurt := now.Sub(f.hurtAt).Seconds()
 	if hurt >= 0 && hurt < .3 {
 		fade := float32(1 - hurt/.3)

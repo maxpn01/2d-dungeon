@@ -60,7 +60,7 @@ func (w *World) advanceMobMelee(actors []eater) {
 			}
 		}
 		for _, target := range actors {
-			if target.player == nil || target.dead() || target.protected() {
+			if target.player == nil || target.dead() {
 				continue
 			}
 			if dashAttack {
@@ -88,6 +88,12 @@ func (w *World) advanceMobMelee(actors []eater) {
 					ai.meleeHits = make(map[string]bool)
 				}
 				ai.meleeHits[target.id] = true
+			}
+			if ai.Type == ForestSnake {
+				target.status().ApplyPoison(PoisonStrength(ai.Stats, len(ai.Segments)), parameters.SnakePoisonSeconds)
+			}
+			if target.protected() {
+				continue
 			}
 			hp := target.stats.HP
 			target.stats.HP = max(0, hp-ai.Stats.Damage*attack.DamageMultiplier)
