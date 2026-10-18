@@ -28,6 +28,8 @@ func (w *World) ReadTestingInput() bool {
 		w.simulation.TestingWarp(worldmap.ColumnHall)
 	case rl.IsKeyPressed(rl.KeyF4):
 		w.simulation.TestingWarp(worldmap.TeleportSanctum)
+	case rl.IsKeyPressed(rl.KeyF5) && (rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)):
+		w.simulation.TestingWarp(worldmap.EmberHollow)
 	case rl.IsKeyPressed(rl.KeyF5):
 		w.simulation.TestingWarp(worldmap.Forest)
 	case rl.IsKeyPressed(rl.KeyF6):
@@ -77,7 +79,7 @@ func (w *World) drawTesting(width, height int32) {
 		"F2 Reset + enter orb vault",
 		"F8 Reset + enter gate courtyard",
 		"F9 Reset + enter haunted library",
-		"F3 Dungeon   F4 Descent + orb   F5 Floor 2",
+		"F3 Dungeon   F4 Descent + orb   F5 Floor 2   Shift+F5 Floor 3",
 		"F6 Cycle level   F7 Toggle wings",
 		"F10 Reset hydra + enter cave   F11 Hydra +3 Lv",
 		"God mode: no damage, unlimited mana",

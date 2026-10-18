@@ -2,6 +2,7 @@ package game
 
 import (
 	"2d-dungeon/internal/display"
+	maprender "2d-dungeon/internal/rendering/worldmap"
 	"2d-dungeon/internal/ui"
 )
 
@@ -36,7 +37,7 @@ func (g *Game) startSinglePlayer() {
 }
 
 func (g *Game) cameraFollowPlayer() {
-	g.camera.Target = g.world.Center()
+	g.camera.Target, _ = maprender.EmberCameraTarget(g.world.Center(), g.window.width, g.window.height)
 }
 
 func (g *Game) drawFullMap() {

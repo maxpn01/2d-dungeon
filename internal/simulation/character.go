@@ -31,6 +31,11 @@ func AdvancePlayer(p *Player, input Direction, dt float64) {
 	if p.Combat.StompRemaining > 0 && !p.Stats.Mob {
 		return
 	}
+	if SideView(p.X, p.Y) {
+		advanceSideViewPlayer(p, input, dt)
+		return
+	}
+	p.FallSpeed, p.Grounded = 0, false
 	if p.HasWings {
 		advanceWingPlayer(p, input, dt)
 		return

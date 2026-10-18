@@ -66,6 +66,9 @@ func (e *Exploration) Reveal(p rl.Vector2, hasWings, flying bool) {
 }
 
 func (e *Exploration) ActorVisible(x, y, size float64) bool {
+	if mapdata.Default().BodyFloor(x, y, size) == mapdata.ThirdFloor {
+		return true
+	}
 	for _, area := range e.hiddenAreas {
 		if area.Overlaps(physics.Square(x, y, max(size, 1))) {
 			return false

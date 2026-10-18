@@ -23,6 +23,7 @@ func (c *controls) read(toWorld func(rl.Vector2) rl.Vector2, center rl.Vector2, 
 		Interact: rl.IsKeyPressed(rl.KeyE),
 		Boost:    rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift),
 		Dash:     rl.IsKeyPressed(rl.KeyLeftShift) || rl.IsKeyPressed(rl.KeyRightShift),
+		Jump:     rl.IsKeyDown(rl.KeySpace),
 		AimX:     float64(aim.X), AimY: float64(aim.Y),
 	}
 	if rl.IsKeyDown(rl.KeyW) {

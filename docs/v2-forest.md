@@ -126,6 +126,14 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 - The location bar names the cave "II / THE SERPENT DEN".
 - Testing playground: F10 resets the hydra and places the player inside the cave, and F11 gives the hydra 3 levels. `forestshot` with `SHOT_HYDRA=<ticks>` runs the real simulation in the cave and takes a screenshot. In this mode the two cell arguments set how close the player walks (shooting when above 0), and the target: 1 aims at the middle head and -1 does not shoot.
 
+### Floor 3: the Ember Hollow
+- Floor 3 is one small room, `worldmap.EmberHollow`, drawn by hand as a terrain grid in `default.go`: `#` rock for the ground and walls, `B` basalt for floating ledges (blocks movement and shots, not sight), `.` open air.
+- It is played in side view, like a classic 2D platformer, unlike the top-down floor 1 and the tilted 3D forest. While the player is on floor 3, gravity pulls them down, A/D walk (Shift sprints with mana like boost), and W or Space jumps; releasing early cuts the jump short. Balance numbers are the `Side*` values in `parameters.go` (`simulation/side_view.go`).
+- The camera frames the room with the ground in the lower part of the screen. Shooting and mouse aim work as usual.
+- The renderer is `rendering/worldmap/ember.go`: a crimson sky with drifting ash clouds, parallax ridges, and an animated volcano in the background with a smoke plume, lava streams down its face and an eruption every 7 s that throws a lava fountain and lava bombs. Ledges drip lava, the ground glows with magma veins, and embers rise over the screen. There is no fog of war on floor 3.
+- The arrival portal stands on the ground as a glowing arch; [E] returns to floor 2.
+- Testing playground: Shift+F5 warps to floor 3. `forestshot` with `SHOT_EMBER=<ticks>` simulates the room and takes a screenshot: the first cell argument is the walk direction (-1/0/1) and the second jumps for half of every N ticks. `SHOT_TIME=<seconds>` shifts the volcano animation.
+
 ## Milestones
 Build in this order. Each milestone should be playable on its own.
 
@@ -137,7 +145,7 @@ Build in this order. Each milestone should be playable on its own.
 6. **More snake attacks** *(in playtest)*: spit and fast slither.
 7. **Forest perks** *(in playtest)*: the forest pool, ranks and the mixed offers at floor 2 statues.
 8. **Cave and hydra** *(in playtest)*: cave clues, the cave arena, the hydra fight, head regrowth, feeding and hunting.
-9. **Floor 3:** a small volcanic room reached through the hydra's teleport circle, ending the run with the win screen.
+9. **Floor 3** *(in playtest)*: a small volcanic room reached through the hydra's teleport circle, ending the run with the win screen.
 
 ## Out of scope for v2
 - Forest-specific food.

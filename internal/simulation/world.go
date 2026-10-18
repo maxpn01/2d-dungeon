@@ -15,6 +15,7 @@ type Direction struct {
 	Interact   bool
 	Boost      bool
 	Dash       bool
+	Jump       bool
 	AimX, AimY float64
 	X, Y       float64
 }
@@ -42,6 +43,8 @@ type Player struct {
 	ShotsFired     uint64
 	Character      appearance.Character
 	TeleportCharge float64
+	FallSpeed      float64
+	Grounded       bool
 	portalCooldown int
 	Combat         CombatState
 	Status         StatusEffects

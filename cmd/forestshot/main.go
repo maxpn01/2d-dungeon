@@ -70,6 +70,13 @@ func main() {
 			camera.Target = rl.NewVector2(float32(x), float32(y))
 			ctx.Camera = camera
 		}
+		if steps, err := strconv.Atoi(os.Getenv("SHOT_EMBER")); err == nil {
+			snapshot, player = emberSnapshot(steps, cx, cy)
+			maprender.EmberTimeOffset, _ = strconv.ParseFloat(os.Getenv("SHOT_TIME"), 64)
+			center := rl.NewVector2(float32(player.X+parameters.PlayerSize/2), float32(player.Y+parameters.PlayerSize/2))
+			camera.Target, _ = maprender.EmberCameraTarget(center, width, height)
+			ctx.Camera = camera
+		}
 		feedback := &rendering.Feedback{}
 		if os.Getenv("SHOT_HIT") != "" && len(ais) > 0 {
 			feedback.Observe(time.Now(), simulation.Snapshot{Player: player, AIs: ais})
@@ -134,5 +141,20 @@ func hydraSnapshot(steps, approach, sever int) (simulation.Snapshot, simulation.
 		w.Step(time.Now())
 	}
 	s := w.Snapshot()
+	return s, s.Player
+}
+
+func emberSnapshot(steps, move, jumpEvery int) (simulation.Snapshot, simulation.Player) {
+	w := simulation.NewWorld()
+	w.EnableTesting()
+	w.TestingWarp(worldmap.EmberHollow)
+	for tick := range steps {
+		d := simulation.Direction{X: float64(max(-1, min(1, move))), AimX: 1}
+		d.Jump = jumpEvery > 0 && tick%jumpEvery < jumpEvery/2
+		w.Input(d)
+		w.Step(time.Now())
+	}
+	s := w.Snapshot()
+	fmt.Println("player", s.Player.X, s.Player.Y, "grounded", s.Player.Grounded)
 	return s, s.Player
 }

@@ -28,15 +28,16 @@ const (
 	FallenLog Terrain = 'L'
 	Ruin      Terrain = 'R'
 	Menhir    Terrain = 'M'
+	Basalt    Terrain = 'B'
 )
 
 func (t Terrain) Valid() bool {
-	return strings.IndexByte(".,\"TF~#:OLRM", byte(t)) >= 0
+	return strings.IndexByte(".,\"TF~#:OLRMB", byte(t)) >= 0
 }
 
 func (t Terrain) Blocks() bool {
 	switch t {
-	case Tree, FruitTree, Water, Stump, FallenLog, Ruin, Menhir:
+	case Tree, FruitTree, Water, Stump, FallenLog, Ruin, Menhir, Basalt:
 		return true
 	}
 	return false

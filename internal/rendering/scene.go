@@ -48,6 +48,16 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		scene.Map.DrawLibraryHUD(ctx, scene.Snapshot, scene.Local)
 		return
 	}
+	if scene.Map.InEmberHollow() {
+		scene.Map.DrawEmberBackdrop(ctx)
+		rl.BeginMode2D(ctx.Camera)
+		scene.Map.DrawEmberHollow(ctx)
+		DrawSidePortals()
+		drawSceneEntities(scene, false)
+		rl.EndMode2D()
+		scene.Map.DrawEmberOverlay(ctx)
+		return
+	}
 	rl.BeginMode2D(ctx.Camera)
 	scene.Map.Draw(ctx, scene.Snapshot, scene.Local)
 	scene.Map.DrawVaultArrowWarning(scene.Snapshot)
@@ -139,7 +149,9 @@ func drawSceneEntities(scene Scene, forest bool) {
 		}, scene.Feedback, &scene.Map.Exploration)
 	}
 	DrawProjectiles(scene.PreviousProjectiles, scene.Projectiles, scene.ProjectileAlpha, &scene.Map.Exploration)
-	DrawPortals(scene.Local, scene.Snapshot, &scene.Map.Exploration)
+	if !scene.Map.InEmberHollow() {
+		DrawPortals(scene.Local, scene.Snapshot, &scene.Map.Exploration)
+	}
 	scene.Map.DrawVaultFire(scene.Snapshot)
 	DrawTeleportCharge(scene.Player.X, scene.Player.Y, scene.Player.TeleportCharge)
 	scene.Feedback.Draw(time.Now(), &scene.Map.Exploration, !forest)

@@ -344,6 +344,14 @@ var PerkPenalties = [14][6]float64{
 
 const PortalSeconds = 1.8
 
+// Ember hollow (floor 3), played in side view.
+const (
+	SideGravity      = 2600.0
+	SideJumpSpeed    = 1000.0
+	SideJumpCutSpeed = 420.0
+	SideMaxFallSpeed = 1500.0
+)
+
 // Display and feedback.
 const (
 	WindowWidth                      = 1440
