@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"raylib-2d-sandbox/internal/simulation"
+	"2d-dungeon/internal/simulation"
 )
 
 type Profile struct {
@@ -57,5 +57,5 @@ func settingsPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "raylib-2d-sandbox", "settings.json"), nil
+	return filepath.Join(dir, "2d-dungeon", "settings.json"), nil
 }

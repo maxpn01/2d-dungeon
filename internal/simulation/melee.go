@@ -2,8 +2,9 @@ package simulation
 
 import (
 	"math"
-	"raylib-2d-sandbox/internal/parameters"
-	"raylib-2d-sandbox/internal/physics"
+
+	"2d-dungeon/internal/parameters"
+	"2d-dungeon/internal/physics"
 )
 
 func meleeIntercept(target *playerState, seconds float64) physics.Vector {

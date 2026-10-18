@@ -1,9 +1,9 @@
 package game
 
 import (
-	"raylib-2d-sandbox/internal/rendering"
-	"raylib-2d-sandbox/internal/rendering/primitives"
-	"raylib-2d-sandbox/internal/ui"
+	"2d-dungeon/internal/rendering"
+	"2d-dungeon/internal/rendering/primitives"
+	"2d-dungeon/internal/ui"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

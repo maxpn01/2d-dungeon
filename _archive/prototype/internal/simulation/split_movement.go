@@ -1,7 +1,7 @@
 package simulation
 
 import (
-	"raylib-2d-sandbox/internal/parameters"
+	"2d-dungeon/internal/parameters"
 )
 
 const CircleSplitSpeedMultiplier = parameters.CircleSplitSpeedMultiplier

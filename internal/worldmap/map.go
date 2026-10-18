@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"raylib-2d-sandbox/internal/physics"
+	"2d-dungeon/internal/physics"
 )
 
 type FeedingPatch struct {

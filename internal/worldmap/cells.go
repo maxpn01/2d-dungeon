@@ -1,6 +1,6 @@
 package worldmap
 
-import "raylib-2d-sandbox/internal/physics"
+import "2d-dungeon/internal/physics"
 
 type Cell struct{ X, Y int }
 type CellRect struct{ X, Y, Width, Height int }

@@ -5,10 +5,10 @@ import (
 	"image/color"
 	"math"
 
-	"raylib-2d-sandbox/internal/preferences"
-	"raylib-2d-sandbox/internal/rendering"
-	"raylib-2d-sandbox/internal/rendering/primitives"
-	"raylib-2d-sandbox/internal/simulation"
+	"2d-dungeon/internal/preferences"
+	"2d-dungeon/internal/rendering"
+	"2d-dungeon/internal/rendering/primitives"
+	"2d-dungeon/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

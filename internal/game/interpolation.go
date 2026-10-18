@@ -1,8 +1,8 @@
 package game
 
 import (
-	"raylib-2d-sandbox/internal/simulation"
-	"raylib-2d-sandbox/internal/worldmap"
+	"2d-dungeon/internal/simulation"
+	"2d-dungeon/internal/worldmap"
 )
 
 func (w *World) interpolateActors() {

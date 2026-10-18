@@ -4,8 +4,8 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"raylib-2d-sandbox/internal/parameters"
-	"raylib-2d-sandbox/internal/worldmap"
+	"2d-dungeon/internal/parameters"
+	"2d-dungeon/internal/worldmap"
 )
 
 func (w *World) respawnDenAI(previous aiState) aiState {

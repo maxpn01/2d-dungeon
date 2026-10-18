@@ -5,9 +5,9 @@ import (
 	"math"
 	"sort"
 
-	"raylib-2d-sandbox/internal/parameters"
-	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/worldmap"
+	"2d-dungeon/internal/parameters"
+	"2d-dungeon/internal/physics"
+	"2d-dungeon/internal/worldmap"
 )
 
 const (

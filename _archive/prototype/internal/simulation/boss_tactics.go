@@ -3,7 +3,7 @@ package simulation
 import (
 	"math"
 
-	"raylib-2d-sandbox/internal/parameters"
+	"2d-dungeon/internal/parameters"
 )
 
 const (

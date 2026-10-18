@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"raylib-2d-sandbox/internal/physics"
+	"2d-dungeon/internal/physics"
 )
 
 func (m *Map) Cover(x, y int) bool { return m.cover[[2]int{x, y}] }

@@ -4,9 +4,9 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"raylib-2d-sandbox/internal/parameters"
-	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/worldmap"
+	"2d-dungeon/internal/parameters"
+	"2d-dungeon/internal/physics"
+	"2d-dungeon/internal/worldmap"
 )
 
 func (w *World) avoidPlayerShots(ai *aiState, input Direction) Direction {

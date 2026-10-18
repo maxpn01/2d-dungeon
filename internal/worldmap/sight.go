@@ -3,7 +3,7 @@ package worldmap
 import (
 	"math"
 
-	"raylib-2d-sandbox/internal/physics"
+	"2d-dungeon/internal/physics"
 )
 
 var steps = [][2]int{{0, -1}, {-1, 0}, {1, 0}, {0, 1}}

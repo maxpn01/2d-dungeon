@@ -1,7 +1,7 @@
 package game
 
 import (
-	"raylib-2d-sandbox/internal/simulation"
+	"2d-dungeon/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"raylib-2d-sandbox/internal/game"
+	"2d-dungeon/internal/game"
 )
 
 func main() {

@@ -4,8 +4,8 @@ import (
 	"math"
 	"math/bits"
 
-	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/worldmap"
+	"2d-dungeon/internal/physics"
+	"2d-dungeon/internal/worldmap"
 )
 
 const LibraryTomeCount = 3

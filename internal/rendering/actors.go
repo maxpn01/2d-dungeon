@@ -3,9 +3,9 @@ package rendering
 import (
 	"image/color"
 
-	"raylib-2d-sandbox/internal/parameters"
-	"raylib-2d-sandbox/internal/rendering/primitives"
-	"raylib-2d-sandbox/internal/simulation"
+	"2d-dungeon/internal/parameters"
+	"2d-dungeon/internal/rendering/primitives"
+	"2d-dungeon/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

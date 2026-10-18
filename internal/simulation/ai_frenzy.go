@@ -3,8 +3,8 @@ package simulation
 import (
 	"math"
 
-	"raylib-2d-sandbox/internal/physics"
-	"raylib-2d-sandbox/internal/worldmap"
+	"2d-dungeon/internal/physics"
+	"2d-dungeon/internal/worldmap"
 )
 
 func (w *World) frenzyPosition(ai *aiState, carrier *playerState) physics.Vector {

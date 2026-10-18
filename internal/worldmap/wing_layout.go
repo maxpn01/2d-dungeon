@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 
-	"raylib-2d-sandbox/internal/physics"
+	"2d-dungeon/internal/physics"
 )
 
 func wingRoom(layout Layout, id string) (Layout, string, error) {

@@ -3,7 +3,7 @@ package worldmap
 import (
 	"time"
 
-	"raylib-2d-sandbox/internal/parameters"
+	"2d-dungeon/internal/parameters"
 )
 
 const (

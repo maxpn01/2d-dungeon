@@ -1,6 +1,6 @@
 package worldmap
 
-import "raylib-2d-sandbox/internal/physics"
+import "2d-dungeon/internal/physics"
 
 type Exploration struct {
 	world    *Map

@@ -1,8 +1,8 @@
 package game
 
 import (
-	"raylib-2d-sandbox/internal/display"
-	"raylib-2d-sandbox/internal/ui"
+	"2d-dungeon/internal/display"
+	"2d-dungeon/internal/ui"
 )
 
 func (g *Game) enterSinglePlayer() screen {

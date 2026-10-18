@@ -5,7 +5,7 @@ import (
 	"math"
 	"runtime"
 
-	"raylib-2d-sandbox/internal/parameters"
+	"2d-dungeon/internal/parameters"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

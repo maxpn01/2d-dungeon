@@ -3,7 +3,7 @@ package simulation
 import (
 	"math"
 
-	"raylib-2d-sandbox/internal/worldmap"
+	"2d-dungeon/internal/worldmap"
 )
 
 func (w *World) advanceFood() {

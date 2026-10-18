@@ -5,7 +5,7 @@ import (
 	"math/rand/v2"
 	"slices"
 
-	"raylib-2d-sandbox/internal/parameters"
+	"2d-dungeon/internal/parameters"
 )
 
 type PerkFamily int

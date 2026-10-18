@@ -3,7 +3,7 @@ package worldmap
 import (
 	"math"
 
-	mapdata "raylib-2d-sandbox/internal/worldmap"
+	mapdata "2d-dungeon/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

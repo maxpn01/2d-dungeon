@@ -4,7 +4,7 @@ import (
 	"math"
 	"sort"
 
-	"raylib-2d-sandbox/internal/physics"
+	"2d-dungeon/internal/physics"
 )
 
 type position struct{ x, y float64 }

@@ -1,6 +1,6 @@
 package display
 
-import "raylib-2d-sandbox/internal/parameters"
+import "2d-dungeon/internal/parameters"
 
 var width, height = int32(parameters.WindowWidth), int32(parameters.WindowHeight)
 

@@ -3,7 +3,7 @@ package worldmap
 import (
 	"math"
 
-	"raylib-2d-sandbox/internal/physics"
+	"2d-dungeon/internal/physics"
 )
 
 func (m *Map) CanFly(body physics.Rect) bool {

@@ -3,7 +3,7 @@ package worldmap
 import (
 	"slices"
 
-	"raylib-2d-sandbox/internal/physics"
+	"2d-dungeon/internal/physics"
 )
 
 func (m *Map) SecretDoors() []SecretDoor { return append([]SecretDoor(nil), m.layout.SecretDoors...) }

@@ -1,4 +1,4 @@
-module raylib-2d-sandbox
+module 2d-dungeon
 
 go 1.26.2
 

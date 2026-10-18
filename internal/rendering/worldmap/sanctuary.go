@@ -3,8 +3,8 @@ package worldmap
 import (
 	"math"
 
-	"raylib-2d-sandbox/internal/rendering/primitives"
-	mapdata "raylib-2d-sandbox/internal/worldmap"
+	"2d-dungeon/internal/rendering/primitives"
+	mapdata "2d-dungeon/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
