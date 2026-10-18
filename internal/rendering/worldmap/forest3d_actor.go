@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"2d-dungeon/internal/rendering/primitives"
+	"2d-dungeon/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -132,4 +133,20 @@ func (f *forestRenderer) drawActorLabels(poses []actorPose, width, height int32)
 		size := primitives.MeasureText(p.Label, 18)
 		primitives.DrawTextAt(p.Label, rl.NewVector2(at.X-float32(size)/2, at.Y-18), 18, rl.RayWhite)
 	}
+}
+
+func (f *forestRenderer) pickActor(camera rl.Camera3D, screen rl.Vector2, width, height int32) (rl.Vector2, bool) {
+	ray := rl.GetScreenToWorldRayEx(screen, camera, width, height)
+	best, found := float32(math.Inf(1)), false
+	var target rl.Vector2
+	for _, p := range f.lastPoses {
+		if p.ID == simulation.PlayerID || p.Height <= 0 {
+			continue
+		}
+		box := rl.NewBoundingBox(v3(p.Center.X-p.Width/2, p.lift, p.Center.Y-p.Depth/2), v3(p.Center.X+p.Width/2, p.lift+p.Height, p.Center.Y+p.Depth/2))
+		if hit := rl.GetRayCollisionBox(ray, box); hit.Hit && hit.Distance < best {
+			best, target, found = hit.Distance, p.Center, true
+		}
+	}
+	return target, found
 }

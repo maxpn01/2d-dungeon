@@ -55,6 +55,7 @@ type forestRenderer struct {
 	fogPixels     []color.RGBA
 	fogOrigin     [2]int
 	camera        rl.Camera3D
+	lastPoses     []actorPose
 	overlayMin    rl.Vector2
 	overlayMax    rl.Vector2
 	cube          rl.Mesh
@@ -91,7 +92,14 @@ func groundPoint(camera rl.Camera3D, screen rl.Vector2, width, height int32) (rl
 
 func (m *Map) ScreenToWorld(camera rl.Camera2D, width, height int32, screen rl.Vector2) rl.Vector2 {
 	if m.InForest() {
-		if p, ok := groundPoint(ForestCamera(camera, width, height), screen, width, height); ok {
+		camera3D := ForestCamera(camera, width, height)
+		if forest3D.built {
+			camera3D = forest3D.camera
+		}
+		if p, ok := forest3D.pickActor(camera3D, screen, width, height); ok {
+			return p
+		}
+		if p, ok := groundPoint(camera3D, screen, width, height); ok {
 			return p
 		}
 	}
@@ -106,6 +114,7 @@ func (m *Map) DrawForest3D(ctx primitives.Context, focus rl.Vector2, actors []Fo
 	m.Exploration.advanceFog()
 	f.camera = ForestCamera(ctx.Camera, ctx.WindowWidth, ctx.WindowHeight)
 	poses := f.poses(actors)
+	f.lastPoses = poses
 	f.drawOverlay(ctx, focus, drawFlat)
 	f.updateFog(m, focus)
 	rl.ClearBackground(rl.NewColor(10, 14, 24, 255))
