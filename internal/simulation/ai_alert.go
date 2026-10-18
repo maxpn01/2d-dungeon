@@ -9,14 +9,26 @@ import (
 )
 
 func (w *World) alertAI(ai *aiState, shot Projectile) {
-	if w.playerWithID(shot.Owner) == nil || ai.patrol.returning {
+	attacker := w.playerWithID(shot.Owner)
+	if attacker == nil {
 		return
+	}
+	if ai.patrol.returning {
+		if ai.den.ID == "" || !withinLeash(ai, attacker.X, attacker.Y) {
+			return
+		}
+		ai.patrol.returning = false
 	}
 	ai.alert.aggressorID = shot.Owner
 	ai.alert.x, ai.alert.y = shot.originX, shot.originY
 	ai.alert.until = w.tick + parameters.AIAlertSeconds*parameters.TickRate
 	ai.patrol.pause, ai.patrol.ticks = 0, 0
 	ai.Behavior = BehaviorInvestigating
+}
+
+func withinLeash(ai *aiState, x, y float64) bool {
+	homeX, homeY := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, parameters.AISize)
+	return math.Hypot(x-homeX, y-homeY) <= parameters.AIChaseLeash
 }
 
 func (w *World) aiCanSeePlayer(ai *aiState, p *playerState, radius float64) bool {
@@ -70,6 +82,7 @@ func (w *World) investigateAI(ai *aiState) (Direction, bool) {
 			return ai.navigateMap(geometry, x, y), true
 		}
 		ai.patrol.returning = false
+		ai.Stats.HP = ai.Stats.MaxHP()
 	}
 	return Direction{}, false
 }
