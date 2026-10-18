@@ -34,7 +34,8 @@ type Player struct {
 	VaultGateOpen  float64
 	OpenSecrets    []string
 	HasOrb         bool
-	Escaped        bool
+	FloorCleared   bool
+	FloorClearedAt uint64
 	ActiveStatue   string
 	EntranceGate   EntranceGateState
 	ShotCooldown   float64

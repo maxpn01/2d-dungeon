@@ -1,6 +1,7 @@
 package worldmap
 
 import (
+	"fmt"
 	"slices"
 	"time"
 )
@@ -21,9 +22,23 @@ type Floor int
 const (
 	FirstFloor  Floor = 1
 	SecondFloor Floor = 2
+	ThirdFloor  Floor = 3
 )
 
 const OrbFloor = FirstFloor
+
+func FloorNumeral(floor Floor) string {
+	switch floor {
+	case FirstFloor:
+		return "I"
+	case SecondFloor:
+		return "II"
+	case ThirdFloor:
+		return "III"
+	default:
+		return fmt.Sprint(int(floor))
+	}
+}
 
 type PropKind string
 

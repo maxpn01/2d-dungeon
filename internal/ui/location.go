@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"fmt"
-
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/worldmap"
 
@@ -24,7 +22,7 @@ func DrawLocation(x, y float32, width, height int32) {
 		}
 		for _, r := range worldmap.Default().Rooms() {
 			if x >= float32(r.Area.X*40) && x < float32((r.Area.X+r.Area.Width)*40) && y >= float32(r.Area.Y*40) && y < float32((r.Area.Y+r.Area.Height)*40) {
-				name = floorLabel(r.Floor) + " / " + r.Name
+				name = worldmap.FloorNumeral(r.Floor) + " / " + r.Name
 				if r.HasRole(worldmap.Private) {
 					hint = "The statues guard the north gate. Press E nearby to open it."
 				}
@@ -46,24 +44,13 @@ func DrawLocation(x, y float32, width, height int32) {
 
 	}
 	if room, ok := worldmap.Default().RoomAt(float64(x), float64(y)); ok && room.Floor > worldmap.FirstFloor {
-		name = floorLabel(room.Floor) + " / " + room.Name
+		name = worldmap.FloorNumeral(room.Floor) + " / " + room.Name
 		if len(room.Portals) > 0 {
-			hint = "Press E in the circle to return to floor I."
+			hint = "Press E in a circle to travel between floors."
 		}
 	}
 
 	rl.DrawRectangle(0, height-70, width, 70, rl.Fade(rl.Black, .8))
 	primitives.DrawText(name, 24, height-57, 20, primitives.RuneColor)
 	primitives.DrawText(hint, 24, height-29, 16, rl.LightGray)
-}
-
-func floorLabel(floor worldmap.Floor) string {
-	switch floor {
-	case worldmap.FirstFloor:
-		return "I"
-	case worldmap.SecondFloor:
-		return "II"
-	default:
-		return fmt.Sprint(floor)
-	}
 }

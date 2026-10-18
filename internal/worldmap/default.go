@@ -17,6 +17,9 @@ const (
 	EntranceGate         = "entrance-gate"
 	DescentPortal        = "descent"
 	ReturnPortal         = "return"
+	ForestExitPortal     = "forest-exit"
+	EmberArrivalPortal   = "ember-arrival"
+	EmberHollow          = "floor-three"
 	WestArchive          = "west-archive"
 	WestGallery          = "west-gallery"
 	EastArmory           = "east-armory"
@@ -48,6 +51,7 @@ func DefaultLayout() Layout {
 			crownArena(),
 			teleportSanctum(),
 			feastHall(),
+			emberHollow(),
 			sideRoom(WestArchive, "THE SUNKEN ARCHIVE", Cells(-32, -106, 20, 20), "archive-inscription"),
 			sideRoom(WestGallery, "THE WEST GALLERY", Cells(-32, -134, 20, 20), "column-inscription"),
 			sideRoom(EastArmory, "THE BROKEN ARMORY", Cells(48, -112, 20, 20), "armory-inscription"),
@@ -225,6 +229,19 @@ func feastHall() Room {
 		Floor: SecondFloor,
 		Portals: []Portal{
 			{ID: ReturnPortal, At: At(12, 17), Destination: DescentPortal},
+			{ID: ForestExitPortal, At: At(12, 5), Destination: EmberArrivalPortal},
+		},
+	}
+}
+
+func emberHollow() Room {
+	return Room{
+		ID:    EmberHollow,
+		Name:  "THE EMBER HOLLOW",
+		Area:  Cells(10, -232, 16, 14),
+		Floor: ThirdFloor,
+		Portals: []Portal{
+			{ID: EmberArrivalPortal, At: At(8, 7), Destination: ForestExitPortal},
 		},
 	}
 }

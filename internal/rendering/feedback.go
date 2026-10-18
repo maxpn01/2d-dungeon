@@ -22,7 +22,7 @@ type feedbackActor struct {
 	level              int
 	tint               color.RGBA
 	ai, dead, hidden   bool
-	escaped            bool
+	escaped, won       bool
 	stone              bool
 	recovery           float64
 	maxHP              float64
@@ -65,6 +65,7 @@ type Feedback struct {
 	lowHP         bool
 	localID       string
 	celebrated    bool
+	celebratedWin bool
 	vaultGateOpen float64
 	entranceGate  simulation.EntranceGateState
 	vaultSeals    [4]bool
@@ -148,6 +149,13 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 					playFeedbackSound("completion")
 				}
 			}
+			if actor.won && !actor.dead && existed && !old.won {
+				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, rl.Gold, "completion")
+				if id == f.localID && !f.celebratedWin {
+					f.celebratedWin = true
+					playFeedbackSound("completion")
+				}
+			}
 			if existed && !old.dead && !actor.dead && actor.level > old.level && !actor.ai {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, actor.size, primitives.RuneColor, "level")
 			}
@@ -210,7 +218,7 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
 	actors[p.ID] = feedbackActor{
 		shots: p.ShotsFired,
 		x:     p.X, y: p.Y, size: parameters.PlayerSize, hp: p.Stats.HP, xp: p.Stats.XP, level: p.Stats.Level,
-		tint: primitives.CharacterColor(p.Character), dead: p.Dead, escaped: p.Escaped,
+		tint: primitives.CharacterColor(p.Character), dead: p.Dead, escaped: p.FloorCleared, won: p.ID == snapshot.WinnerID,
 		recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP(),
 	}
 	for _, a := range snapshot.AIs {

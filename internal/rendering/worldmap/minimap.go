@@ -82,6 +82,9 @@ func (v *radarView) begin(m *Map) {
 				if m.floor == mapdata.SecondFloor {
 					tint = forestGrass
 				}
+				if m.floor == mapdata.ThirdFloor {
+					tint = color.RGBA{150, 64, 38, 255}
+				}
 				v.rect(float32(x*parameters.Tile), float32(y*parameters.Tile), parameters.Tile, parameters.Tile, tint)
 			} else if mapdata.Default().Pool(x, y) {
 				v.rect(float32(x*parameters.Tile), float32(y*parameters.Tile), parameters.Tile, parameters.Tile, color.RGBA{23, 58, 71, 255})

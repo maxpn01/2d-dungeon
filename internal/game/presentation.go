@@ -39,9 +39,14 @@ func (p *presentation) draw(ctx primitives.Context, scene rendering.Scene) {
 	ui.DrawPlayer(local, scene.PlayerName, width)
 	p.feedback.DrawCombatOverlay(time.Now(), local, width, height)
 	drawFrenzyAnnouncement(snapshot, local, width)
+	label := ""
+	if local.FloorCleared && snapshot.Tick < local.FloorClearedAt+parameters.FloorBannerSeconds*parameters.TickRate {
+		label = "FLOOR I COMPLETE"
+	}
 	if snapshot.WinnerID != "" {
-		label := "FLOOR I COMPLETE"
-
+		label = "FLOOR II COMPLETE"
+	}
+	if label != "" {
 		panelWidth := primitives.MeasureText(label, 24) + 40
 		rl.DrawRectangle((width-panelWidth)/2, 50, panelWidth, 44, rl.Fade(rl.Black, .85))
 		primitives.DrawCenteredText(label, 60, 24, rl.Gold)

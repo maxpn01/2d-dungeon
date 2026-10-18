@@ -17,7 +17,7 @@ func DrawPortals(local simulation.Player, orb simulation.OrbState, e Visibility)
 		if !e.EntityVisible(float64(pad.X), float64(pad.Y), 0) {
 			continue
 		}
-		activated := orb.Consumed || portal.ID == worldmap.ReturnPortal
+		activated := orb.Consumed || portal.ID != worldmap.DescentPortal
 		active := activated || local.HasOrb
 		tint := rl.Gray
 		label := ""
@@ -25,10 +25,12 @@ func DrawPortals(local simulation.Player, orb simulation.OrbState, e Visibility)
 			tint = primitives.RuneColor
 			label = "[E] ACTIVATE TELEPORT"
 			if activated {
-				label = "[E] TRAVEL TO FLOOR II"
-			}
-			if portal.ID == worldmap.ReturnPortal {
-				label = "[E] RETURN TO FLOOR I"
+				destination, _ := worldmap.Default().Portal(portal.Destination)
+				verb := "TRAVEL TO"
+				if destination.Floor < portal.Floor {
+					verb = "RETURN TO"
+				}
+				label = "[E] " + verb + " FLOOR " + worldmap.FloorNumeral(destination.Floor)
 			}
 		}
 		pulse := float32(.65 + .2*math.Sin(rl.GetTime()*3))

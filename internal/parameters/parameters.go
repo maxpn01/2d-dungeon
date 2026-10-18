@@ -195,6 +195,7 @@ const (
 	WingOverviewMargin               = 3
 	WingWallGlowStrength             = .8
 	ResultsDelaySeconds              = 3
+	FloorBannerSeconds               = 5
 )
 
 const (

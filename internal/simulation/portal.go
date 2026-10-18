@@ -41,14 +41,15 @@ func (w *World) updatePortals() {
 	p.TeleportCharge += parameters.StepSeconds
 	if p.TeleportCharge >= parameters.PortalSeconds {
 		p.X, p.Y = toX-parameters.PlayerSize/2, toY-parameters.PlayerSize/2
-		if portal.ID == worldmap.DescentPortal {
+		if portal.ID == worldmap.DescentPortal && !p.FloorCleared {
 			w.orb.Consumed = true
 			w.releaseOrb(w.orb.Carrier)
-			p.Escaped = true
-			if w.winnerID == "" {
-				w.winnerID = p.ID
-				w.finishedTick = w.tick
-			}
+			p.FloorCleared = true
+			p.FloorClearedAt = w.tick
+		}
+		if destination.Floor == worldmap.ThirdFloor && w.winnerID == "" {
+			w.winnerID = p.ID
+			w.finishedTick = w.tick
 		}
 		p.Combat = CombatState{}
 		p.TeleportCharge = 0

@@ -14,6 +14,9 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 - The return portal on floor 2 still works, so the player can go back to floor 1.
 - The results / win screen moves to the moment the player reaches floor 3.
 - Dying anywhere, including floor 2, restarts the whole run.
+- Clearing floor 1 still plays the completion sound and effect, and shows a "FLOOR I COMPLETE" popup for a few seconds (`parameters.FloorBannerSeconds`).
+- Reaching floor 3 plays the same completion sound and effect, shows a "FLOOR II COMPLETE" popup, and opens the results screen with the same title.
+- Until the hydra exists, floor 2 has a placeholder forest-exit portal to floor 3 that is always active. Milestone 8 replaces it with the hydra's teleport circle.
 
 ### Forest map
 - Replace the current floor 2 room with a much larger forest of winding paths, dense trees and clearings.
@@ -75,7 +78,7 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 ## Milestones
 Build in this order. Each milestone should be playable on its own.
 
-1. **Progression:** the descent portal leads into floor 2 without ending the run; the win screen moves to a floor 3 placeholder.
+1. **Progression** *(done)*: the descent portal leads into floor 2 without ending the run; the win screen moves to a floor 3 placeholder.
 2. **Forest map:** the new layout method, the forest itself, and navigation (minimap, fog of war, AI pathing).
 3. **Basic snake:** segmented body, patrol routes, bite attack, respawn.
 4. **Status effects:** the shared system, poison, and its HUD and visuals.

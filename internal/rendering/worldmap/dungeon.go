@@ -57,9 +57,19 @@ func (m *Map) drawDungeon(ctx primitives.Context) {
 				if id == feastID {
 					c = color.RGBA{33 + tone, 32 + tone, 36 + tone, 255}
 				}
+				if m.floor == mapdata.ThirdFloor {
+					c = color.RGBA{48 + tone, 24 + tone/2, 20, 255}
+				}
 				dungeonRect(px, py, 40, 40, c)
 				dungeonRect(px, py, 40, 1, color.RGBA{43, 49, 57, 255})
 				dungeonRect(px, py, 1, 40, color.RGBA{43, 49, 57, 255})
+				if m.floor == mapdata.ThirdFloor && hash%5 == 0 {
+					glow := float32(.55 + .3*math.Sin(rl.GetTime()*1.8+float64(hash%41)))
+					a := rl.NewVector2(float32(px+6+int(hash%12)), float32(py+8+int(hash>>4)%10))
+					b := rl.NewVector2(a.X+14, a.Y+10+float32(hash>>8%8))
+					rl.DrawLineEx(a, b, 2, rl.Fade(color.RGBA{255, 112, 38, 255}, glow))
+					rl.DrawCircleGradient(b, 10, rl.Fade(color.RGBA{255, 92, 30, 255}, .25*glow), rl.Blank)
+				}
 				if (x == 17 || x == 18) && id == 1 && y >= -24 {
 					dungeonRect(px+4, py+3, 32, 34, color.RGBA{47, 52, 58, 255})
 					dungeonRect(px+7, py+6, 26, 1, color.RGBA{69, 70, 66, 255})

@@ -31,7 +31,7 @@ func (p *ResultsPanel) Draw(snapshot simulation.Snapshot, local simulation.Playe
 	y := height/2 - 245
 	rl.DrawRectangle(0, 0, width, height, rl.Fade(rl.Black, .65))
 	rl.DrawRectangle((width-640)/2, y-24, 640, 510, rl.NewColor(18, 22, 28, 255))
-	title, tint := "FLOOR I COMPLETE", rl.Gold
+	title, tint := "FLOOR II COMPLETE", rl.Gold
 
 	primitives.DrawCenteredText(title, y, 36, tint)
 	primitives.DrawCenteredText("You discovered the way to the next floor.", y+52, 20, rl.RayWhite)

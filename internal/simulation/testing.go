@@ -157,7 +157,7 @@ func (w *World) TestingWarp(roomID string) bool {
 	p.velocityX, p.velocityY = 0, 0
 	p.VaultGateOpen = w.orb.GateOpen
 	p.OpenSecrets = w.openSecrets
-	p.Escaped = false
+	p.FloorCleared, p.FloorClearedAt = false, 0
 	w.winnerID, w.finishedTick = "", 0
 	w.projectiles = nil
 	w.refillTestingPlayer(p)
