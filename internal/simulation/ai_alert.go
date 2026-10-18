@@ -9,13 +9,13 @@ import (
 )
 
 func (w *World) alertAI(ai *aiState, shot Projectile) {
-	if w.playerWithID(shot.Owner) == nil || ai.returning {
+	if w.playerWithID(shot.Owner) == nil || ai.patrol.returning {
 		return
 	}
-	ai.aggressorID = shot.Owner
-	ai.alertX, ai.alertY = shot.originX, shot.originY
-	ai.alertUntil = w.tick + parameters.AIAlertSeconds*parameters.TickRate
-	ai.patrolPause, ai.patrolTicks = 0, 0
+	ai.alert.aggressorID = shot.Owner
+	ai.alert.x, ai.alert.y = shot.originX, shot.originY
+	ai.alert.until = w.tick + parameters.AIAlertSeconds*parameters.TickRate
+	ai.patrol.pause, ai.patrol.ticks = 0, 0
 	ai.Behavior = BehaviorInvestigating
 }
 
@@ -39,10 +39,10 @@ func (w *World) aiWithinTerritory(ai *aiState) bool {
 	if ai.Type == Sentinel {
 		return geometry.RoomContains(ai.den.RoomID, body)
 	}
-	if w.tick < ai.alertUntil || ai.returning {
+	if w.tick < ai.alert.until || ai.patrol.returning {
 		x, y := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, parameters.AISize)
 		sameFloor := geometry.FloorAt(ai.X+parameters.AISize/2, ai.Y+parameters.AISize/2) == geometry.FloorAt(x, y)
-		withinLeash := ai.returning && ai.Behavior == BehaviorReturning || math.Hypot(ai.X-x, ai.Y-y) <= parameters.AIChaseLeash
+		withinLeash := ai.patrol.returning && ai.Behavior == BehaviorReturning || math.Hypot(ai.X-x, ai.Y-y) <= parameters.AIChaseLeash
 		return ai.Y < 0 && sameFloor && withinLeash
 	}
 	return geometry.RoomContains(ai.den.RoomID, body)
@@ -50,26 +50,26 @@ func (w *World) aiWithinTerritory(ai *aiState) bool {
 
 func (w *World) investigateAI(ai *aiState) (Direction, bool) {
 	geometry := w.geometry()
-	if !ai.returning && ai.aggressorID != "" && w.tick < ai.alertUntil {
+	if !ai.patrol.returning && ai.alert.aggressorID != "" && w.tick < ai.alert.until {
 		ai.Behavior = BehaviorInvestigating
-		if math.Hypot(ai.X-ai.alertX, ai.Y-ai.alertY) > 24 {
-			return ai.navigateMap(geometry, ai.alertX, ai.alertY), true
+		if math.Hypot(ai.X-ai.alert.x, ai.Y-ai.alert.y) > 24 {
+			return ai.navigateMap(geometry, ai.alert.x, ai.alert.y), true
 		}
 		ai.Behavior = BehaviorSearching
 		return Direction{}, true
 	}
-	if ai.aggressorID != "" {
-		ai.returning = ai.den.ID != ""
+	if ai.alert.aggressorID != "" {
+		ai.patrol.returning = ai.den.ID != ""
 	}
-	ai.aggressorID = ""
-	ai.alertUntil = 0
-	if ai.returning && ai.den.ID != "" {
+	ai.alert.aggressorID = ""
+	ai.alert.until = 0
+	if ai.patrol.returning && ai.den.ID != "" {
 		x, y := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, parameters.AISize)
 		if math.Hypot(ai.X-x, ai.Y-y) > 24 {
 			ai.Behavior = BehaviorReturning
 			return ai.navigateMap(geometry, x, y), true
 		}
-		ai.returning = false
+		ai.patrol.returning = false
 	}
 	return Direction{}, false
 }
@@ -84,14 +84,14 @@ func (ai *aiState) navigateMap(geometry *worldmap.Map, x, y float64) Direction {
 		return !blocked
 	}
 	if clear(x, y) {
-		ai.navigationActive = false
+		ai.navigation.active = false
 		return ai.approachWaypoint(x, y)
 	}
 	goal := worldmap.WorldCell(x+parameters.AISize/2, y+parameters.AISize/2)
-	if ai.navigationActive && ai.navigationMap == geometry && ai.navigationGoal == goal && math.Hypot(ai.navigationX-ai.X, ai.navigationY-ai.Y) > 1 && clear(ai.navigationX, ai.navigationY) {
-		return ai.approachWaypoint(ai.navigationX, ai.navigationY)
+	if ai.navigation.active && ai.navigation.geometry == geometry && ai.navigation.goal == goal && math.Hypot(ai.navigation.x-ai.X, ai.navigation.y-ai.Y) > 1 && clear(ai.navigation.x, ai.navigation.y) {
+		return ai.approachWaypoint(ai.navigation.x, ai.navigation.y)
 	}
-	ai.navigationActive = false
+	ai.navigation.active = false
 	nextStep := geometry.NextStep
 	if avoidCover {
 		nextStep = geometry.NextStepOutsideCover
@@ -110,9 +110,9 @@ func (ai *aiState) navigateMap(geometry *worldmap.Map, x, y float64) Direction {
 			return Direction{}
 		}
 	}
-	ai.navigationActive = true
-	ai.navigationMap, ai.navigationGoal = geometry, goal
-	ai.navigationX, ai.navigationY = nx, ny
+	ai.navigation.active = true
+	ai.navigation.geometry, ai.navigation.goal = geometry, goal
+	ai.navigation.x, ai.navigation.y = nx, ny
 	return ai.approachWaypoint(nx, ny)
 }
 

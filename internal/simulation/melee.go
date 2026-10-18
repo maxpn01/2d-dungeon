@@ -64,13 +64,13 @@ func (w *World) advanceMobMelee(actors []eater) {
 				continue
 			}
 			if dashAttack {
-				if ai.sentinelDashHits[target.id] || !w.sentinelDashContact(ai, start, target) {
+				if ai.sentinel.dashHits[target.id] || !w.sentinelDashContact(ai, start, target) {
 					continue
 				}
-				if ai.sentinelDashHits == nil {
-					ai.sentinelDashHits = make(map[string]bool)
+				if ai.sentinel.dashHits == nil {
+					ai.sentinel.dashHits = make(map[string]bool)
 				}
-				ai.sentinelDashHits[target.id] = true
+				ai.sentinel.dashHits[target.id] = true
 			} else {
 				if ai.meleeHits[target.id] {
 					continue

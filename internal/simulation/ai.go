@@ -56,48 +56,75 @@ type AI struct {
 }
 
 type aiState struct {
-	meleeHits                    map[string]bool
-	sentinelDashHits             map[string]bool
-	sentinelMoveX, sentinelMoveY float64
-	shotTargetID                 string
-	aimTargetID                  string
-	aimSince                     uint64
-	aimLastSeen                  uint64
-	aimReady                     bool
-	spawnMaxHP                   float64
-	frenzyBase                   Stats
-	orbTargetID                  string
-	aggressorID                  string
-	alertUntil                   uint64
-	alertX, alertY               float64
-	shotCooldown                 float64
 	AI
-	den                        worldmap.Den
-	attackCooldown             int
-	returning                  bool
-	patrolX                    float64
-	patrolY                    float64
-	patrolTicks                int
-	patrolPause                int
-	respawnTick                uint64
-	evadeTicks                 int
-	evadeDirection             Direction
-	shotDodgeReactionTicks     int
-	shotDodgeCooldown          int
-	strafeDirection            float64
-	strafeUntil                uint64
-	strafeTurnUntil            uint64
-	shooterLastInput           Direction
-	shooterSightUntil          uint64
-	shooterMoveX, shooterMoveY float64
-	shooterRangeMode           int
-	navigationActive           bool
-	navigationX, navigationY   float64
-	navigationGoal             [2]int
-	navigationMap              *worldmap.Map
-	mobChargeCooldown          int
-	deaths                     int
-	perkMilestones             int
+	den               worldmap.Den
+	respawnTick       uint64
+	spawnMaxHP        float64
+	deaths            int
+	perkMilestones    int
+	frenzyBase        Stats
+	orbTargetID       string
+	shotTargetID      string
+	shotCooldown      float64
+	attackCooldown    int
+	mobChargeCooldown int
+	meleeHits         map[string]bool
+	patrol            patrolState
+	alert             alertState
+	navigation        navigationState
+	aim               aimState
+	dodge             dodgeState
+	shooter           shooterState
+	sentinel          sentinelState
+}
+
+type patrolState struct {
+	returning bool
+	x, y      float64
+	ticks     int
+	pause     int
+}
+
+type alertState struct {
+	aggressorID string
+	until       uint64
+	x, y        float64
+}
+
+type navigationState struct {
+	active   bool
+	x, y     float64
+	goal     [2]int
+	geometry *worldmap.Map
+}
+
+type aimState struct {
+	targetID string
+	since    uint64
+	lastSeen uint64
+	ready    bool
+}
+
+type dodgeState struct {
+	evadeTicks     int
+	evadeDirection Direction
+	reactionTicks  int
+	cooldown       int
+}
+
+type shooterState struct {
+	strafeDirection float64
+	strafeUntil     uint64
+	strafeTurnUntil uint64
+	lastInput       Direction
+	sightUntil      uint64
+	moveX, moveY    float64
+	rangeMode       int
+}
+
+type sentinelState struct {
+	dashHits     map[string]bool
+	moveX, moveY float64
 }
 
 func (w *World) newDenAI(den worldmap.Den) aiState {
@@ -160,9 +187,9 @@ func (w *World) updateAIs() {
 		ai.X, ai.Y, ai.Stats, ai.Combat = actor.X, actor.Y, actor.Stats, actor.Combat
 		if worldmap.Default().PrivateGateCrossed(oldX, oldY, ai.X, ai.Y, parameters.AISize) || ai.den.ID != "" && !w.aiWithinTerritory(ai) {
 			ai.X, ai.Y = oldX, oldY
-			if ai.aggressorID != "" {
-				ai.aggressorID, ai.alertUntil = "", 0
-				ai.returning = true
+			if ai.alert.aggressorID != "" {
+				ai.alert.aggressorID, ai.alert.until = "", 0
+				ai.patrol.returning = true
 				ai.Behavior = BehaviorReturning
 			}
 		}
@@ -186,11 +213,11 @@ func (w *World) aiIntent(ai *aiState) Direction {
 		return d
 	}
 	if ai.orbTargetID != "" {
-		ai.returning = true
-		ai.aggressorID, ai.alertUntil = "", 0
+		ai.patrol.returning = true
+		ai.alert.aggressorID, ai.alert.until = "", 0
 	}
 	ai.orbTargetID = ""
-	if ai.returning || ai.aggressorID != "" && w.tick >= ai.alertUntil {
+	if ai.patrol.returning || ai.alert.aggressorID != "" && w.tick >= ai.alert.until {
 		if d, returning := w.investigateAI(ai); returning {
 			return d
 		}
@@ -207,14 +234,14 @@ func (w *World) aiIntent(ai *aiState) Direction {
 		length := math.Hypot(dx, dy)
 		d := Direction{AimX: dx / max(1, length), AimY: dy / max(1, length), Shoot: true}
 		ai.Behavior = BehaviorAttacking
-		if ai.aggressorID != "" && w.tick < ai.alertUntil {
+		if ai.alert.aggressorID != "" && w.tick < ai.alert.until {
 			movement, _ := w.investigateAI(ai)
 			d.X, d.Y = movement.X, movement.Y
 		}
 		return d
 	}
-	if ai.Type == DungeonShooter && w.tick < ai.shooterSightUntil {
-		input := ai.shooterLastInput
+	if ai.Type == DungeonShooter && w.tick < ai.shooter.sightUntil {
+		input := ai.shooter.lastInput
 		input.Shoot = false
 		if !w.shotDodgeFits(ai, w.geometry(), input, parameters.StepSeconds) {
 			input.X, input.Y = 0, 0
@@ -229,26 +256,26 @@ func (w *World) aiIntent(ai *aiState) Direction {
 }
 
 func (ai *aiState) patrolInput(geometry *worldmap.Map) Direction {
-	if ai.patrolPause > 0 {
-		ai.patrolPause--
+	if ai.patrol.pause > 0 {
+		ai.patrol.pause--
 		ai.Behavior = BehaviorWatching
 		return Direction{}
 	}
-	if ai.patrolTicks == 0 {
+	if ai.patrol.ticks == 0 {
 		ai.choosePatrolTarget(geometry)
 	}
-	if math.Hypot(ai.patrolX-ai.X, ai.patrolY-ai.Y) <= 18 {
+	if math.Hypot(ai.patrol.x-ai.X, ai.patrol.y-ai.Y) <= 18 {
 		if ai.Character != appearance.Triangle {
-			ai.X, ai.Y = ai.patrolX, ai.patrolY
+			ai.X, ai.Y = ai.patrol.x, ai.patrol.y
 		}
-		ai.patrolTicks = 0
-		ai.patrolPause = parameters.TickRate/3 + rand.IntN(parameters.TickRate/2)
+		ai.patrol.ticks = 0
+		ai.patrol.pause = parameters.TickRate/3 + rand.IntN(parameters.TickRate/2)
 		ai.Behavior = BehaviorWatching
 		return Direction{}
 	}
-	ai.patrolTicks--
+	ai.patrol.ticks--
 	ai.Behavior = BehaviorPatrolling
-	return ai.navigateMap(geometry, ai.patrolX, ai.patrolY)
+	return ai.navigateMap(geometry, ai.patrol.x, ai.patrol.y)
 }
 
 func (ai *aiState) choosePatrolTarget(geometry *worldmap.Map) {
@@ -264,12 +291,12 @@ func (ai *aiState) choosePatrolTarget(geometry *worldmap.Map) {
 		if math.Hypot(x-ai.X, y-ai.Y) < minimumDistance || !geometry.RoomContains(ai.den.RoomID, body) || !geometry.CanOccupy(body) || ai.Type == DungeonShooter && geometry.OverlapsCover(body) {
 			continue
 		}
-		ai.patrolX, ai.patrolY = x, y
-		ai.patrolTicks = 5 * parameters.TickRate
+		ai.patrol.x, ai.patrol.y = x, y
+		ai.patrol.ticks = 5 * parameters.TickRate
 		return
 	}
-	ai.patrolX, ai.patrolY = worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, parameters.AISize)
-	ai.patrolTicks = 5 * parameters.TickRate
+	ai.patrol.x, ai.patrol.y = worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, parameters.AISize)
+	ai.patrol.ticks = 5 * parameters.TickRate
 }
 
 func (w *World) respawnEntranceGuards() {

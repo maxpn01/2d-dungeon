@@ -64,40 +64,40 @@ func newMobStats(level int, t MobType) Stats {
 
 func (w *World) shooterInput(ai *aiState, target *playerState) (input Direction) {
 	defer func() {
-		ai.shooterLastInput = input
-		ai.shooterSightUntil = w.tick + parameters.ShooterLostSightTicks
+		ai.shooter.lastInput = input
+		ai.shooter.sightUntil = w.tick + parameters.ShooterLostSightTicks
 	}()
-	ai.patrolTicks, ai.patrolPause = 0, 0
+	ai.patrol.ticks, ai.patrol.pause = 0, 0
 	geometry := w.geometry()
 	dx, dy := target.X-ai.X, target.Y-ai.Y
 	distance := math.Hypot(dx, dy)
 	d := Direction{AimX: dx / max(1, distance), AimY: dy / max(1, distance), Shoot: true}
 	ai.shotTargetID, ai.Behavior = target.ID, BehaviorStrafing
-	if ai.strafeDirection == 0 || w.tick >= ai.strafeUntil && w.tick >= ai.strafeTurnUntil {
-		ai.strafeDirection = 1
+	if ai.shooter.strafeDirection == 0 || w.tick >= ai.shooter.strafeUntil && w.tick >= ai.shooter.strafeTurnUntil {
+		ai.shooter.strafeDirection = 1
 		if rand.IntN(2) == 0 {
-			ai.strafeDirection = -1
+			ai.shooter.strafeDirection = -1
 		}
-		ai.strafeTurnUntil = w.tick + parameters.ShooterStrafeTurnCooldownTicks
-		ai.strafeUntil = w.tick + uint64(parameters.ShooterStrafeMinimumTicks+rand.IntN(parameters.ShooterStrafeVariationTicks+1))
+		ai.shooter.strafeTurnUntil = w.tick + parameters.ShooterStrafeTurnCooldownTicks
+		ai.shooter.strafeUntil = w.tick + uint64(parameters.ShooterStrafeMinimumTicks+rand.IntN(parameters.ShooterStrafeVariationTicks+1))
 	}
 	preferredDistance := (parameters.ShooterMinimumDistance + parameters.ShooterMaximumDistance) / 2
-	if ai.shooterRangeMode < 0 && distance >= preferredDistance || ai.shooterRangeMode > 0 && distance <= preferredDistance {
-		ai.shooterRangeMode = 0
+	if ai.shooter.rangeMode < 0 && distance >= preferredDistance || ai.shooter.rangeMode > 0 && distance <= preferredDistance {
+		ai.shooter.rangeMode = 0
 	}
 	if distance < parameters.ShooterMinimumDistance {
-		ai.shooterRangeMode = -1
+		ai.shooter.rangeMode = -1
 	} else if distance > parameters.ShooterMaximumDistance {
-		ai.shooterRangeMode = 1
+		ai.shooter.rangeMode = 1
 	}
-	radial := float64(ai.shooterRangeMode) * .8
+	radial := float64(ai.shooter.rangeMode) * .8
 	if radial > 0 {
 		ai.Behavior = BehaviorClosingDistance
 	} else if radial < 0 {
 		ai.Behavior = BehaviorKeepingDistance
 	}
-	for _, side := range []float64{ai.strafeDirection, -ai.strafeDirection} {
-		if side != ai.strafeDirection && w.tick < ai.strafeTurnUntil {
+	for _, side := range []float64{ai.shooter.strafeDirection, -ai.shooter.strafeDirection} {
+		if side != ai.shooter.strafeDirection && w.tick < ai.shooter.strafeTurnUntil {
 			continue
 		}
 		move := Direction{
@@ -106,24 +106,24 @@ func (w *World) shooterInput(ai *aiState, target *playerState) (input Direction)
 		}
 		if w.shotDodgeFits(ai, geometry, move, .2) {
 			d.X, d.Y = move.X, move.Y
-			if side != ai.strafeDirection {
-				ai.strafeTurnUntil = w.tick + parameters.ShooterStrafeTurnCooldownTicks
+			if side != ai.shooter.strafeDirection {
+				ai.shooter.strafeTurnUntil = w.tick + parameters.ShooterStrafeTurnCooldownTicks
 			}
-			ai.strafeDirection = side
+			ai.shooter.strafeDirection = side
 			return d
 		}
 	}
-	for _, side := range []float64{ai.strafeDirection, -ai.strafeDirection} {
-		if side != ai.strafeDirection && w.tick < ai.strafeTurnUntil {
+	for _, side := range []float64{ai.shooter.strafeDirection, -ai.shooter.strafeDirection} {
+		if side != ai.shooter.strafeDirection && w.tick < ai.shooter.strafeTurnUntil {
 			continue
 		}
 		move := Direction{X: -d.AimY * side * parameters.ShooterStrafeSpeed, Y: d.AimX * side * parameters.ShooterStrafeSpeed}
 		if w.shotDodgeFits(ai, geometry, move, .15) {
 			d.X, d.Y = move.X, move.Y
-			if side != ai.strafeDirection {
-				ai.strafeTurnUntil = w.tick + parameters.ShooterStrafeTurnCooldownTicks
+			if side != ai.shooter.strafeDirection {
+				ai.shooter.strafeTurnUntil = w.tick + parameters.ShooterStrafeTurnCooldownTicks
 			}
-			ai.strafeDirection = side
+			ai.shooter.strafeDirection = side
 			return d
 		}
 	}
@@ -136,21 +136,21 @@ func (w *World) shooterInput(ai *aiState, target *playerState) (input Direction)
 
 func (w *World) steerShooter(ai *aiState, input Direction) Direction {
 	if ai.Behavior == BehaviorDodging {
-		ai.shooterMoveX, ai.shooterMoveY = input.X, input.Y
+		ai.shooter.moveX, ai.shooter.moveY = input.X, input.Y
 		return input
 	}
 	blend := 1 - math.Exp(-parameters.StepSeconds/.12)
-	dx, dy := (input.X-ai.shooterMoveX)*blend, (input.Y-ai.shooterMoveY)*blend
+	dx, dy := (input.X-ai.shooter.moveX)*blend, (input.Y-ai.shooter.moveY)*blend
 	if change := math.Hypot(dx, dy); change > parameters.StepSeconds*4 {
 		scale := parameters.StepSeconds * 4 / change
 		dx, dy = dx*scale, dy*scale
 	}
-	ai.shooterMoveX += dx
-	ai.shooterMoveY += dy
-	input.X, input.Y = ai.shooterMoveX, ai.shooterMoveY
+	ai.shooter.moveX += dx
+	ai.shooter.moveY += dy
+	input.X, input.Y = ai.shooter.moveX, ai.shooter.moveY
 	if math.Hypot(input.X, input.Y) < .01 || !w.shotDodgeFits(ai, w.geometry(), input, parameters.StepSeconds) {
 		input.X, input.Y = 0, 0
-		ai.shooterMoveX, ai.shooterMoveY = 0, 0
+		ai.shooter.moveX, ai.shooter.moveY = 0, 0
 	}
 	return input
 }
@@ -163,7 +163,7 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 		if ai.Combat.StompRemaining > parameters.HeavyStompDuration-parameters.HeavyStompWindup {
 			ai.Behavior = BehaviorWindingStomp
 			if ai.Combat.StompRemaining > parameters.HeavyStompDuration-parameters.HeavyStompWindup+parameters.HeavyStompAimLock {
-				if target := w.playerWithID(ai.aggressorID); target != nil && w.aiCanSeePlayer(ai, target, stomp.Reach+parameters.PlayerSize) {
+				if target := w.playerWithID(ai.alert.aggressorID); target != nil && w.aiCanSeePlayer(ai, target, stomp.Reach+parameters.PlayerSize) {
 					impactIn := ai.Combat.StompRemaining - (parameters.HeavyStompDuration - parameters.HeavyStompWindup)
 					travel := math.Hypot(target.X-ai.X, target.Y-ai.Y) / parameters.HeavyStompWaveSpeed
 					intercept := meleeIntercept(target, impactIn+travel)
@@ -176,25 +176,25 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 			}
 		}
 		d := Direction{AimX: ai.Combat.StompDirection.X, AimY: ai.Combat.StompDirection.Y}
-		if target := w.playerWithID(ai.aggressorID); target != nil && !target.Dead {
+		if target := w.playerWithID(ai.alert.aggressorID); target != nil && !target.Dead {
 			movement := ai.navigateMap(w.geometry(), target.X, target.Y)
 			d.X, d.Y = movement.X, movement.Y
 		}
-		return limitMeleeAdvance(ai, w.playerWithID(ai.aggressorID), d, 1)
+		return limitMeleeAdvance(ai, w.playerWithID(ai.alert.aggressorID), d, 1)
 	}
 	if ai.Combat.SwordRemaining > 0 {
 		ai.Behavior = BehaviorStriking
 		elapsed := attack.Duration - ai.Combat.SwordRemaining
 		if elapsed < attack.Windup {
 			ai.Behavior = BehaviorWindingStrike
-			if target := w.playerWithID(ai.aggressorID); target != nil && elapsed < attack.Windup-parameters.MeleeAimLock && w.aiCanSeePlayer(ai, target, attack.Reach+parameters.PlayerSize+80) {
+			if target := w.playerWithID(ai.alert.aggressorID); target != nil && elapsed < attack.Windup-parameters.MeleeAimLock && w.aiCanSeePlayer(ai, target, attack.Reach+parameters.PlayerSize+80) {
 				trackMeleeAim(ai, target, attack.Windup-elapsed, parameters.MeleeTurnRate)
 			}
 		}
 		d := Direction{AimX: ai.Combat.SwordDirection.X, AimY: ai.Combat.SwordDirection.Y}
 		if elapsed < attack.Windup+attack.Active {
 			d.X, d.Y = d.AimX, d.AimY
-		} else if target := w.playerWithID(ai.aggressorID); target != nil && !target.Dead {
+		} else if target := w.playerWithID(ai.alert.aggressorID); target != nil && !target.Dead {
 			movement := ai.navigateMap(w.geometry(), target.X, target.Y)
 			d.X, d.Y = movement.X, movement.Y
 		}
@@ -202,7 +202,7 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 		if elapsed < attack.Windup+attack.Active {
 			multiplier = attack.AdvanceMultiplier
 		}
-		return limitMeleeAdvance(ai, w.playerWithID(ai.aggressorID), d, multiplier)
+		return limitMeleeAdvance(ai, w.playerWithID(ai.alert.aggressorID), d, multiplier)
 	}
 
 	if ai.Combat.Phase != DashIdle {
@@ -218,8 +218,8 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 	dx, dy := target.X-ai.X, target.Y-ai.Y
 	distance := math.Hypot(dx, dy)
 	d := Direction{AimX: dx / max(1, distance), AimY: dy / max(1, distance)}
-	ai.aggressorID, ai.alertX, ai.alertY = target.ID, target.X, target.Y
-	ai.alertUntil = w.tick + parameters.AIAlertSeconds*parameters.TickRate
+	ai.alert.aggressorID, ai.alert.x, ai.alert.y = target.ID, target.X, target.Y
+	ai.alert.until = w.tick + parameters.AIAlertSeconds*parameters.TickRate
 	if ai.attackCooldown > 0 {
 		ai.Behavior = BehaviorRecoveringStrike
 		movement := ai.navigateMap(w.geometry(), target.X, target.Y)

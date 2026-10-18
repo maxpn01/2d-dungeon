@@ -8,7 +8,7 @@ import (
 
 func (w *World) steerSentinel(ai *aiState, input Direction) Direction {
 	if ai.Combat.SwordRemaining > 0 || ai.Combat.Phase == DashWinding || ai.Combat.Phase == DashRushing || input.Dash {
-		ai.sentinelMoveX, ai.sentinelMoveY = 0, 0
+		ai.sentinel.moveX, ai.sentinel.moveY = 0, 0
 		return input
 	}
 	x, y := input.X, input.Y
@@ -40,21 +40,21 @@ func (w *World) steerSentinel(ai *aiState, input Direction) Direction {
 		x, y = x/length, y/length
 	}
 	if ai.Behavior == BehaviorPursuing {
-		ai.sentinelMoveX, ai.sentinelMoveY = x, y
+		ai.sentinel.moveX, ai.sentinel.moveY = x, y
 		input.X, input.Y = x, y
 		return input
 	}
 	blend := 1 - math.Exp(-parameters.StepSeconds/.2)
-	dx, dy := (x-ai.sentinelMoveX)*blend, (y-ai.sentinelMoveY)*blend
+	dx, dy := (x-ai.sentinel.moveX)*blend, (y-ai.sentinel.moveY)*blend
 	if change := math.Hypot(dx, dy); change > parameters.StepSeconds*2.5 {
 		scale := parameters.StepSeconds * 2.5 / change
 		dx, dy = dx*scale, dy*scale
 	}
-	ai.sentinelMoveX += dx
-	ai.sentinelMoveY += dy
-	if math.Hypot(ai.sentinelMoveX, ai.sentinelMoveY) < .015 && math.Hypot(x, y) < .015 {
-		ai.sentinelMoveX, ai.sentinelMoveY = 0, 0
+	ai.sentinel.moveX += dx
+	ai.sentinel.moveY += dy
+	if math.Hypot(ai.sentinel.moveX, ai.sentinel.moveY) < .015 && math.Hypot(x, y) < .015 {
+		ai.sentinel.moveX, ai.sentinel.moveY = 0, 0
 	}
-	input.X, input.Y = ai.sentinelMoveX, ai.sentinelMoveY
+	input.X, input.Y = ai.sentinel.moveX, ai.sentinel.moveY
 	return input
 }

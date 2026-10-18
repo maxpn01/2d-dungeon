@@ -10,35 +10,35 @@ import (
 )
 
 func (w *World) avoidPlayerShots(ai *aiState, input Direction) Direction {
-	ai.shotDodgeCooldown = max(0, ai.shotDodgeCooldown-1)
-	if ai.returning || ai.Combat.Phase != DashIdle || ai.Combat.SwordRemaining > 0 || ai.Combat.StompRemaining > 0 {
-		ai.evadeTicks, ai.shotDodgeReactionTicks = 0, 0
+	ai.dodge.cooldown = max(0, ai.dodge.cooldown-1)
+	if ai.patrol.returning || ai.Combat.Phase != DashIdle || ai.Combat.SwordRemaining > 0 || ai.Combat.StompRemaining > 0 {
+		ai.dodge.evadeTicks, ai.dodge.reactionTicks = 0, 0
 		return input
 	}
-	if ai.shotDodgeReactionTicks > 0 {
-		ai.shotDodgeReactionTicks--
+	if ai.dodge.reactionTicks > 0 {
+		ai.dodge.reactionTicks--
 		return input
 	}
 	geometry := w.geometry()
-	if ai.evadeTicks > 0 {
-		ai.evadeTicks--
-		if !w.shotDodgeFits(ai, geometry, ai.evadeDirection, parameters.StepSeconds) {
-			ai.evadeTicks = 0
+	if ai.dodge.evadeTicks > 0 {
+		ai.dodge.evadeTicks--
+		if !w.shotDodgeFits(ai, geometry, ai.dodge.evadeDirection, parameters.StepSeconds) {
+			ai.dodge.evadeTicks = 0
 			return input
 		}
-		input.X, input.Y = ai.evadeDirection.X, ai.evadeDirection.Y
+		input.X, input.Y = ai.dodge.evadeDirection.X, ai.dodge.evadeDirection.Y
 		input.Dash, input.Boost = false, false
 		ai.Behavior = BehaviorDodging
 		return input
 	}
-	if ai.shotDodgeCooldown > 0 || parameters.AIShotDodgeChance <= 0 {
+	if ai.dodge.cooldown > 0 || parameters.AIShotDodgeChance <= 0 {
 		return input
 	}
 	shot, found := w.incomingPlayerShot(ai, input, geometry)
 	if !found {
 		return input
 	}
-	ai.shotDodgeCooldown = parameters.AIShotDodgeCooldownTicks
+	ai.dodge.cooldown = parameters.AIShotDodgeCooldownTicks
 	chance := parameters.AIShotDodgeChance
 	if ai.Type.IsHeavy() {
 		chance *= parameters.HeavyDodgeChanceMultiplier
@@ -64,9 +64,9 @@ func (w *World) avoidPlayerShots(ai *aiState, input Direction) Direction {
 	if best == -math.MaxFloat64 {
 		return input
 	}
-	ai.evadeDirection = direction
-	ai.evadeTicks = parameters.AIShotDodgeDurationTicks
-	ai.shotDodgeReactionTicks = max(0, parameters.AIShotDodgeReactionTicks-1)
+	ai.dodge.evadeDirection = direction
+	ai.dodge.evadeTicks = parameters.AIShotDodgeDurationTicks
+	ai.dodge.reactionTicks = max(0, parameters.AIShotDodgeReactionTicks-1)
 	return input
 }
 

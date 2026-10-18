@@ -45,9 +45,9 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 		return Direction{AimX: ai.Combat.Direction.X, AimY: ai.Combat.Direction.Y}
 	}
 	if target != nil {
-		ai.returning = false
+		ai.patrol.returning = false
 	}
-	if ai.returning {
+	if ai.patrol.returning {
 		if d, returning := w.investigateAI(ai); returning {
 			return d
 		}
@@ -58,8 +58,8 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 		}
 		return ai.patrolInput(w.geometry())
 	}
-	ai.alertX, ai.alertY = target.X, target.Y
-	ai.aggressorID, ai.alertUntil = target.ID, w.tick+3*parameters.TickRate
+	ai.alert.x, ai.alert.y = target.X, target.Y
+	ai.alert.aggressorID, ai.alert.until = target.ID, w.tick+3*parameters.TickRate
 	dx, dy := target.X-ai.X, target.Y-ai.Y
 	distance := math.Hypot(dx, dy)
 	d := Direction{AimX: dx / max(1, distance), AimY: dy / max(1, distance)}
@@ -98,7 +98,7 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 		limit, _ := geometry.MovementLimit(ai.X, ai.Y, sx*travel, sy*travel, parameters.AISize, parameters.AISize)
 		if limit >= 1-1e-6 && geometry.RoomContains(ai.den.RoomID, physics.Square(ex, ey, parameters.AISize)) {
 			d.AimX, d.AimY, d.Dash = sx, sy, true
-			ai.sentinelDashHits = nil
+			ai.sentinel.dashHits = nil
 			ai.Combat.dashDuration = travel / speed
 			ai.mobChargeCooldown = int(math.Ceil((parameters.DashWindup + ai.Combat.dashDuration + parameters.DashRecovery + .35) * parameters.TickRate))
 			ai.attackCooldown = ai.mobChargeCooldown

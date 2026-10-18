@@ -29,9 +29,9 @@ func (w *World) orbTarget(ai *aiState) *playerState {
 func (w *World) huntOrb(ai *aiState, carrier *playerState) Direction {
 	if ai.orbTargetID != carrier.ID {
 		ai.orbTargetID = carrier.ID
-		ai.patrolTicks, ai.patrolPause = 0, 0
+		ai.patrol.ticks, ai.patrol.pause = 0, 0
 	}
-	ai.returning = true
+	ai.patrol.returning = true
 	d := Direction{}
 	if target := w.orbShotTarget(ai, carrier); target != nil {
 		ai.shotTargetID = target.ID
