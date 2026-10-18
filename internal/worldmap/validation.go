@@ -22,11 +22,11 @@ func validateLayout(layout Layout) error {
 		if _, ok := layout.Room(door.RoomID); !ok {
 			return fmt.Errorf("secret door %s has unknown room", door.ID)
 		}
-		if !Cells(MinCellX, MinCellY, MaxCellX-MinCellX, MaxCellY-MinCellY).ContainsArea(door.Area) {
+		if !Cells(parameters.MinCellX, parameters.MinCellY, parameters.MaxCellX-parameters.MinCellX, parameters.MaxCellY-parameters.MinCellY).ContainsArea(door.Area) {
 			return fmt.Errorf("invalid secret door %s", door.ID)
 		}
 	}
-	world := Cells(MinCellX, MinCellY, MaxCellX-MinCellX, MaxCellY-MinCellY)
+	world := Cells(parameters.MinCellX, parameters.MinCellY, parameters.MaxCellX-parameters.MinCellX, parameters.MaxCellY-parameters.MinCellY)
 	roomIDs, passageIDs, feedingIDs, gateIDs, portalIDs := map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}
 	statueIDs := map[string]bool{}
 	arenaCount := 0
@@ -84,7 +84,8 @@ func validateLayout(layout Layout) error {
 			}
 			if area.Guard != nil {
 				guard := area.Guard
-				if !guard.Type.Valid() || guard.PatrolRadius < 0 || guard.PatrolRadius > max(local.Width, local.Height) || !local.ContainsArea(Around(area.At, guard.PatrolRadius)) || guard.Level <= 0 || guard.Level > parameters.MaxLevel || guard.Respawn <= 0 {
+				patrolFits := guard.PatrolRadius >= 0 && guard.PatrolRadius <= max(local.Width, local.Height) && local.ContainsArea(Around(area.At, guard.PatrolRadius))
+				if !guard.Type.Valid() || !patrolFits || guard.Level <= 0 || guard.Level > parameters.MaxLevel || guard.Respawn <= 0 {
 					return fmt.Errorf("feeding area %s has invalid guard settings", area.ID)
 				}
 			}

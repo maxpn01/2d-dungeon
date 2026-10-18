@@ -4,6 +4,7 @@ import (
 	"math"
 	"sort"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 )
 
@@ -41,6 +42,13 @@ type eater struct {
 	ai         *aiState
 }
 
+func (e eater) at(step, steps int) position {
+	return position{
+		e.start.x + (e.end.x-e.start.x)*float64(step)/float64(steps),
+		e.start.y + (e.end.y-e.start.y)*float64(step)/float64(steps),
+	}
+}
+
 func (w *World) eaters(previous map[string]position) []eater {
 	capacity := len(w.players) + len(w.ais)
 	eaters := make([]eater, 0, capacity)
@@ -48,7 +56,7 @@ func (w *World) eaters(previous map[string]position) []eater {
 		if player.Dead {
 			continue
 		}
-		eaters = append(eaters, eater{id: id, start: previous[id], end: position{player.X, player.Y}, size: PlayerSize, stats: &player.Stats, player: player})
+		eaters = append(eaters, eater{id: id, start: previous[id], end: position{player.X, player.Y}, size: parameters.PlayerSize, stats: &player.Stats, player: player})
 	}
 	sort.Slice(eaters, func(i, j int) bool { return eaters[i].id < eaters[j].id })
 	for i := range w.ais {
@@ -81,9 +89,9 @@ func (e eater) die(killer string, tick uint64) {
 			return
 		}
 		e.ai.deaths++
-		e.ai.respawnTick = tick + AIRespawnSeconds*TickRate
+		e.ai.respawnTick = tick + parameters.AIRespawnSeconds*parameters.TickRate
 		if e.ai.den.ID != "" {
-			e.ai.respawnTick = tick + uint64(math.Ceil(e.ai.den.Respawn.Seconds()*TickRate))
+			e.ai.respawnTick = tick + uint64(math.Ceil(e.ai.den.Respawn.Seconds()*parameters.TickRate))
 		}
 		return
 	}
@@ -148,7 +156,7 @@ func (w *World) consumeFruits(eaters []eater) {
 			remaining = append(remaining, fruit)
 		} else {
 			hp := fruit.rewardHP()
-			xp := FruitXP * hp
+			xp := parameters.FruitXP * hp
 			if fruit.Ejected || fruit.Source != "" {
 				xp = 0
 			}

@@ -20,11 +20,12 @@ func DrawProjectiles(previous, shots []simulation.Projectile, alpha float64, exp
 		start, exists := starts[shot.ID]
 		if !exists {
 			start = shot
-			if shot.Kind == "shockwave" {
-				start.X -= shot.Direction.X * simulation.ProjectileSpeed(shot) * simulation.StepSeconds
-				start.Y -= shot.Direction.Y * simulation.ProjectileSpeed(shot) * simulation.StepSeconds
+			if shot.Kind == simulation.ShockwaveProjectile {
+				start.X -= shot.Direction.X * simulation.ProjectileSpeed(shot) * parameters.StepSeconds
+				start.Y -= shot.Direction.Y * simulation.ProjectileSpeed(shot) * parameters.StepSeconds
 			} else {
-				start.X, start.Y = worldmap.Default().Move(shot.X, shot.Y, -shot.Direction.X*simulation.ProjectileSpeed(shot)*simulation.StepSeconds, -shot.Direction.Y*simulation.ProjectileSpeed(shot)*simulation.StepSeconds, shot.Size, shot.Size)
+				step := simulation.ProjectileSpeed(shot) * parameters.StepSeconds
+				start.X, start.Y = worldmap.Default().Move(shot.X, shot.Y, -shot.Direction.X*step, -shot.Direction.Y*step, shot.Size, shot.Size)
 			}
 		}
 		shot.X = start.X + (shot.X-start.X)*alpha
@@ -33,11 +34,11 @@ func DrawProjectiles(previous, shots []simulation.Projectile, alpha float64, exp
 			continue
 		}
 		center := rl.NewVector2(float32(shot.X+shot.Size/2), float32(shot.Y+shot.Size/2))
-		if shot.Kind == "arrow" {
+		if shot.Kind == simulation.ArrowProjectile {
 			drawVaultArrow(center, shot)
 			continue
 		}
-		if shot.Kind == "shockwave" {
+		if shot.Kind == simulation.ShockwaveProjectile {
 			if exists {
 				shot.Remaining = start.Remaining + (shot.Remaining-start.Remaining)*alpha
 			}
@@ -68,7 +69,7 @@ func drawMagicBall(center rl.Vector2, shot simulation.Projectile) {
 		tint = rl.NewColor(255, 128, 77, 255)
 		trailTint = rl.NewColor(204, 75, 40, 255)
 	}
-	if shot.Kind == "spectral" {
+	if shot.Kind == simulation.SpectralProjectile {
 		tint, trailTint = rl.NewColor(192, 211, 255, 255), rl.NewColor(132, 105, 219, 255)
 	}
 	radius := float32(shot.Size * .65)

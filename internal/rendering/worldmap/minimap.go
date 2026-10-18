@@ -66,35 +66,35 @@ func (v *radarView) begin(m *Map) {
 	v.rect(float32(int(m.sizeInCells.X)/2-2)*m.cellSize.X, float32(int(m.sizeInCells.Y)/2-2)*m.cellSize.Y, 5*m.cellSize.X, 5*m.cellSize.Y, rl.Gray)
 	v.rect(m.size.X/2-120, 0, 240, m.cellSize.Y, field)
 
-	left := max(mapdata.MinCellX, int(math.Floor(float64((v.focus.X-v.bounds.Width/(2*v.scale))/mapdata.Tile))))
-	right := min(mapdata.MaxCellX, int(math.Ceil(float64((v.focus.X+v.bounds.Width/(2*v.scale))/mapdata.Tile))))
-	top := max(mapdata.North/mapdata.Tile, int(math.Floor(float64((v.focus.Y-v.bounds.Height/(2*v.scale))/mapdata.Tile))))
-	bottom := min(mapdata.MaxCellY, int(math.Ceil(float64((v.focus.Y+v.bounds.Height/(2*v.scale))/mapdata.Tile))))
+	left := max(parameters.MinCellX, int(math.Floor(float64((v.focus.X-v.bounds.Width/(2*v.scale))/parameters.Tile))))
+	right := min(parameters.MaxCellX, int(math.Ceil(float64((v.focus.X+v.bounds.Width/(2*v.scale))/parameters.Tile))))
+	top := max(parameters.North/parameters.Tile, int(math.Floor(float64((v.focus.Y-v.bounds.Height/(2*v.scale))/parameters.Tile))))
+	bottom := min(parameters.MaxCellY, int(math.Ceil(float64((v.focus.Y+v.bounds.Height/(2*v.scale))/parameters.Tile))))
 	for y := top; y < bottom; y++ {
 		for x := left; x < right; x++ {
-			if m.world.CellFloor(x, y) != m.floor || y >= 0 && y < mapdata.SurfaceCells && x >= 0 && x < mapdata.SurfaceCells {
+			if m.world.CellFloor(x, y) != m.floor || y >= 0 && y < parameters.SurfaceCells && x >= 0 && x < parameters.SurfaceCells {
 				continue
 			}
 			if m.world.Cover(x, y) && m.world.Cell(x, y) != 0 {
-				v.rect(float32(x*mapdata.Tile), float32(y*mapdata.Tile), mapdata.Tile, mapdata.Tile, color.RGBA{102, 91, 150, 255})
+				v.rect(float32(x*parameters.Tile), float32(y*parameters.Tile), parameters.Tile, parameters.Tile, color.RGBA{102, 91, 150, 255})
 			} else if m.world.Cell(x, y) != 0 {
 				tint := paleStone
 				if m.floor == mapdata.SecondFloor {
 					tint = forestGrass
 				}
-				v.rect(float32(x*mapdata.Tile), float32(y*mapdata.Tile), mapdata.Tile, mapdata.Tile, tint)
+				v.rect(float32(x*parameters.Tile), float32(y*parameters.Tile), parameters.Tile, parameters.Tile, tint)
 			} else if mapdata.Default().Pool(x, y) {
-				v.rect(float32(x*mapdata.Tile), float32(y*mapdata.Tile), mapdata.Tile, mapdata.Tile, color.RGBA{23, 58, 71, 255})
+				v.rect(float32(x*parameters.Tile), float32(y*parameters.Tile), parameters.Tile, parameters.Tile, color.RGBA{23, 58, 71, 255})
 			}
 		}
 	}
 }
 
 func (v radarView) fog() {
-	left := max(mapdata.MinCellX, int(math.Floor(float64(v.focus.X-v.bounds.Width/(2*v.scale))/mapdata.Tile)))
-	right := min(mapdata.MaxCellX, int(math.Ceil(float64(v.focus.X+v.bounds.Width/(2*v.scale))/mapdata.Tile)))
-	top := max(mapdata.North/mapdata.Tile, int(math.Floor(float64(v.focus.Y-v.bounds.Height/(2*v.scale))/mapdata.Tile)))
-	bottom := min(mapdata.MaxCellY, int(math.Ceil(float64(v.focus.Y+v.bounds.Height/(2*v.scale))/mapdata.Tile)))
+	left := max(parameters.MinCellX, int(math.Floor(float64(v.focus.X-v.bounds.Width/(2*v.scale))/parameters.Tile)))
+	right := min(parameters.MaxCellX, int(math.Ceil(float64(v.focus.X+v.bounds.Width/(2*v.scale))/parameters.Tile)))
+	top := max(parameters.North/parameters.Tile, int(math.Floor(float64(v.focus.Y-v.bounds.Height/(2*v.scale))/parameters.Tile)))
+	bottom := min(parameters.MaxCellY, int(math.Ceil(float64(v.focus.Y+v.bounds.Height/(2*v.scale))/parameters.Tile)))
 	state := func(x, y int) int {
 		cell := [2]int{x, y}
 		if v.Exploration.Visible(cell) {
@@ -134,8 +134,8 @@ func (v radarView) fog() {
 		if r.state == 1 {
 			tint = color.RGBA{0, 0, 0, 100}
 		}
-		p := v.point(rl.NewVector2(float32(r.left*mapdata.Tile), float32(r.top*mapdata.Tile)))
-		q := v.point(rl.NewVector2(float32(r.right*mapdata.Tile), float32(r.bottom*mapdata.Tile)))
+		p := v.point(rl.NewVector2(float32(r.left*parameters.Tile), float32(r.top*parameters.Tile)))
+		q := v.point(rl.NewVector2(float32(r.right*parameters.Tile), float32(r.bottom*parameters.Tile)))
 		x0, y0 := float32(math.Round(float64(p.X))), float32(math.Round(float64(p.Y)))
 		x1, y1 := float32(math.Round(float64(q.X))), float32(math.Round(float64(q.Y)))
 		rl.DrawRectangleRec(rl.NewRectangle(x0, y0, x1-x0, y1-y0), tint)
@@ -220,8 +220,8 @@ func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker,
 		}
 	} else {
 		for _, player := range snapshot.Players {
-			if player.ID == snapshot.Orb.Carrier && m.Exploration.PlayerVisible(player.X, player.Y, simulation.PlayerSize) {
-				v.marker(rl.NewVector2(float32(player.X+simulation.PlayerSize/2), float32(player.Y+simulation.PlayerSize/2)), 5, primitives.RuneColor)
+			if player.ID == snapshot.Orb.Carrier && m.Exploration.PlayerVisible(player.X, player.Y, parameters.PlayerSize) {
+				v.marker(rl.NewVector2(float32(player.X+parameters.PlayerSize/2), float32(player.Y+parameters.PlayerSize/2)), 5, primitives.RuneColor)
 			}
 		}
 	}

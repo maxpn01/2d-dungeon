@@ -3,7 +3,7 @@ package worldmap
 import (
 	"math"
 
-	mapdata "2d-dungeon/internal/worldmap"
+	"2d-dungeon/internal/parameters"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -12,10 +12,10 @@ var forestGrass = rl.NewColor(77, 128, 48, 255)
 var forestLeaf = rl.NewColor(104, 146, 66, 255)
 
 func (m *Map) drawForest(left, top, right, bottom int) {
-	const tile = mapdata.Tile
+	const tile = parameters.Tile
 	dungeonRect(left*tile, top*tile, (right-left)*tile, (bottom-top)*tile, rl.NewColor(12, 25, 19, 255))
-	for y := max(mapdata.MinCellY, top); y < min(mapdata.MaxCellY, bottom); y++ {
-		for x := max(mapdata.MinCellX, left); x < min(mapdata.MaxCellX, right); x++ {
+	for y := max(parameters.MinCellY, top); y < min(parameters.MaxCellY, bottom); y++ {
+		for x := max(parameters.MinCellX, left); x < min(parameters.MaxCellX, right); x++ {
 			if m.world.CellFloor(x, y) != m.floor {
 				continue
 			}
@@ -105,7 +105,7 @@ func (m *Map) drawForest(left, top, right, bottom int) {
 }
 
 func drawForestTree(x, y int, hash uint32) {
-	dungeonRect(x, y, mapdata.Tile, mapdata.Tile, rl.NewColor(17, 32, 21, 255))
+	dungeonRect(x, y, parameters.Tile, parameters.Tile, rl.NewColor(17, 32, 21, 255))
 	dungeonRect(x+15, y+9, 11, 29, rl.NewColor(72, 56, 35, 255))
 	dungeonRect(x+18, y+12, 3, 24, rl.NewColor(109, 83, 48, 255))
 	rl.DrawLineEx(rl.NewVector2(float32(x+20), float32(y+29)), rl.NewVector2(float32(x+7), float32(y+37)), 3, rl.NewColor(72, 56, 35, 255))

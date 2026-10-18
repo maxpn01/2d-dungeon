@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"2d-dungeon/internal/appearance"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
 
@@ -26,7 +27,7 @@ func drawStoneSentinel(ai Actor) {
 	if burst > 0 {
 		live := ai
 		live.Stone, live.Awakening = false, 0
-		DrawActor(live.X, live.Y, live.Size, live.HP, live.Combat, primitives.CharacterColor(simulation.Triangle), simulation.Triangle)
+		DrawActor(live.X, live.Y, live.Size, live.HP, live.Combat, primitives.CharacterColor(appearance.Triangle), appearance.Triangle)
 	}
 	rl.DrawEllipse(int32(center.X), int32(center.Y+24), 32, 12, rl.Fade(rl.Black, .65))
 	rl.DrawPoly(rl.NewVector2(center.X, center.Y+18), 6, 28, 30, rl.Fade(rl.NewColor(48, 57, 75, 255), 1-burst))

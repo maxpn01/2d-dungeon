@@ -1,5 +1,7 @@
 package worldmap
 
+import "2d-dungeon/internal/parameters"
+
 func (m *Map) CellFloor(x, y int) Floor {
 	for _, room := range m.layout.Rooms {
 		if room.Floor != FirstFloor && Cells(room.Area.X-1, room.Area.Y-1, room.Area.Width+2, room.Area.Height+2).Contains(At(x, y)) {
@@ -10,5 +12,5 @@ func (m *Map) CellFloor(x, y int) Floor {
 }
 
 func (m *Map) SanctuaryCell(x, y int) bool {
-	return x >= 0 && x < SurfaceCells && y >= 0 && y < SurfaceCells
+	return x >= 0 && x < parameters.SurfaceCells && y >= 0 && y < parameters.SurfaceCells
 }

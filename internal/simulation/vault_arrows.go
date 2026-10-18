@@ -9,15 +9,15 @@ import (
 	"2d-dungeon/internal/worldmap"
 )
 
-const VaultArrowDurationTicks = 10 * TickRate
-const VaultArrowIntervalTicks = TickRate / 2
+const VaultArrowDurationTicks = 10 * parameters.TickRate
+const VaultArrowIntervalTicks = parameters.TickRate / 2
 const VaultArrowSpeed = 1080.0
 
 func ProjectileSpeed(shot Projectile) float64 {
-	if shot.Kind == "arrow" {
+	if shot.Kind == ArrowProjectile {
 		return VaultArrowSpeed
 	}
-	if shot.Kind == "shockwave" {
+	if shot.Kind == ShockwaveProjectile {
 		return parameters.HeavyStompWaveSpeed
 	}
 	if shot.MobOwned {
@@ -34,14 +34,14 @@ func (w *World) advanceVaultArrows(actors []eater) {
 	if age >= VaultArrowDurationTicks || age < VaultArrowIntervalTicks || age%VaultArrowIntervalTicks != 0 {
 		return
 	}
-	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
+	geometry := w.geometry()
 	ports := geometry.VaultArrowPorts()
 	for _, actor := range actors {
 		if actor.player == nil || actor.dead() || !geometry.RoomContains(worldmap.OrbVault, physics.Square(actor.end.x, actor.end.y, actor.size)) {
 			continue
 		}
 		center := physics.Vector{X: actor.end.x + actor.size/2, Y: actor.end.y + actor.size/2}
-		velocity := physics.Vector{X: (actor.end.x - actor.start.x) / StepSeconds, Y: (actor.end.y - actor.start.y) / StepSeconds}
+		velocity := physics.Vector{X: (actor.end.x - actor.start.x) / parameters.StepSeconds, Y: (actor.end.y - actor.start.y) / parameters.StepSeconds}
 		for side := 0; side < 2; side++ {
 			nearest := -1
 			best := math.Inf(1)
@@ -66,7 +66,11 @@ func (w *World) advanceVaultArrows(actors []eater) {
 				continue
 			}
 			w.nextProjectile++
-			w.projectiles = append(w.projectiles, Projectile{Kind: "arrow", ID: fmt.Sprintf("arrow-%d", w.nextProjectile), Owner: "vault arrows", X: at.X - parameters.ShotSize/2, Y: at.Y - parameters.ShotSize/2, Direction: Direction{X: dx / length, Y: dy / length}, Size: parameters.ShotSize, Remaining: parameters.ShotLifetime, Damage: 8})
+			w.projectiles = append(w.projectiles, Projectile{
+				Kind: ArrowProjectile, ID: fmt.Sprintf("arrow-%d", w.nextProjectile), Owner: "vault arrows",
+				X: at.X - parameters.ShotSize/2, Y: at.Y - parameters.ShotSize/2, Direction: Direction{X: dx / length, Y: dy / length},
+				Size: parameters.ShotSize, Remaining: parameters.ShotLifetime, Damage: 8,
+			})
 		}
 	}
 }

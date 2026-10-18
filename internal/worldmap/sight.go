@@ -3,6 +3,7 @@ package worldmap
 import (
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 )
 
@@ -61,11 +62,11 @@ func traceCells(from, to [2]int, opaque func(int, int) bool) bool {
 }
 
 func WorldCell(x, y float64) [2]int {
-	return [2]int{int(math.Floor(x / Tile)), int(math.Floor(y / Tile))}
+	return [2]int{int(math.Floor(x / parameters.Tile)), int(math.Floor(y / parameters.Tile))}
 }
 
 func (m *Map) Visible(ax, ay, bx, by float64) bool {
-	if ay >= SurfaceMin && by >= SurfaceMin {
+	if ay >= parameters.SurfaceMin && by >= parameters.SurfaceMin {
 		return true
 	}
 	return m.Sight(WorldCell(ax, ay), WorldCell(bx, by))

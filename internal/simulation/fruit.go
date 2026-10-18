@@ -10,10 +10,6 @@ import (
 	"2d-dungeon/internal/worldmap"
 )
 
-const (
-	FruitSize = parameters.FruitSize
-)
-
 type Fruit struct {
 	Ejected              bool
 	VelocityX, VelocityY float64
@@ -30,7 +26,7 @@ var naturalFood = [...]struct {
 	size, hp float64
 }{
 	{10, 0.5},
-	{FruitSize, FruitHP},
+	{parameters.FruitSize, parameters.FruitHP},
 	{23, 2.5},
 }
 
@@ -53,12 +49,12 @@ func (f Fruit) rewardHP() float64 {
 	if f.HP > 0 {
 		return f.HP
 	}
-	return FruitHP
+	return parameters.FruitHP
 }
 
 func naturalFoodReward(hp float64) (float64, float64) {
 	if rand.IntN(100) < parameters.ManaFoodChance {
-		return 0, parameters.FruitMP * hp / FruitHP
+		return 0, parameters.FruitMP * hp / parameters.FruitHP
 	}
 	return hp, 0
 }
@@ -84,7 +80,7 @@ func (w *World) refillPatch(patch worldmap.FeedingPatch) {
 			break
 		}
 	}
-	w.patchNext[patch.ID] = w.tick + uint64(math.Ceil(patch.Respawn.Seconds()*TickRate))
+	w.patchNext[patch.ID] = w.tick + uint64(math.Ceil(patch.Respawn.Seconds()*parameters.TickRate))
 }
 
 func (w *World) spawnPatchFruit(patch worldmap.FeedingPatch) bool {
@@ -93,11 +89,11 @@ func (w *World) spawnPatchFruit(patch worldmap.FeedingPatch) bool {
 		kind := naturalFood[w.nextFruit%uint64(len(naturalFood))]
 		size, hp = kind.size, kind.hp
 	}
-	centerX := float64(patch.At.X*worldmap.Tile + worldmap.Tile/2)
-	centerY := float64(patch.At.Y*worldmap.Tile + worldmap.Tile/2)
+	centerX := float64(patch.At.X*parameters.Tile + parameters.Tile/2)
+	centerY := float64(patch.At.Y*parameters.Tile + parameters.Tile/2)
 	for range 40 {
-		x := centerX + (rand.Float64()*2-1)*float64(patch.Radius*worldmap.Tile) - size/2
-		y := centerY + (rand.Float64()*2-1)*float64(patch.Radius*worldmap.Tile) - size/2
+		x := centerX + (rand.Float64()*2-1)*float64(patch.Radius*parameters.Tile) - size/2
+		y := centerY + (rand.Float64()*2-1)*float64(patch.Radius*parameters.Tile) - size/2
 		if !worldmap.Default().RoomContains(patch.RoomID, physics.Square(x, y, size)) || !worldmap.Default().Walkable(x, y, size, size) {
 			continue
 		}

@@ -4,13 +4,15 @@ import (
 	"math"
 	"time"
 
+	"2d-dungeon/internal/appearance"
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func (f *Feedback) DrawHit(id string, bounds rl.Rectangle, character simulation.Character) {
+func (f *Feedback) DrawHit(id string, bounds rl.Rectangle, character appearance.Character) {
 	if f == nil {
 		return
 	}
@@ -38,7 +40,7 @@ func (f *Feedback) CheckCombatInput(now time.Time, input simulation.Direction, p
 	}
 	failed := input.Shoot && player.Stats.MP < player.Stats.ShotMPCost()
 	if input.Boost && (input.X != 0 || input.Y != 0 || player.HasWings) {
-		failed = failed || player.Stats.MP <= 1e-6 || player.HasWings && player.Stats.MP < simulation.WingMPPerSecond*simulation.StepSeconds
+		failed = failed || player.Stats.MP <= 1e-6 || player.HasWings && player.Stats.MP < simulation.WingMPPerSecond*parameters.StepSeconds
 	}
 	if failed && now.Sub(f.manaAt) >= 900*time.Millisecond {
 		f.manaAt = now

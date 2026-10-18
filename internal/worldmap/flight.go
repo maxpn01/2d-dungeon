@@ -3,17 +3,18 @@ package worldmap
 import (
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 )
 
 func (m *Map) CanFly(body physics.Rect) bool {
 	if m.vaultGateClosed {
 		room, ok := m.Room(OrbVault)
-		if body.Overlaps(m.VaultGateBarrier()) || ok && body.Overlaps(room.Bounds().Expanded(Tile)) {
+		if body.Overlaps(m.VaultGateBarrier()) || ok && body.Overlaps(room.Bounds().Expanded(parameters.Tile)) {
 			return false
 		}
 	}
-	if !body.Valid() || body.X < MinCellX*Tile || body.X+body.W > MaxCellX*Tile || body.Y < North || body.Y+body.H > MaxCellY*Tile {
+	if !body.Valid() || !insideWorld(body.X, body.Y, body.W, body.H) {
 		return false
 	}
 	flightCell := func(x, y int) int {
@@ -23,7 +24,7 @@ func (m *Map) CanFly(body physics.Rect) bool {
 		return 0
 	}
 
-	if body.Overlaps(Cells(0, 0, SurfaceCells, SurfaceCells).Bounds()) {
+	if body.Overlaps(Cells(0, 0, parameters.SurfaceCells, parameters.SurfaceCells).Bounds()) {
 		return walkableSanctuary(body.X, body.Y, body.W, body.H, flightCell, false)
 	}
 	first := WorldCell(body.X, body.Y)
@@ -47,7 +48,7 @@ func (m *Map) buildFlightCells() map[[2]int]bool {
 			}
 		}
 	}
-	reserve(Cells(0, 0, SurfaceCells, SurfaceCells), 0)
+	reserve(Cells(0, 0, parameters.SurfaceCells, parameters.SurfaceCells), 0)
 	for _, room := range m.layout.Rooms {
 		margin := 1
 
@@ -58,7 +59,7 @@ func (m *Map) buildFlightCells() map[[2]int]bool {
 	}
 	exterior := make(map[[2]int]bool)
 	queue := make([][2]int, 0)
-	left, top, right, bottom := MinCellX-2, MinCellY-2, MaxCellX+1, MaxCellY+1
+	left, top, right, bottom := parameters.MinCellX-2, parameters.MinCellY-2, parameters.MaxCellX+1, parameters.MaxCellY+1
 	add := func(x, y int) {
 		cell := [2]int{x, y}
 		if x < left || x > right || y < top || y > bottom || cells[cell] || exterior[cell] {
@@ -81,8 +82,8 @@ func (m *Map) buildFlightCells() map[[2]int]bool {
 			add(cell[0]+step[0], cell[1]+step[1])
 		}
 	}
-	for y := MinCellY; y < MaxCellY; y++ {
-		for x := MinCellX; x < MaxCellX; x++ {
+	for y := parameters.MinCellY; y < parameters.MaxCellY; y++ {
+		for x := parameters.MinCellX; x < parameters.MaxCellX; x++ {
 			cell := [2]int{x, y}
 			if !exterior[cell] {
 				cells[cell] = true
@@ -112,7 +113,7 @@ func (m *Map) NearestLanding(x, y, size float64) (float64, float64, bool) {
 			bestX, bestY, bestDistance = candidate.X, candidate.Y, distance
 		}
 	}
-	consider(physics.Rect{X: SurfaceMin, Y: SurfaceMin, W: SurfaceMax - SurfaceMin, H: SurfaceMax - SurfaceMin})
+	consider(physics.Rect{X: parameters.SurfaceMin, Y: parameters.SurfaceMin, W: parameters.SurfaceMax - parameters.SurfaceMin, H: parameters.SurfaceMax - parameters.SurfaceMin})
 
 	considerCell := func(cx, cy int) {
 		for height := 1; height <= 2; height++ {
@@ -124,8 +125,8 @@ func (m *Map) NearestLanding(x, y, size float64) (float64, float64, bool) {
 	for cell := range m.floors {
 		considerCell(cell[0], cell[1])
 	}
-	for cy := 0; cy < SurfaceCells; cy++ {
-		for cx := 0; cx < SurfaceCells; cx++ {
+	for cy := 0; cy < parameters.SurfaceCells; cy++ {
+		for cx := 0; cx < parameters.SurfaceCells; cx++ {
 			considerCell(cx, cy)
 		}
 	}
@@ -133,7 +134,7 @@ func (m *Map) NearestLanding(x, y, size float64) (float64, float64, bool) {
 }
 
 func (m *Map) FlightLandingStep(x, y, tx, ty, size float64) (float64, float64, bool) {
-	air := physics.World{CanOccupy: m.CanFly, MaxStep: Tile / 5}
+	air := physics.World{CanOccupy: m.CanFly, MaxStep: parameters.Tile / 5}
 	if _, blocked := air.MovementLimit(physics.Square(x, y, size), physics.Vector{X: tx - x, Y: ty - y}); !blocked {
 		return tx, ty, true
 	}
@@ -141,7 +142,7 @@ func (m *Map) FlightLandingStep(x, y, tx, ty, size float64) (float64, float64, b
 }
 
 func (m *Map) MoveFlying(x, y, dx, dy, size float64) (float64, float64) {
-	air := physics.World{CanOccupy: m.CanFly, MaxStep: Tile / 5}
+	air := physics.World{CanOccupy: m.CanFly, MaxStep: parameters.Tile / 5}
 	motion := air.MoveAndSlide(physics.Square(x, y, size), physics.Vector{X: dx, Y: dy})
 	return motion.Bounds.X, motion.Bounds.Y
 }

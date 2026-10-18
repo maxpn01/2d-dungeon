@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/bits"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 	"2d-dungeon/internal/worldmap"
 )
@@ -32,7 +33,7 @@ type LibraryState struct {
 }
 
 func IsLibraryBook(id string) bool {
-	return id == "secret-inscription"
+	return id == worldmap.SecretInscription
 }
 func LibraryRoom(id string) string {
 
@@ -75,7 +76,7 @@ func LibraryShelves(book StatueState) []physics.Rect {
 	return shelves
 }
 func LibraryRecalling(book StatueState, tick uint64) bool {
-	return book.Library.RecallTick != 0 && tick >= book.Library.RecallTick && float64(tick-book.Library.RecallTick)/TickRate < LibraryRecallSeconds
+	return book.Library.RecallTick != 0 && tick >= book.Library.RecallTick && float64(tick-book.Library.RecallTick)/parameters.TickRate < LibraryRecallSeconds
 }
 func LibrarySolved(book StatueState) int { return bits.OnesCount8(book.Library.Bound) }
 
@@ -84,7 +85,7 @@ func (w *World) startLibrary(book *StatueState, p *playerState) bool {
 		return true
 	}
 	if book.Library.StartedTick != 0 {
-		if math.Hypot(book.X-p.X-PlayerSize/2, book.Y-p.Y-PlayerSize/2) >= 55 {
+		if math.Hypot(book.X-p.X-parameters.PlayerSize/2, book.Y-p.Y-parameters.PlayerSize/2) >= 55 {
 			return false
 		}
 		if book.Library.Owner != p.ID || LibraryRecalling(*book, w.tick) {
@@ -108,7 +109,7 @@ func (w *World) interactLibrary(p *playerState, input Direction) bool {
 		if !IsLibraryBook(book.ID) || book.Library.StartedTick == 0 || book.Library.Completed || book.Library.Owner != p.ID {
 			continue
 		}
-		if !worldmap.Default().WithSecrets(w.openSecrets).RoomContains(LibraryRoom(book.ID), physics.Square(p.X, p.Y, PlayerSize)) {
+		if !worldmap.Default().WithSecrets(w.openSecrets).RoomContains(LibraryRoom(book.ID), physics.Square(p.X, p.Y, parameters.PlayerSize)) {
 			continue
 		}
 		nearest, distance := -1, 78.0
@@ -116,18 +117,20 @@ func (w *World) interactLibrary(p *playerState, input Direction) bool {
 			if book.Library.Bound&(1<<tome) != 0 {
 				continue
 			}
-			d := math.Hypot(at.X-p.X-PlayerSize/2, at.Y-p.Y-PlayerSize/2)
+			d := math.Hypot(at.X-p.X-parameters.PlayerSize/2, at.Y-p.Y-parameters.PlayerSize/2)
 			if d < distance {
-				if _, blocked := worldmap.Default().WithSecrets(w.openSecrets).MovementLimit(p.X+PlayerSize/2-.5, p.Y+PlayerSize/2-.5, at.X-p.X-PlayerSize/2, at.Y-p.Y-PlayerSize/2, 1, 1); blocked {
+				half := float64(parameters.PlayerSize) / 2
+				geometry := worldmap.Default().WithSecrets(w.openSecrets)
+				if _, blocked := geometry.MovementLimit(p.X+half-.5, p.Y+half-.5, at.X-p.X-half, at.Y-p.Y-half, 1, 1); blocked {
 					continue
 				}
 				nearest, distance = tome, d
 			}
 		}
-		if nearest < 0 || math.Hypot(book.X-p.X-PlayerSize/2, book.Y-p.Y-PlayerSize/2) < 55 {
+		if nearest < 0 || math.Hypot(book.X-p.X-parameters.PlayerSize/2, book.Y-p.Y-parameters.PlayerSize/2) < 55 {
 			continue
 		}
-		if LibraryRecalling(*book, w.tick) || book.Library.NudgeTick != 0 && w.tick-book.Library.NudgeTick < TickRate/4 {
+		if LibraryRecalling(*book, w.tick) || book.Library.NudgeTick != 0 && w.tick-book.Library.NudgeTick < parameters.TickRate/4 {
 			return true
 		}
 		dx, dy := input.AimX, input.AimY
@@ -136,7 +139,7 @@ func (w *World) interactLibrary(p *playerState, input Direction) bool {
 		}
 		if math.Hypot(dx, dy) < .01 {
 			at := book.Library.Positions[nearest]
-			dx, dy = at.X-p.X-PlayerSize/2, at.Y-p.Y-PlayerSize/2
+			dx, dy = at.X-p.X-parameters.PlayerSize/2, at.Y-p.Y-parameters.PlayerSize/2
 		}
 		length := math.Hypot(dx, dy)
 		if length > .01 {
@@ -171,13 +174,13 @@ func (w *World) advanceLibraries() {
 				continue
 			}
 			if LibraryRecalling(*book, w.tick) {
-				t := float64(w.tick-book.Library.RecallTick) / TickRate / LibraryRecallSeconds
+				t := float64(w.tick-book.Library.RecallTick) / parameters.TickRate / LibraryRecallSeconds
 				t = t * t * (3 - 2*t)
 				from, to := book.Library.RecallFrom[tome], LibraryHome(*book, tome)
 				book.Library.Positions[tome] = physics.Vector{X: from.X + (to.X-from.X)*t, Y: from.Y + (to.Y-from.Y)*t}
 				continue
 			}
-			if book.Library.RecallTick != 0 && w.tick-book.Library.RecallTick == uint64(LibraryRecallSeconds*TickRate) {
+			if book.Library.RecallTick != 0 && w.tick-book.Library.RecallTick == uint64(LibraryRecallSeconds*parameters.TickRate) {
 				book.Library.Positions[tome] = LibraryHome(*book, tome)
 			}
 			wards := [LibraryTomeCount]physics.Vector{}
@@ -273,7 +276,7 @@ func LibraryTomeStep(arena physics.Rect, wards [LibraryTomeCount]physics.Vector,
 			at.X, at.Y = target.X+nx*(LibraryWardRadius+1), target.Y+ny*(LibraryWardRadius+1)
 		}
 	}
-	damping := math.Exp(-LibraryDrag * StepSeconds)
+	damping := math.Exp(-LibraryDrag * parameters.StepSeconds)
 	velocity.X *= damping
 	velocity.Y *= damping
 	if math.Hypot(velocity.X, velocity.Y) < 8 {
@@ -283,7 +286,7 @@ func LibraryTomeStep(arena physics.Rect, wards [LibraryTomeCount]physics.Vector,
 }
 
 func libraryShelfMotion(at, velocity physics.Vector, shelves []physics.Rect) (physics.Vector, physics.Vector, bool) {
-	remaining, bounced := StepSeconds, false
+	remaining, bounced := parameters.StepSeconds, false
 	for contact := 0; contact < 4 && remaining > 1e-9; contact++ {
 		delta := physics.Vector{X: velocity.X * remaining, Y: velocity.Y * remaining}
 		body := physics.Square(at.X-LibraryTomeRadius, at.Y-LibraryTomeRadius, LibraryTomeRadius*2)
@@ -323,7 +326,7 @@ func LibraryShotPreview(book StatueState, tome int, start, direction physics.Vec
 	}
 	velocity := physics.Vector{X: direction.X * LibraryStrikeSpeed, Y: direction.Y * LibraryStrikeSpeed}
 	at := start
-	for step := 0; step < 7*TickRate; step++ {
+	for step := 0; step < 7*parameters.TickRate; step++ {
 		var bounced, bound bool
 		at, velocity, bounced, bound = LibraryTomeStep(arena, wards, shelves, tome, at, velocity)
 		if step%3 == 0 || bounced || bound {

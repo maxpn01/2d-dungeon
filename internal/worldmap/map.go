@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 )
 
@@ -34,7 +35,7 @@ type StatuePoint struct {
 
 func (s StatuePoint) Position() physics.Vector {
 	p := s.At.World()
-	return physics.Vector{X: p.X + Tile/2, Y: p.Y + Tile/2}
+	return physics.Vector{X: p.X + parameters.Tile/2, Y: p.Y + parameters.Tile/2}
 }
 
 type PortalPoint struct {
@@ -115,7 +116,7 @@ func New(layout Layout) (*Map, error) {
 		}
 		for _, gate := range room.Gates {
 			at := room.WorldCell(gate.At)
-			m.gates[gate.ID] = GateBounds{Left: at.X * Tile, Right: (at.X + gate.Width) * Tile, Y: at.Y * Tile}
+			m.gates[gate.ID] = GateBounds{Left: at.X * parameters.Tile, Right: (at.X + gate.Width) * parameters.Tile, Y: at.Y * parameters.Tile}
 		}
 		for _, portal := range room.Portals {
 			m.portals = append(m.portals, PortalPoint{ID: portal.ID, RoomID: room.ID, Destination: portal.Destination, At: room.WorldCell(portal.At), Floor: room.Floor})
@@ -142,7 +143,7 @@ func New(layout Layout) (*Map, error) {
 			}
 		}
 	}
-	m.collisionWorld = physics.World{CanOccupy: m.CanOccupy, MaxStep: Tile / 5}
+	m.collisionWorld = physics.World{CanOccupy: m.CanOccupy, MaxStep: parameters.Tile / 5}
 	if err := m.Validate(); err != nil {
 		return nil, err
 	}

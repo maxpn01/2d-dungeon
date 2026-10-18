@@ -4,13 +4,6 @@ import (
 	"math"
 
 	"2d-dungeon/internal/parameters"
-	"2d-dungeon/internal/worldmap"
-)
-
-const (
-	BoostMultiplier  = parameters.BoostMultiplier
-	BoostMPPerSecond = parameters.BoostMPPerSecond
-	BoostMinimumMass = parameters.BoostMinimumMass
 )
 
 func advanceBoostPlayer(p *Player, input Direction, dt float64) {
@@ -48,9 +41,9 @@ func moveBoostPlayer(p *Player, input Direction, dt, speed float64) (float64, fl
 	if dt <= 0 || length == 0 {
 		return p.X, p.Y
 	}
-	distance := speed * SpeedScale * dt
+	distance := speed * parameters.SpeedScale * dt
 	if p.Stats.Mob {
 		distance *= min(1, length)
 	}
-	return worldmap.Default().WithSecrets(p.OpenSecrets).WithVaultGate(p.VaultGateOpen).Move(p.X, p.Y, input.X/length*distance, input.Y/length*distance, PlayerSize, PlayerSize)
+	return p.geometry().Move(p.X, p.Y, input.X/length*distance, input.Y/length*distance, parameters.PlayerSize, parameters.PlayerSize)
 }

@@ -28,7 +28,7 @@ func (s StatueState) Near(x, y float64, open ...[]string) bool {
 		geometry = geometry.WithSecrets(open[0])
 	}
 
-	return math.Hypot(x+PlayerSize/2-s.X, y+PlayerSize/2-s.Y) <= StatueInteractionRadius && geometry.Visible(x+PlayerSize/2, y+PlayerSize/2, s.X, s.Y)
+	return math.Hypot(x+parameters.PlayerSize/2-s.X, y+parameters.PlayerSize/2-s.Y) <= StatueInteractionRadius && geometry.Visible(x+parameters.PlayerSize/2, y+parameters.PlayerSize/2, s.X, s.Y)
 }
 
 func (w *World) interactStatue(p *playerState) bool {
@@ -40,7 +40,7 @@ func (w *World) interactStatue(p *playerState) bool {
 		if s.ClaimedBy != "" || !s.Near(p.X, p.Y, w.openSecrets) {
 			continue
 		}
-		d := math.Hypot(p.X+PlayerSize/2-s.X, p.Y+PlayerSize/2-s.Y)
+		d := math.Hypot(p.X+parameters.PlayerSize/2-s.X, p.Y+parameters.PlayerSize/2-s.Y)
 		if d < distance {
 			nearest, distance = i, d
 		}
@@ -91,7 +91,7 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 		}
 		s.ClaimedBy = id
 		if !worldmap.IsWingStatue(s.ID) {
-			s.rechargeUntil = w.tick + parameters.StatueRechargeSeconds*TickRate
+			s.rechargeUntil = w.tick + parameters.StatueRechargeSeconds*parameters.TickRate
 			s.RechargeRemaining = parameters.StatueRechargeSeconds
 			s.Cards = nil
 			s.offers = nil
@@ -124,7 +124,7 @@ func (w *World) updateStatues() {
 			continue
 		}
 		if w.tick < s.rechargeUntil {
-			s.RechargeRemaining = float64(s.rechargeUntil-w.tick) / TickRate
+			s.RechargeRemaining = float64(s.rechargeUntil-w.tick) / parameters.TickRate
 			continue
 		}
 		s.Cards, s.offers = nil, nil

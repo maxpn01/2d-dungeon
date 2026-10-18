@@ -7,20 +7,7 @@ import (
 	"2d-dungeon/internal/physics"
 )
 
-const Tile = parameters.Tile
-const (
-	MinCellX     = parameters.MinCellX
-	MaxCellX     = parameters.MaxCellX
-	MinCellY     = parameters.MinCellY
-	MaxCellY     = parameters.MaxCellY
-	SurfaceCells = parameters.SurfaceCells
-	SurfaceMin   = parameters.SurfaceMin
-	SurfaceMax   = parameters.SurfaceMax
-	North        = parameters.North
-	ActorSize    = parameters.ActorSize
-)
-
-const SpawnAltarCenter = SurfaceCells * Tile / 2
+const SpawnAltarCenter = parameters.SurfaceCells * parameters.Tile / 2
 const SpawnAltarRadius = 49
 
 func (m *Map) PrivateGateCrossed(fromX, fromY, toX, toY, size float64) bool {
@@ -76,13 +63,13 @@ func (m *Map) build() map[[2]int]int {
 
 func (m *Map) Cell(x, y int) int { return m.floors[[2]int{x, y}] }
 func (m *Map) Bounds() (left, top, right, bottom int) {
-	left, right, bottom = 0, SurfaceCells, SurfaceCells
+	left, right, bottom = 0, parameters.SurfaceCells, parameters.SurfaceCells
 	for c := range m.floors {
 		left, top = min(left, c[0]-1), min(top, c[1]-1)
 		right = max(right, c[0]+2)
 		bottom = max(bottom, c[1]+2)
 	}
-	return left * Tile, top * Tile, right * Tile, bottom * Tile
+	return left * parameters.Tile, top * parameters.Tile, right * parameters.Tile, bottom * parameters.Tile
 }
 
 func (m *Map) Walkable(x, y, w, h float64) bool {
@@ -93,16 +80,16 @@ func (m *Map) Walkable(x, y, w, h float64) bool {
 }
 
 func (m *Map) walkableLayout(x, y, w, h float64) bool {
-	if !(physics.Rect{X: x, Y: y, W: w, H: h}).Valid() || x < MinCellX*Tile || x+w > MaxCellX*Tile || y < North || y+h > MaxCellY*Tile {
+	if !(physics.Rect{X: x, Y: y, W: w, H: h}).Valid() || !insideWorld(x, y, w, h) {
 		return false
 	}
 	body := physics.Rect{X: x, Y: y, W: w, H: h}
 
-	if body.Overlaps(physics.Rect{X: 0, Y: 0, W: SurfaceCells * Tile, H: SurfaceCells * Tile}) {
+	if body.Overlaps(physics.Rect{X: 0, Y: 0, W: parameters.SurfaceCells * parameters.Tile, H: parameters.SurfaceCells * parameters.Tile}) {
 		return walkableSanctuary(x, y, w, h, m.Cell, true)
 	}
-	for cy := int(math.Floor(y / Tile)); cy <= int(math.Floor(math.Nextafter((y+h)/Tile, math.Inf(-1)))); cy++ {
-		for cx := int(math.Floor(x / Tile)); cx <= int(math.Floor(math.Nextafter((x+w)/Tile, math.Inf(-1)))); cx++ {
+	for cy := int(math.Floor(y / parameters.Tile)); cy <= int(math.Floor(math.Nextafter((y+h)/parameters.Tile, math.Inf(-1)))); cy++ {
+		for cx := int(math.Floor(x / parameters.Tile)); cx <= int(math.Floor(math.Nextafter((x+w)/parameters.Tile, math.Inf(-1)))); cx++ {
 			if m.Cell(cx, cy) == 0 || m.solid[[2]int{cx, cy}] {
 				return false
 			}
@@ -115,13 +102,18 @@ func walkableSanctuary(x, y, w, h float64, cell func(int, int) int, altar bool) 
 	if altar && overlapsSpawnAltar(x, y, w, h) {
 		return false
 	}
-	if y >= SurfaceMin && y+h <= SurfaceMax && x >= SurfaceMin && x+w <= SurfaceMax {
+	if y >= parameters.SurfaceMin && y+h <= parameters.SurfaceMax && x >= parameters.SurfaceMin && x+w <= parameters.SurfaceMax {
 		return true
 	}
-	for cy := int(math.Floor(y / Tile)); cy <= int(math.Floor(math.Nextafter((y+h)/Tile, math.Inf(-1)))); cy++ {
-		for cx := int(math.Floor(x / Tile)); cx <= int(math.Floor(math.Nextafter((x+w)/Tile, math.Inf(-1)))); cx++ {
-			if cy >= 0 && cy < SurfaceCells && cx >= 0 && cx < SurfaceCells {
-				if y < SurfaceMin && cy == 0 && cell(cx, -1) == 0 || x < SurfaceMin && cx == 0 && cell(-1, cy) == 0 || x+w > SurfaceMax && cx == SurfaceCells-1 && cell(SurfaceCells, cy) == 0 || y+h > SurfaceMax && cy == SurfaceCells-1 && cell(cx, SurfaceCells) == 0 {
+	for cy := int(math.Floor(y / parameters.Tile)); cy <= int(math.Floor(math.Nextafter((y+h)/parameters.Tile, math.Inf(-1)))); cy++ {
+		for cx := int(math.Floor(x / parameters.Tile)); cx <= int(math.Floor(math.Nextafter((x+w)/parameters.Tile, math.Inf(-1)))); cx++ {
+			if cy >= 0 && cy < parameters.SurfaceCells && cx >= 0 && cx < parameters.SurfaceCells {
+				last := parameters.SurfaceCells - 1
+				top := y < parameters.SurfaceMin && cy == 0 && cell(cx, -1) == 0
+				left := x < parameters.SurfaceMin && cx == 0 && cell(-1, cy) == 0
+				right := x+w > parameters.SurfaceMax && cx == last && cell(parameters.SurfaceCells, cy) == 0
+				bottom := y+h > parameters.SurfaceMax && cy == last && cell(cx, parameters.SurfaceCells) == 0
+				if top || left || right || bottom {
 					return false
 				}
 			} else if cell(cx, cy) == 0 {
@@ -149,4 +141,8 @@ func overlapsSpawnAltar(x, y, w, h float64) bool {
 	return (physics.Rect{X: x, Y: y, W: w, H: h}).OverlapsOctagon(
 		physics.Vector{X: SpawnAltarCenter, Y: SpawnAltarCenter}, SpawnAltarRadius,
 	)
+}
+
+func insideWorld(x, y, w, h float64) bool {
+	return x >= parameters.MinCellX*parameters.Tile && x+w <= parameters.MaxCellX*parameters.Tile && y >= parameters.North && y+h <= parameters.MaxCellY*parameters.Tile
 }

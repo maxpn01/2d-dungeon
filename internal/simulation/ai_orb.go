@@ -8,7 +8,7 @@ import (
 	"2d-dungeon/internal/worldmap"
 )
 
-const OrbFrenzyDelayTicks = 5 * TickRate
+const OrbFrenzyDelayTicks = 5 * parameters.TickRate
 
 func (w *World) orbTarget(ai *aiState) *playerState {
 	if w.tick < w.orb.FrenzyAt {
@@ -20,7 +20,7 @@ func (w *World) orbTarget(ai *aiState) *playerState {
 	}
 	geometry := worldmap.Default()
 	room, ok := geometry.Room(ai.den.RoomID)
-	if !ok || room.Floor != worldmap.FirstFloor || room.HasRole(worldmap.Private) || geometry.FloorAt(carrier.X+PlayerSize/2, carrier.Y+PlayerSize/2) != worldmap.FirstFloor {
+	if !ok || room.Floor != worldmap.FirstFloor || room.HasRole(worldmap.Private) || geometry.FloorAt(carrier.X+parameters.PlayerSize/2, carrier.Y+parameters.PlayerSize/2) != worldmap.FirstFloor {
 		return nil
 	}
 	return carrier
@@ -39,10 +39,10 @@ func (w *World) huntOrb(ai *aiState, carrier *playerState) Direction {
 		length := math.Hypot(sx, sy)
 		d.AimX, d.AimY, d.Shoot = sx/max(1, length), sy/max(1, length), true
 	}
-	ai.Behavior = "hunting orb"
-	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
+	ai.Behavior = BehaviorHuntingOrb
+	geometry := w.geometry()
 	targetX, targetY := carrier.X, carrier.Y
-	if carrier.Flight.Flying && !geometry.CanOccupy(physics.Square(targetX, targetY, AISize)) {
+	if carrier.Flight.Flying && !geometry.CanOccupy(physics.Square(targetX, targetY, parameters.AISize)) {
 		targetX, targetY = carrier.Flight.LandingX, carrier.Flight.LandingY
 	} else {
 		goal := w.frenzyPosition(ai, carrier)
@@ -50,7 +50,7 @@ func (w *World) huntOrb(ai *aiState, carrier *playerState) Direction {
 	}
 	distance := math.Hypot(targetX-ai.X, targetY-ai.Y)
 	if distance < 12 {
-		ai.Behavior = "covering orb"
+		ai.Behavior = BehaviorCoveringOrb
 		return d
 	}
 	movement := ai.navigateMap(geometry, targetX, targetY)
@@ -87,7 +87,7 @@ func (w *World) orbShotTarget(ai *aiState, carrier *playerState) *playerState {
 	var target *playerState
 	best := math.Inf(1)
 	for _, p := range w.players {
-		radius := AIDetectionRadius
+		radius := parameters.AIDetectionRadius
 		if p.ID == carrier.ID {
 			radius = ProjectileSpeed(Projectile{MobOwned: true}) * parameters.ShotLifetime
 		}

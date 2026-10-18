@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 )
 
@@ -38,7 +39,7 @@ func (m *Map) fogOpaque(x, y int) bool {
 	return m.Cell(x, y) == 0 && !m.SanctuaryCell(x, y) && !m.Pool(x, y)
 }
 func CellPosition(x, y int, size float64) (float64, float64) {
-	return float64(x*Tile) + (Tile-size)/2, float64(y*Tile) + (Tile-size)/2
+	return float64(x*parameters.Tile) + (parameters.Tile-size)/2, float64(y*parameters.Tile) + (parameters.Tile-size)/2
 }
 
 func (m *Map) Validate() error {
@@ -48,8 +49,8 @@ func (m *Map) Validate() error {
 		if seen[cell] {
 			return true
 		}
-		x, y := CellPosition(cell[0], cell[1], ActorSize)
-		if !m.Walkable(x, y, ActorSize, ActorSize) {
+		x, y := CellPosition(cell[0], cell[1], parameters.ActorSize)
+		if !m.Walkable(x, y, parameters.ActorSize, parameters.ActorSize) {
 			return false
 		}
 		seen[cell] = true
@@ -82,8 +83,8 @@ func (m *Map) Validate() error {
 		}
 	}
 	for cell := range m.floors {
-		x, y := CellPosition(cell[0], cell[1], ActorSize)
-		sanctuaryWall := m.SanctuaryCell(cell[0], cell[1]) && !m.Walkable(x, y, ActorSize, ActorSize)
+		x, y := CellPosition(cell[0], cell[1], parameters.ActorSize)
+		sanctuaryWall := m.SanctuaryCell(cell[0], cell[1]) && !m.Walkable(x, y, parameters.ActorSize, parameters.ActorSize)
 		if cell[1] < 0 && !seen[cell] && !sanctuaryWall && !m.solid[cell] {
 			return fmt.Errorf("unreachable floor cell %v", cell)
 		}
@@ -108,7 +109,7 @@ func (m *Map) Validate() error {
 			return fmt.Errorf("unreachable portal %s", portal.ID)
 		}
 		position := portal.Position()
-		if !m.CanOccupy(physics.Square(position.X-ActorSize/2, position.Y-ActorSize/2, ActorSize)) {
+		if !m.CanOccupy(physics.Square(position.X-parameters.ActorSize/2, position.Y-parameters.ActorSize/2, parameters.ActorSize)) {
 			return fmt.Errorf("blocked landing at portal %s", portal.ID)
 		}
 	}

@@ -3,6 +3,7 @@ package worldmap
 import (
 	"slices"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 )
 
@@ -18,7 +19,8 @@ func (m *Map) WithSecrets(open []string) *Map {
 	if cached, ok := m.secretVariants.Load(mask); ok {
 		return cached.(*Map)
 	}
-	variant := &Map{dungeonLayout: m.dungeonLayout, layout: m.layout, floors: make(map[[2]int]int, len(m.floors)), flightCells: m.flightCells, cover: m.cover, solid: m.solid, passages: m.passages, pools: m.pools, patches: m.patches, dens: m.dens, gates: m.gates, portals: m.portals, statues: m.statues}
+	variant := m.variant()
+	variant.floors = make(map[[2]int]int, len(m.floors))
 	for cell, id := range m.floors {
 		variant.floors[cell] = id
 	}
@@ -39,7 +41,7 @@ func (m *Map) WithSecrets(open []string) *Map {
 			}
 		}
 	}
-	variant.collisionWorld = physics.World{CanOccupy: variant.CanOccupy, MaxStep: Tile / 5}
+	variant.collisionWorld = physics.World{CanOccupy: variant.CanOccupy, MaxStep: parameters.Tile / 5}
 	cached, _ := m.secretVariants.LoadOrStore(mask, variant)
 	return cached.(*Map)
 }
@@ -63,4 +65,12 @@ func (m *Map) SecretHidden(x, y float64) bool {
 		}
 	}
 	return false
+}
+
+func (m *Map) variant() *Map {
+	return &Map{
+		dungeonLayout: m.dungeonLayout, layout: m.layout, floors: m.floors, flightCells: m.flightCells,
+		cover: m.cover, solid: m.solid, passages: m.passages, pools: m.pools, patches: m.patches,
+		dens: m.dens, gates: m.gates, portals: m.portals, statues: m.statues,
+	}
 }

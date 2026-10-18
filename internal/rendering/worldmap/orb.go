@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
 
@@ -44,7 +45,7 @@ func drawOrbPedestal(orb simulation.OrbState, local simulation.Player, explorati
 			label = "[E] TAKE THE ORB"
 		}
 	}
-	if !local.Dead && math.Hypot(local.X+simulation.PlayerSize/2-orb.X, local.Y+simulation.PlayerSize/2-orb.Y) <= 100 {
+	if !local.Dead && math.Hypot(local.X+parameters.PlayerSize/2-orb.X, local.Y+parameters.PlayerSize/2-orb.Y) <= 100 {
 		primitives.DrawTextAt(label, rl.NewVector2(center.X-float32(primitives.MeasureText(label, 16))/2, center.Y-85), 16, tint)
 	}
 }

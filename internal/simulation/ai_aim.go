@@ -25,12 +25,12 @@ func (w *World) aiInput(ai *aiState) Direction {
 	if !ai.aimReady {
 		input.Shoot = false
 		ai.Aiming = true
-		ai.Behavior = "aiming"
+		ai.Behavior = BehaviorAiming
 	}
 	if input.Shoot {
 		if target := w.players[ai.shotTargetID]; target != nil && !w.clearMobShot(ai, target) {
 			input.Shoot = false
-			ai.Behavior = "waiting for clear shot"
+			ai.Behavior = BehaviorWaitingForClearShot
 		}
 	}
 	return input

@@ -3,6 +3,7 @@ package worldmap
 import (
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
 	mapdata "2d-dungeon/internal/worldmap"
@@ -33,7 +34,7 @@ type Map struct {
 
 func NewMap() *Map {
 	cellSize := rl.NewVector2(10, 10)
-	size := rl.NewVector2(mapdata.SurfaceCells*mapdata.Tile, mapdata.SurfaceCells*mapdata.Tile)
+	size := rl.NewVector2(parameters.SurfaceCells*parameters.Tile, parameters.SurfaceCells*parameters.Tile)
 	return &Map{world: mapdata.Default().WithSecrets(nil),
 		sizeInCells: rl.NewVector2(size.X/cellSize.X, size.Y/cellSize.Y),
 		cellSize:    cellSize,
@@ -45,11 +46,11 @@ func NewMap() *Map {
 
 func (m *Map) Draw(ctx primitives.Context, snapshot simulation.Snapshot, local simulation.Player) {
 	m.Exploration.SetSecrets(snapshot.OpenSecrets, snapshot.Orb.GateOpen)
-	m.Exploration.Reveal(rl.NewVector2(float32(local.X+simulation.PlayerSize/2), float32(local.Y+simulation.PlayerSize/2)), local.HasWings, local.Flight.Flying)
+	m.Exploration.Reveal(rl.NewVector2(float32(local.X+parameters.PlayerSize/2), float32(local.Y+parameters.PlayerSize/2)), local.HasWings, local.Flight.Flying)
 	m.world = mapdata.Default().WithSecrets(snapshot.OpenSecrets)
 	m.wallHits = snapshot.SecretWallHits
 	m.gate = local.EntranceGate
-	m.floor = m.world.FloorAt(local.X+simulation.PlayerSize/2, local.Y+simulation.PlayerSize/2)
+	m.floor = m.world.FloorAt(local.X+parameters.PlayerSize/2, local.Y+parameters.PlayerSize/2)
 	m.gatePrompt = !local.Dead && simulation.NearEntranceGateFor(local.EntranceID, local.X, local.Y)
 	m.nearGateID = mapdata.EntranceGate
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
@@ -49,7 +50,7 @@ func (m *Map) libraryPose(book simulation.StatueState, tome int) physics.Vector 
 		break
 	}
 	if book.Library.Bound&(1<<tome) != 0 && book.Library.BoundTicks[tome] != 0 {
-		t := max(0, min(1, (m.libraryFrame.clock-float64(book.Library.BoundTicks[tome]))/simulation.TickRate/.55))
+		t := max(0, min(1, (m.libraryFrame.clock-float64(book.Library.BoundTicks[tome]))/parameters.TickRate/.55))
 		t = t * t * (3 - 2*t)
 		ward := simulation.LibraryWard(book, tome)
 		at.X += (ward.X - at.X) * t
@@ -64,7 +65,9 @@ func librarySymbol(center rl.Vector2, kind int, radius float32, tint rl.Color) {
 		for i := 0; i < 20; i++ {
 			a, b := float64(i)*math.Pi/20, float64(i+1)*math.Pi/20
 			for _, width := range []float32{.9, .3} {
-				rl.DrawLineEx(rl.NewVector2(center.X-float32(math.Sin(a))*radius*width, center.Y-float32(math.Cos(a))*radius), rl.NewVector2(center.X-float32(math.Sin(b))*radius*width, center.Y-float32(math.Cos(b))*radius), 2, tint)
+				from := rl.NewVector2(center.X-float32(math.Sin(a))*radius*width, center.Y-float32(math.Cos(a))*radius)
+				to := rl.NewVector2(center.X-float32(math.Sin(b))*radius*width, center.Y-float32(math.Cos(b))*radius)
+				rl.DrawLineEx(from, to, 2, tint)
 			}
 		}
 
@@ -72,7 +75,9 @@ func librarySymbol(center rl.Vector2, kind int, radius float32, tint rl.Color) {
 		rl.DrawCircleLinesV(center, radius*.52, tint)
 		for i := 0; i < 8; i++ {
 			a := float64(i) * math.Pi / 4
-			rl.DrawLineEx(rl.NewVector2(center.X+float32(math.Cos(a))*radius*.75, center.Y+float32(math.Sin(a))*radius*.75), rl.NewVector2(center.X+float32(math.Cos(a))*radius, center.Y+float32(math.Sin(a))*radius), 2, tint)
+			from := rl.NewVector2(center.X+float32(math.Cos(a))*radius*.75, center.Y+float32(math.Sin(a))*radius*.75)
+			to := rl.NewVector2(center.X+float32(math.Cos(a))*radius, center.Y+float32(math.Sin(a))*radius)
+			rl.DrawLineEx(from, to, 2, tint)
 		}
 	case 2:
 		for i := 0; i < 10; i++ {
@@ -90,7 +95,7 @@ func (m *Map) drawHauntedLibrary(snapshot simulation.Snapshot, local simulation.
 	if m.floor != mapdata.FirstFloor {
 		return
 	}
-	seconds := m.libraryFrame.clock / simulation.TickRate
+	seconds := m.libraryFrame.clock / parameters.TickRate
 	for _, book := range snapshot.Statues {
 		if !simulation.IsLibraryBook(book.ID) || m.world.SecretHidden(book.X, book.Y) {
 			continue
@@ -141,7 +146,7 @@ func (m *Map) drawHauntedLibrary(snapshot simulation.Snapshot, local simulation.
 			}
 		}
 		if book.Library.CompletedTick != 0 {
-			t := (m.libraryFrame.clock - float64(book.Library.CompletedTick)) / simulation.TickRate
+			t := (m.libraryFrame.clock - float64(book.Library.CompletedTick)) / parameters.TickRate
 			if t >= 0 && t < 3 {
 				center := rl.NewVector2(float32(book.X), float32(book.Y))
 				rl.DrawRing(center, float32(40+t*95), float32(43+t*95), 0, 360, 72, rl.Fade(rl.Gold, float32(1-t/3)))
@@ -153,7 +158,8 @@ func (m *Map) drawHauntedLibrary(snapshot simulation.Snapshot, local simulation.
 				}
 			}
 		}
-		if !local.Dead && book.Near(local.X, local.Y, snapshot.OpenSecrets) && (book.Library.StartedTick == 0 || math.Hypot(book.X-local.X-simulation.PlayerSize/2, book.Y-local.Y-simulation.PlayerSize/2) < 55) {
+		closeEnough := book.Library.StartedTick == 0 || math.Hypot(book.X-local.X-parameters.PlayerSize/2, book.Y-local.Y-parameters.PlayerSize/2) < 55
+		if !local.Dead && book.Near(local.X, local.Y, snapshot.OpenSecrets) && closeEnough {
 			label := "[E] WAKE THE ENCHANTED TOMES"
 			if book.Library.StartedTick != 0 {
 				label = "[E] RECALL UNBOUND TOMES"
@@ -172,7 +178,7 @@ func (m *Map) drawHauntedLibrary(snapshot simulation.Snapshot, local simulation.
 func drawLibraryTome(book simulation.StatueState, tome int, at physics.Vector, clock float64) {
 	tint := libraryColors[tome]
 	bound := book.Library.Bound&(1<<tome) != 0
-	age := (clock - float64(book.Library.StartedTick)) / simulation.TickRate
+	age := (clock - float64(book.Library.StartedTick)) / parameters.TickRate
 	bob := math.Sin(age*2+float64(tome)*2) * 2.2
 	speed := math.Hypot(book.Library.Velocities[tome].X, book.Library.Velocities[tome].Y)
 	center := rl.NewVector2(float32(at.X), float32(at.Y))
@@ -187,7 +193,7 @@ func drawLibraryTome(book simulation.StatueState, tome int, at physics.Vector, c
 	center.Y += float32(bob)
 	flash := 0.0
 	if book.Library.HitTicks[tome] != 0 {
-		flash = max(0, min(1, 1-(clock-float64(book.Library.HitTicks[tome]))/simulation.TickRate/.25))
+		flash = max(0, min(1, 1-(clock-float64(book.Library.HitTicks[tome]))/parameters.TickRate/.25))
 	}
 	rl.DrawCircleGradient(center, 40+float32(flash)*18, rl.Fade(tint, .12+float32(flash)*.2), rl.Blank)
 	rl.DrawRectangleRec(rl.NewRectangle(center.X-17, center.Y-21, 34, 42), rl.NewColor(26, 22, 31, 255))
@@ -200,12 +206,12 @@ func drawLibraryTome(book simulation.StatueState, tome int, at physics.Vector, c
 	librarySymbol(rl.NewVector2(center.X+1, center.Y-2), tome, 9, tint)
 	rl.DrawLineEx(rl.NewVector2(center.X+9, center.Y+16), rl.NewVector2(center.X+9, center.Y+28), 3, tint)
 	if bound {
-		t := (clock - float64(book.Library.BoundTicks[tome])) / simulation.TickRate
+		t := (clock - float64(book.Library.BoundTicks[tome])) / parameters.TickRate
 		if t >= 0 && t < .7 {
 			rl.DrawRing(center, float32(20+t*55), float32(22+t*55), 0, 360, 48, rl.Fade(tint, float32(1-t/.7)))
 		}
 	}
-	bounce := (clock - float64(book.Library.BounceTicks[tome])) / simulation.TickRate
+	bounce := (clock - float64(book.Library.BounceTicks[tome])) / parameters.TickRate
 	if book.Library.BounceTicks[tome] != 0 && bounce >= 0 && bounce < .3 {
 		rl.DrawCircleLinesV(center, float32(18+bounce*35), rl.Fade(tint, float32(1-bounce/.3)))
 	}
@@ -274,7 +280,7 @@ func drawLibraryShelves(world *mapdata.Map, room mapdata.Room) {
 			if world.Cell(outside.X, outside.Y) != 0 || world.Cell(next.X, next.Y) != 0 {
 				continue
 			}
-			rect := rl.NewRectangle(float32(cell.X*mapdata.Tile)+5, float32(cell.Y*mapdata.Tile)+5, 70, 30)
+			rect := rl.NewRectangle(float32(cell.X*parameters.Tile)+5, float32(cell.Y*parameters.Tile)+5, 70, 30)
 			if vertical {
 				rect.Width, rect.Height = 30, 70
 			}
@@ -350,7 +356,7 @@ func (m *Map) drawLibraryAim(book simulation.StatueState) {
 	}
 	dx /= length
 	dy /= length
-	origin := physics.Vector{X: p.X + simulation.PlayerSize/2, Y: p.Y + simulation.PlayerSize/2}
+	origin := physics.Vector{X: p.X + parameters.PlayerSize/2, Y: p.Y + parameters.PlayerSize/2}
 	selected, distance := -1, 600.0
 	for tome := 0; tome < simulation.LibraryTomeCount; tome++ {
 		if book.Library.Bound&(1<<tome) != 0 {
@@ -400,7 +406,7 @@ func (m *Map) DrawLibraryHUD(ctx primitives.Context, snapshot simulation.Snapsho
 		return
 	}
 	for _, book := range snapshot.Statues {
-		if !simulation.IsLibraryBook(book.ID) || m.world.SecretHidden(book.X, book.Y) || !m.world.RoomContains(simulation.LibraryRoom(book.ID), physics.Square(local.X, local.Y, simulation.PlayerSize)) {
+		if !simulation.IsLibraryBook(book.ID) || m.world.SecretHidden(book.X, book.Y) || !m.world.RoomContains(simulation.LibraryRoom(book.ID), physics.Square(local.X, local.Y, parameters.PlayerSize)) {
 			continue
 		}
 		title := "THE LIBRARIAN'S SPELL BILLIARDS"

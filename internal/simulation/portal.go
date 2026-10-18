@@ -7,8 +7,6 @@ import (
 	"2d-dungeon/internal/worldmap"
 )
 
-const PortalSeconds = parameters.PortalSeconds
-
 func (w *World) updatePortals() {
 	for _, p := range w.players {
 		if p.Dead || p.Flight.Flying {
@@ -23,7 +21,7 @@ func (w *World) updatePortals() {
 		if p.TeleportCharge <= 0 {
 			continue
 		}
-		portal, distance, found := nearestPortal(p.X+PlayerSize/2, p.Y+PlayerSize/2)
+		portal, distance, found := nearestPortal(p.X+parameters.PlayerSize/2, p.Y+parameters.PlayerSize/2)
 		if !found {
 			p.TeleportCharge = 0
 			p.portalCooldown = 0
@@ -40,9 +38,9 @@ func (w *World) updatePortals() {
 			p.TeleportCharge = 0
 			continue
 		}
-		p.TeleportCharge += StepSeconds
-		if p.TeleportCharge >= PortalSeconds {
-			p.X, p.Y = toX-PlayerSize/2, toY-PlayerSize/2
+		p.TeleportCharge += parameters.StepSeconds
+		if p.TeleportCharge >= parameters.PortalSeconds {
+			p.X, p.Y = toX-parameters.PlayerSize/2, toY-parameters.PlayerSize/2
 			if portal.ID == worldmap.DescentPortal {
 				w.orb.Consumed = true
 				w.releaseOrb(w.orb.Carrier)
@@ -54,7 +52,7 @@ func (w *World) updatePortals() {
 			}
 			p.Combat = CombatState{}
 			p.TeleportCharge = 0
-			p.portalCooldown = 2 * TickRate
+			p.portalCooldown = 2 * parameters.TickRate
 			p.direction = Direction{}
 		}
 	}

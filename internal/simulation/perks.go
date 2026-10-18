@@ -119,10 +119,10 @@ func (s *Stats) rebuildPerks() {
 		movementSpeedMultiplier = parameters.MobMovementSpeedMultiplier
 	}
 	damage := parameters.ShotDamage * damageMultiplier
-	damage += parameters.DamagePerLevelIncrease * float64(max(1, min(MaxLevel, s.Level))-1)
+	damage += parameters.DamagePerLevelIncrease * float64(max(1, min(parameters.MaxLevel, s.Level))-1)
 	s.Damage = damage * (1 + b(DamagePerk) + b(HeavyPerk))
 	s.AttackRate = attackRateForLevel(s.Level, attackRateMultiplier) * (1 + b(AttackRatePerk))
-	speed := BaseSpeed + parameters.SpeedPerLevelIncrease*float64(max(1, min(MaxLevel, s.Level))-1)
+	speed := parameters.BaseSpeed + parameters.SpeedPerLevelIncrease*float64(max(1, min(parameters.MaxLevel, s.Level))-1)
 	s.Speed = speed * movementSpeedMultiplier * (1 + b(SpeedPerk) - PerkPenalty(HeavyPerk, s.Perks[HeavyPerk]))
 	if s.Mob {
 		switch s.MobType {
@@ -137,8 +137,8 @@ func (s *Stats) rebuildPerks() {
 	if s.Mob && s.MobType == GateHeavy {
 		s.Damage *= parameters.GateHeavyDamageMultiplier
 	}
-	s.BoostMultiplier = BoostMultiplier * (1 + b(BoostPerk))
-	s.BoostCost = BoostMPPerSecond * (1 + PerkPenalty(BoostPerk, s.Perks[BoostPerk]))
+	s.BoostMultiplier = parameters.BoostMultiplier * (1 + b(BoostPerk))
+	s.BoostCost = parameters.BoostMPPerSecond * (1 + PerkPenalty(BoostPerk, s.Perks[BoostPerk]))
 }
 
 func perkUpgradeOffer(stats Stats) []PerkCard {

@@ -25,7 +25,7 @@ type OrbState struct {
 }
 
 func (w *World) revealSecret(x, y, dx, dy, size float64) {
-	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
+	geometry := w.geometry()
 	fraction, blocked := geometry.MovementLimit(x, y, dx, dy, size, size)
 	if !blocked {
 		return
@@ -90,8 +90,8 @@ func (w *World) interactObjective(p *playerState) bool {
 	if p.Dead || p.Flight.Flying {
 		return false
 	}
-	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
-	x, y := p.X+PlayerSize/2, p.Y+PlayerSize/2
+	geometry := w.geometry()
+	x, y := p.X+parameters.PlayerSize/2, p.Y+parameters.PlayerSize/2
 	if !w.orb.Consumed && math.Hypot(x-w.orb.X, y-w.orb.Y) <= 85 && geometry.Visible(x, y, w.orb.X, w.orb.Y) {
 		if w.orb.Unlocked && w.orb.Carrier == "" && !p.HasOrb {
 			w.orb.Carrier = p.ID
@@ -104,7 +104,7 @@ func (w *World) interactObjective(p *playerState) bool {
 	portal, distance, found := nearestPortal(x, y)
 	if found && distance <= 60 {
 		if p.portalCooldown == 0 && (portal.ID != worldmap.DescentPortal || w.orb.Consumed || p.HasOrb) {
-			p.TeleportCharge = StepSeconds
+			p.TeleportCharge = parameters.StepSeconds
 		}
 		return true
 	}

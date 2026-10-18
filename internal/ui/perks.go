@@ -115,7 +115,8 @@ func perkPreview(stats simulation.Stats, card simulation.PerkCard, hasWings bool
 		return fmt.Sprintf("Base speed %.2f -> %.2f", stats.Speed, next.Speed)
 	case simulation.BoostPerk:
 		if hasWings {
-			return fmt.Sprintf("Flight %.2fx -> %.2fx. MP/sec %.2f -> %.2f.", simulation.FlightSpeedMultiplier(stats), simulation.FlightSpeedMultiplier(next), simulation.FlightMPCost(stats), simulation.FlightMPCost(next))
+			return fmt.Sprintf("Flight %.2fx -> %.2fx. MP/sec %.2f -> %.2f.",
+				simulation.FlightSpeedMultiplier(stats), simulation.FlightSpeedMultiplier(next), simulation.FlightMPCost(stats), simulation.FlightMPCost(next))
 		}
 		return fmt.Sprintf("Shift boost %.2fx -> %.2fx. MP/sec %.2f -> %.2f.", stats.BoostMultiplier, next.BoostMultiplier, stats.BoostCost, next.BoostCost)
 	case simulation.HeavyPerk:

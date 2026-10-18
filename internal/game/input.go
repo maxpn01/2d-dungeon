@@ -1,6 +1,7 @@
 package game
 
 import (
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -40,7 +41,7 @@ func (c *controls) read(camera rl.Camera2D, center rl.Vector2, facing simulation
 }
 
 func playerCenter(p simulation.Player) rl.Vector2 {
-	return rl.NewVector2(float32(p.X+simulation.PlayerSize/2), float32(p.Y+simulation.PlayerSize/2))
+	return rl.NewVector2(float32(p.X+parameters.PlayerSize/2), float32(p.Y+parameters.PlayerSize/2))
 }
 
 func mouseAim(camera rl.Camera2D, center rl.Vector2, fallback simulation.Direction) rl.Vector2 {

@@ -11,7 +11,7 @@
 - `internal/rendering`: drawing and audio. `rendering/worldmap` draws each floor's environment.
 - `internal/ui`: HUD, menus and overlays.
 - `internal/game`: the main loop that ties simulation, rendering and input together.
-- `internal/parameters/parameters.go`: balance numbers. New tunable values go here.
+- `internal/parameters/parameters.go`: balance numbers. New tunable values go here; reference them as `parameters.X` instead of re-exporting them in other packages.
 - `_archive/`: old prototype code, used only as reference. It is not part of the build.
 
 ## Current work

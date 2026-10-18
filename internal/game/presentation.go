@@ -3,10 +3,10 @@ package game
 import (
 	"time"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/rendering"
 	"2d-dungeon/internal/rendering/primitives"
 	maprender "2d-dungeon/internal/rendering/worldmap"
-	"2d-dungeon/internal/simulation"
 	"2d-dungeon/internal/ui"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -83,11 +83,11 @@ func (p *presentation) drawRadar(width, height int32, scene rendering.Scene) {
 	}
 	for _, ai := range ais {
 		markers = append(markers, maprender.Marker{
-			Center: rl.NewVector2(float32(ai.X+simulation.AISize/2), float32(ai.Y+simulation.AISize/2)), Radius: 3, Tint: rl.Green,
+			Center: rl.NewVector2(float32(ai.X+parameters.AISize/2), float32(ai.Y+parameters.AISize/2)), Radius: 3, Tint: rl.Green,
 		})
 	}
 	for _, player := range players {
-		if player.ID != local.ID && !player.Dead && p.gameMap.Exploration.PlayerVisible(player.X, player.Y, simulation.PlayerSize) {
+		if player.ID != local.ID && !player.Dead && p.gameMap.Exploration.PlayerVisible(player.X, player.Y, parameters.PlayerSize) {
 			markers = append(markers, maprender.Marker{Center: playerCenter(player), Radius: 3, Tint: rl.SkyBlue})
 		}
 	}

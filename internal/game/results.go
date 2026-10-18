@@ -12,7 +12,7 @@ func (w *World) DrawResults(width, height int32) ui.Action {
 }
 
 func (p *presentation) resultsOpen(snapshot simulation.Snapshot) bool {
-	return snapshot.WinnerID != "" && (!p.resultsDismissed && snapshot.Tick >= snapshot.FinishedTick+parameters.ResultsDelaySeconds*simulation.TickRate)
+	return snapshot.WinnerID != "" && (!p.resultsDismissed && snapshot.Tick >= snapshot.FinishedTick+parameters.ResultsDelaySeconds*parameters.TickRate)
 }
 func (p *presentation) ContinueExploring() { p.resultsDismissed = true }
 func (p *presentation) ShowResults()       { p.resultsDismissed = false }

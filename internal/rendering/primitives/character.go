@@ -3,23 +3,23 @@ package primitives
 import (
 	"image/color"
 
-	"2d-dungeon/internal/simulation"
+	"2d-dungeon/internal/appearance"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func CharacterColor(c simulation.Character) color.RGBA {
+func CharacterColor(c appearance.Character) color.RGBA {
 	switch c {
-	case simulation.Triangle:
+	case appearance.Triangle:
 		return rl.Yellow
 	default:
 		return rl.Red
 	}
 }
 
-func DrawCharacterShape(c simulation.Character, r rl.Rectangle, tint color.RGBA) {
+func DrawCharacterShape(c appearance.Character, r rl.Rectangle, tint color.RGBA) {
 	switch c {
-	case simulation.Triangle:
+	case appearance.Triangle:
 		rl.DrawTriangle(rl.NewVector2(r.X+r.Width/2, r.Y), rl.NewVector2(r.X, r.Y+r.Height), rl.NewVector2(r.X+r.Width, r.Y+r.Height), tint)
 	default:
 		rl.DrawRectangleRec(r, tint)

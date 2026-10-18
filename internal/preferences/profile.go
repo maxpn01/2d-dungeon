@@ -5,16 +5,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"2d-dungeon/internal/simulation"
+	"2d-dungeon/internal/appearance"
 )
 
 type Profile struct {
 	PlayerName string               `json:"player_name"`
-	Character  simulation.Character `json:"character"`
+	Character  appearance.Character `json:"character"`
 }
 
 func Load() Profile {
-	profile := Profile{PlayerName: "Player", Character: simulation.Square}
+	profile := Profile{PlayerName: "Player", Character: appearance.Square}
 	path, err := settingsPath()
 	if err != nil {
 		return profile
@@ -49,7 +49,7 @@ func (p Profile) Save() error {
 
 func (p *Profile) normalize() {
 	p.PlayerName = NormalizePlayerName(p.PlayerName)
-	p.Character = simulation.NormalizeCharacter(p.Character)
+	p.Character = appearance.Normalize(p.Character)
 }
 
 func settingsPath() (string, error) {

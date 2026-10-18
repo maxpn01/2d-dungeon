@@ -3,6 +3,7 @@ package simulation
 import (
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/worldmap"
 )
 
@@ -16,7 +17,7 @@ type EntranceGateState struct {
 
 func NearEntranceGateFor(id string, x, y float64) bool {
 	gate, ok := worldmap.Default().Gate(id)
-	return ok && x+PlayerSize >= float64(gate.Left)-48 && x <= float64(gate.Right)+48 && math.Abs(y+PlayerSize/2-float64(gate.Y)) <= 110
+	return ok && x+parameters.PlayerSize >= float64(gate.Left)-48 && x <= float64(gate.Right)+48 && math.Abs(y+parameters.PlayerSize/2-float64(gate.Y)) <= 110
 }
 
 func advanceEntranceGate(p *Player, input Direction, dt float64) {
@@ -32,11 +33,11 @@ func advanceEntranceGate(p *Player, input Direction, dt float64) {
 		g.Remaining = 6
 		g.Passed = false
 		g.Side = 1
-		if p.Y+PlayerSize/2 < yGate {
+		if p.Y+parameters.PlayerSize/2 < yGate {
 			g.Side = -1
 		}
 	}
-	occupied := p.X+PlayerSize > left && p.X < right && math.Abs(p.Y+PlayerSize/2-yGate) < PlayerSize/2+38
+	occupied := p.X+parameters.PlayerSize > left && p.X < right && math.Abs(p.Y+parameters.PlayerSize/2-yGate) < parameters.PlayerSize/2+38
 	if g.Remaining > 0 {
 		g.Remaining = max(0, g.Remaining-dt)
 		if g.Passed && !occupied {
@@ -65,14 +66,14 @@ func constrainEntranceGate(p *Player, oldX, oldY float64) {
 		if p.EntranceID == id && g.ID == id {
 			open = g.Open
 		}
-		if open < .95 && p.X+PlayerSize > left && p.X < right {
-			if oldY+PlayerSize/2 >= yGate && p.Y < yGate+30 && oldY >= yGate {
+		if open < .95 && p.X+parameters.PlayerSize > left && p.X < right {
+			if oldY+parameters.PlayerSize/2 >= yGate && p.Y < yGate+30 && oldY >= yGate {
 				p.Y = yGate + 30
-			} else if oldY+PlayerSize/2 < yGate && p.Y+PlayerSize > yGate-30 && oldY+PlayerSize <= yGate {
-				p.Y = yGate - 30 - PlayerSize
+			} else if oldY+parameters.PlayerSize/2 < yGate && p.Y+parameters.PlayerSize > yGate-30 && oldY+parameters.PlayerSize <= yGate {
+				p.Y = yGate - 30 - parameters.PlayerSize
 			}
 		}
-		if g.ID == id && g.Remaining > 0 && ((g.Side == 1 && p.Y+PlayerSize < yGate-38) || (g.Side == -1 && p.Y > yGate+38)) {
+		if g.ID == id && g.Remaining > 0 && ((g.Side == 1 && p.Y+parameters.PlayerSize < yGate-38) || (g.Side == -1 && p.Y > yGate+38)) {
 			g.Passed = true
 		}
 	}

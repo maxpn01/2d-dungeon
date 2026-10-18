@@ -13,11 +13,11 @@ func DrawLocation(x, y float32, width, height int32) {
 	name, hint := "SPAWN ZONE", "Head north through the dungeon entrance."
 	if y < 0 {
 		name, hint = "THE HOLLOW / FLOOR I", "Entrance lies to the south"
-		passage, ok := worldmap.Default().Passage("surface-entrance")
+		passage, ok := worldmap.Default().Passage(worldmap.SurfaceEntrance)
 		if ok && passage.ContainsWorld(float64(x), float64(y)) {
 			name, hint = "I / ENTRANCE HALL", "The provision hall opens to the north."
 		}
-		for _, id := range []string{"vault-processional", "vault-court-entrance", "vault-gallery-approach"} {
+		for _, id := range []string{worldmap.VaultProcessional, worldmap.VaultCourtEntrance, worldmap.VaultGalleryApproach} {
 			if route, found := worldmap.Default().Passage(id); found && route.ContainsWorld(float64(x), float64(y)) {
 				name, hint = "I / THE ASTRAL APPROACH", "Explore the passage beyond the eastern gallery."
 			}

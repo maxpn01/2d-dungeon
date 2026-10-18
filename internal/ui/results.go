@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/preferences"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
@@ -34,7 +35,7 @@ func (p *ResultsPanel) Draw(snapshot simulation.Snapshot, local simulation.Playe
 
 	primitives.DrawCenteredText(title, y, 36, tint)
 	primitives.DrawCenteredText("You discovered the way to the next floor.", y+52, 20, rl.RayWhite)
-	seconds := snapshot.FinishedTick / simulation.TickRate
+	seconds := snapshot.FinishedTick / parameters.TickRate
 	primitives.DrawCenteredText(fmt.Sprintf("Run time  %d:%02d", seconds/60, seconds%60), y+88, 20, rl.Gray)
 	for i, player := range snapshot.Players {
 		name := preferences.NormalizePlayerName(playerName)

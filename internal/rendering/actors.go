@@ -3,6 +3,7 @@ package rendering
 import (
 	"image/color"
 
+	"2d-dungeon/internal/appearance"
 	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
@@ -20,7 +21,7 @@ type Actor struct {
 	ID, Label      string
 	X, Y, Size, HP float64
 	Dead           bool
-	Character      simulation.Character
+	Character      appearance.Character
 	Combat         simulation.CombatState
 	Tint           color.RGBA
 }

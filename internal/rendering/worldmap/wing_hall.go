@@ -27,11 +27,11 @@ func drawWingHall(room mapdata.Room) {
 		rl.DrawLineEx(from, to, 1, rl.Fade(tint, .15))
 	}
 	for _, tile := range []int{3, 6, 9, 12} {
-		along := float32((room.Area.X+tile)*mapdata.Tile + mapdata.Tile/2)
+		along := float32((room.Area.X+tile)*parameters.Tile + parameters.Tile/2)
 		positions := []rl.Vector2{rl.NewVector2(along, float32(bounds.Y-17)), rl.NewVector2(along, float32(bounds.Y+bounds.H+19))}
 		mark := rl.NewVector2(along, centerY)
 		if vertical {
-			along = float32((room.Area.Y+tile)*mapdata.Tile + mapdata.Tile/2)
+			along = float32((room.Area.Y+tile)*parameters.Tile + parameters.Tile/2)
 			positions = []rl.Vector2{rl.NewVector2(float32(bounds.X-20), along), rl.NewVector2(float32(bounds.X+bounds.W+20), along)}
 			mark = rl.NewVector2(centerX, along)
 		}

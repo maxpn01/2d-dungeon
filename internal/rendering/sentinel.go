@@ -3,6 +3,7 @@ package rendering
 import (
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -35,7 +36,7 @@ func drawMobWeapon(center rl.Vector2, size float32, c simulation.CombatState, ki
 	if lunging {
 		base := float32(angle * 180 / math.Pi)
 		if c.Phase == simulation.DashWinding {
-			progress := float32(1 - c.Remaining/simulation.DashWindup)
+			progress := float32(1 - c.Remaining/parameters.DashWindup)
 			rl.DrawCircleSector(center, float32(attack.Reach), base-25, base+25, 16, rl.Fade(warning, .12+.18*progress))
 			rl.DrawCircleSectorLines(center, float32(attack.Reach), base-25, base+25, 16, rl.Fade(warning, .5+.5*progress))
 		} else {

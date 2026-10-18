@@ -9,8 +9,8 @@ import (
 
 func meleeIntercept(target *playerState, seconds float64) physics.Vector {
 	velocity := physics.Vector{X: target.velocityX, Y: target.velocityY}
-	if speed := math.Hypot(velocity.X, velocity.Y); speed > target.MovementSpeed()*SpeedScale {
-		velocity = velocity.Scale(target.MovementSpeed() * SpeedScale / speed)
+	if speed := math.Hypot(velocity.X, velocity.Y); speed > target.MovementSpeed()*parameters.SpeedScale {
+		velocity = velocity.Scale(target.MovementSpeed() * parameters.SpeedScale / speed)
 	}
 	return physics.Vector{X: target.X + velocity.X*seconds*parameters.MeleeAttackPrediction, Y: target.Y + velocity.Y*seconds*parameters.MeleeAttackPrediction}
 }
@@ -20,7 +20,7 @@ func trackMeleeAim(ai *aiState, target *playerState, impactIn, turnRate float64)
 	dx, dy := intercept.X-ai.X, intercept.Y-ai.Y
 	facing := ai.Combat.SwordDirection
 	turn := math.Atan2(facing.X*dy-facing.Y*dx, facing.X*dx+facing.Y*dy)
-	angle := math.Atan2(facing.Y, facing.X) + max(-turnRate*StepSeconds, min(turnRate*StepSeconds, turn))
+	angle := math.Atan2(facing.Y, facing.X) + max(-turnRate*parameters.StepSeconds, min(turnRate*parameters.StepSeconds, turn))
 	ai.Combat.SwordDirection = Direction{X: math.Cos(angle), Y: math.Sin(angle)}
 }
 
@@ -29,8 +29,8 @@ func limitMeleeAdvance(ai *aiState, target *playerState, d Direction, speedMulti
 		return d
 	}
 	distance := math.Hypot(target.X-ai.X, target.Y-ai.Y)
-	travel := ai.Stats.MovementSpeed() * SpeedScale * StepSeconds * speedMultiplier
-	scale := min(1, max(0, distance-AISize*.75)/max(1, travel))
+	travel := ai.Stats.MovementSpeed() * parameters.SpeedScale * parameters.StepSeconds * speedMultiplier
+	scale := min(1, max(0, distance-parameters.AISize*.75)/max(1, travel))
 	d.X, d.Y = d.X*scale, d.Y*scale
 	return d
 }
@@ -53,7 +53,7 @@ func (w *World) advanceMobMelee(actors []eater) {
 			}
 		} else {
 			before := ai.Combat.SwordRemaining
-			ai.Combat.SwordRemaining = max(0, before-StepSeconds)
+			ai.Combat.SwordRemaining = max(0, before-parameters.StepSeconds)
 			impact := attack.Duration - attack.Windup
 			if before <= impact-attack.Active || ai.Combat.SwordRemaining > impact {
 				continue
@@ -75,8 +75,8 @@ func (w *World) advanceMobMelee(actors []eater) {
 				if ai.meleeHits[target.id] {
 					continue
 				}
-				dx := target.end.x + target.size/2 - ai.X - AISize/2
-				dy := target.end.y + target.size/2 - ai.Y - AISize/2
+				dx := target.end.x + target.size/2 - ai.X - parameters.AISize/2
+				dy := target.end.y + target.size/2 - ai.Y - parameters.AISize/2
 				distance := math.Hypot(dx, dy)
 				facing := ai.Combat.SwordDirection
 				if distance > attack.Reach+target.size/2 || (distance > 1 && (dx*facing.X+dy*facing.Y)/distance < math.Cos(math.Pi/3)) || !w.aiCanSeePlayer(ai, target.player, attack.Reach+target.size) {

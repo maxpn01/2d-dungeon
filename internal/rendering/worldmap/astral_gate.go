@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
 	mapdata "2d-dungeon/internal/worldmap"
@@ -42,27 +43,27 @@ func (m *Map) drawAstralRoute() {
 			}
 		}
 	}
-	for _, id := range []string{"vault-gallery-approach", "vault-processional", "vault-court-entrance"} {
+	for _, id := range []string{mapdata.VaultGalleryApproach, mapdata.VaultProcessional, mapdata.VaultCourtEntrance} {
 		if area, found := m.world.Passage(id); found {
 			add(area)
 		}
 	}
 	gate, _ := m.world.Gate(mapdata.VaultGate)
-	entry, _ := m.world.Passage("vault-court-entrance")
-	cx := (gate.Left + gate.Right) / (2 * mapdata.Tile)
+	entry, _ := m.world.Passage(mapdata.VaultCourtEntrance)
+	cx := (gate.Left + gate.Right) / (2 * parameters.Tile)
 	cy := entry.Y + entry.Height/2
 	add(mapdata.Cells(room.Area.X, cy-2, cx-room.Area.X+3, 5))
 	add(mapdata.Cells(cx-2, room.Area.Y, 5, cy-room.Area.Y+3))
 	for cell := range paving {
-		x, y := float32(cell[0]*mapdata.Tile), float32(cell[1]*mapdata.Tile)
+		x, y := float32(cell[0]*parameters.Tile), float32(cell[1]*parameters.Tile)
 		tone := uint8((cell[0]*13 + cell[1]*7) & 3)
-		rl.DrawRectangleRec(rl.NewRectangle(x+1, y+1, mapdata.Tile-2, mapdata.Tile-2), rl.NewColor(37+tone, 39+tone, 48+tone, 255))
+		rl.DrawRectangleRec(rl.NewRectangle(x+1, y+1, parameters.Tile-2, parameters.Tile-2), rl.NewColor(37+tone, 39+tone, 48+tone, 255))
 		for _, edge := range []struct {
 			dx, dy         int
 			ax, ay, bx, by float32
 		}{
-			{-1, 0, 0, 0, 0, mapdata.Tile}, {1, 0, mapdata.Tile, 0, mapdata.Tile, mapdata.Tile},
-			{0, -1, 0, 0, mapdata.Tile, 0}, {0, 1, 0, mapdata.Tile, mapdata.Tile, mapdata.Tile},
+			{-1, 0, 0, 0, 0, parameters.Tile}, {1, 0, parameters.Tile, 0, parameters.Tile, parameters.Tile},
+			{0, -1, 0, 0, parameters.Tile, 0}, {0, 1, 0, parameters.Tile, parameters.Tile, parameters.Tile},
 		} {
 			if !paving[[2]int{cell[0] + edge.dx, cell[1] + edge.dy}] && m.world.Cell(cell[0]+edge.dx, cell[1]+edge.dy) != 0 {
 				rl.DrawLineEx(rl.NewVector2(x+edge.ax, y+edge.ay), rl.NewVector2(x+edge.bx, y+edge.by), 1, rl.Fade(astralGold, .3))
@@ -139,7 +140,7 @@ func (m *Map) drawVaultGate(orb simulation.OrbState, local simulation.Player) {
 		}
 		rl.DrawPoly(rl.NewVector2(lockX, y-31), 4, 9, 0, ink)
 	}
-	if !local.Dead && simulation.NearVaultGate(local.X, local.Y, simulation.PlayerSize) {
+	if !local.Dead && simulation.NearVaultGate(local.X, local.Y, parameters.PlayerSize) {
 		label := fmt.Sprintf("%d GATE WARDENS REMAIN", orb.GateGuardsRemaining)
 		if orb.GateUnlocked {
 			label = "E / OPEN THE ASTRAL GATE"

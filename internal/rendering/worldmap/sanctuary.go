@@ -3,6 +3,7 @@ package worldmap
 import (
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/rendering/primitives"
 	mapdata "2d-dungeon/internal/worldmap"
 
@@ -31,7 +32,7 @@ func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int) {
 	rl.DrawRectangle(0, int32(originY), int32(w), int32(h), sanctuaryFloor)
 	for row := top; row < bottom; row++ {
 		for col := left; col < right; col++ {
-			x, y := col*mapdata.Tile, originY+row*mapdata.Tile
+			x, y := col*parameters.Tile, originY+row*parameters.Tile
 			patternRow := row
 
 			hash := uint32(col*73856093) ^ uint32(patternRow*19349663)
@@ -77,7 +78,11 @@ func (m *Map) drawSanctuaryAt(ctx primitives.Context, originY int) {
 			drawSanctuaryBorder(w-10, y, 10, 40, index)
 		}
 	}
-	for _, p := range []rl.Vector2{{X: 22, Y: float32(originY + 22)}, {X: float32(w - 22), Y: float32(originY + 22)}, {X: 22, Y: float32(originY + h - 22)}, {X: float32(w - 22), Y: float32(originY + h - 22)}} {
+	corners := []rl.Vector2{
+		{X: 22, Y: float32(originY + 22)}, {X: float32(w - 22), Y: float32(originY + 22)},
+		{X: 22, Y: float32(originY + h - 22)}, {X: float32(w - 22), Y: float32(originY + h - 22)},
+	}
+	for _, p := range corners {
 		rl.DrawRectangle(int32(p.X-10), int32(p.Y-8), 20, 24, rl.NewColor(8, 17, 22, 255))
 		rl.DrawRectangle(int32(p.X-8), int32(p.Y-10), 16, 20, stone)
 		rl.DrawRectangle(int32(p.X-6), int32(p.Y-8), 12, 2, paleStone)

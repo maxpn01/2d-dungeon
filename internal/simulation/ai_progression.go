@@ -14,7 +14,7 @@ func (w *World) respawnDenAI(previous aiState) aiState {
 	if ai.den.RoomID == worldmap.OrbVault {
 		return ai
 	}
-	level := min(MaxLevel, ai.den.Level+ai.deaths/parameters.AIDeathsPerLevel)
+	level := min(parameters.MaxLevel, ai.den.Level+ai.deaths/parameters.AIDeathsPerLevel)
 	ai.Stats = newMobStats(level, ai.Type)
 	ai.Stats.Perks = previous.Stats.Perks
 	ai.Stats.rebuildPerks()
@@ -35,7 +35,7 @@ func (ai *aiState) grantPerkMilestones(milestones int) {
 
 func (w *World) averageDungeonGuardLevel() int {
 	total, count := 0, 0
-	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
+	geometry := w.geometry()
 	for _, ai := range w.ais {
 		if ai.den.ID == "" || ai.den.RoomID == worldmap.OrbVault || ai.Type == GateHeavy || geometry.Cell(ai.den.At.X, ai.den.At.Y) == 0 {
 			continue

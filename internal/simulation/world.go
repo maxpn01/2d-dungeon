@@ -5,21 +5,10 @@ import (
 	"sort"
 	"time"
 
+	"2d-dungeon/internal/appearance"
 	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 	"2d-dungeon/internal/worldmap"
-)
-
-const (
-	TickRate    = parameters.TickRate
-	StepSeconds = parameters.StepSeconds
-	PlayerSize  = parameters.PlayerSize
-	SpeedScale  = parameters.SpeedScale
-	BaseSpeed   = parameters.BaseSpeed
-	MapMin      = parameters.MapMin
-	MapMax      = parameters.MapMax
-	MinPosition = parameters.MinPosition
-	MaxPosition = parameters.MaxPosition
 )
 
 type Direction struct {
@@ -50,7 +39,7 @@ type Player struct {
 	ActiveStatue   string
 	EntranceGate   EntranceGateState
 	ShotCooldown   float64
-	Character      Character
+	Character      appearance.Character
 	TeleportCharge float64
 	portalCooldown int
 	Combat         CombatState
@@ -117,7 +106,10 @@ func (w *World) Join(id string) bool {
 		return false
 	}
 	x, y := w.spawnPosition()
-	w.players[id] = &playerState{Player: Player{EntranceID: worldmap.EntranceGate, EntranceGate: EntranceGateState{ID: worldmap.EntranceGate}, Character: Square, Stats: NewStats(), ID: id, X: x, Y: y}}
+	w.players[id] = &playerState{Player: Player{
+		EntranceID: worldmap.EntranceGate, EntranceGate: EntranceGateState{ID: worldmap.EntranceGate},
+		Character: appearance.Square, Stats: NewStats(), ID: id, X: x, Y: y,
+	}}
 	return true
 }
 
@@ -137,7 +129,7 @@ func Move(x, y float64, d Direction, seconds, speed float64) (float64, float64) 
 	if seconds <= 0 {
 		return x, y
 	}
-	return MoveBy(x, y, d, speed*SpeedScale*seconds)
+	return MoveBy(x, y, d, speed*parameters.SpeedScale*seconds)
 }
 
 func MoveBy(x, y float64, d Direction, distance float64) (float64, float64) {
@@ -146,7 +138,7 @@ func MoveBy(x, y float64, d Direction, distance float64) (float64, float64) {
 }
 
 func moveByMotion(x, y float64, d Direction, distance float64) physics.Motion {
-	body := physics.Square(x, y, PlayerSize)
+	body := physics.Square(x, y, parameters.PlayerSize)
 	if !d.Valid() || math.IsNaN(distance) || math.IsInf(distance, 0) {
 		return physics.Motion{Bounds: body, Rejected: true}
 	}
@@ -161,7 +153,7 @@ func (w *World) Step(now time.Time) {
 	w.tick++
 	w.advanceWingDoor()
 	if w.orb.GateActivated {
-		w.orb.GateOpen = min(1, w.orb.GateOpen+StepSeconds*.65)
+		w.orb.GateOpen = min(1, w.orb.GateOpen+parameters.StepSeconds*.65)
 	}
 	previousCapacity := len(w.players) + len(w.ais)
 	previous := make(map[string]position, previousCapacity)
@@ -182,9 +174,9 @@ func (w *World) Step(now time.Time) {
 		if direction.Interact && (w.interactLibrary(player, direction) || w.interactVaultGate(player) || w.interactSecret(player) || w.interactObjective(player) || w.interactStatue(player)) {
 			direction.Interact = false
 		}
-		AdvancePlayer(&player.Player, direction, StepSeconds)
-		player.velocityX = (player.X - previous[id].x) / StepSeconds
-		player.velocityY = (player.Y - previous[id].y) / StepSeconds
+		AdvancePlayer(&player.Player, direction, parameters.StepSeconds)
+		player.velocityX = (player.X - previous[id].x) / parameters.StepSeconds
+		player.velocityY = (player.Y - previous[id].y) / parameters.StepSeconds
 		w.revealFlownSecrets(player)
 		w.fire(&player.Player, direction)
 	}
@@ -268,7 +260,21 @@ func (w *World) Snapshot() Snapshot {
 	for id, count := range w.secretWallHits {
 		hits[id] = count
 	}
-	return Snapshot{VaultArrowStarted: w.vaultArrowStarted, VaultFire: append([]VaultFire(nil), w.vaultFire[:]...), SecretWallHits: hits, DungeonLayout: w.dungeonLayout, WingDoorOpen: w.wingDoorOpen, WinnerID: w.winnerID, FinishedTick: w.finishedTick, OpenSecrets: append([]string(nil), w.openSecrets...), Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...), Tick: w.tick, Players: players, Fruits: fruits, AIs: ais}
+	return Snapshot{
+		VaultArrowStarted: w.vaultArrowStarted, VaultFire: append([]VaultFire(nil), w.vaultFire[:]...),
+		SecretWallHits: hits, DungeonLayout: w.dungeonLayout, WingDoorOpen: w.wingDoorOpen,
+		WinnerID: w.winnerID, FinishedTick: w.finishedTick, OpenSecrets: append([]string(nil), w.openSecrets...),
+		Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...),
+		Tick: w.tick, Players: players, Fruits: fruits, AIs: ais,
+	}
 }
 
 func (w *World) Tick() uint64 { return w.tick }
+
+func (w *World) geometry() *worldmap.Map {
+	return worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
+}
+
+func (p *Player) geometry() *worldmap.Map {
+	return worldmap.Default().WithSecrets(p.OpenSecrets).WithVaultGate(p.VaultGateOpen)
+}

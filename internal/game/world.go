@@ -3,6 +3,8 @@ package game
 import (
 	"time"
 
+	"2d-dungeon/internal/appearance"
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/rendering"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
@@ -51,12 +53,12 @@ func (w *World) Pause() {
 
 func (w *World) Update(dt float32) {
 	w.accumulator += float64(min(dt, 0.25))
-	for w.accumulator >= simulation.StepSeconds && !w.Dead() && !w.ResultsOpen() && !w.StatsOpen() && !w.PerksOpen() {
+	for w.accumulator >= parameters.StepSeconds && !w.Dead() && !w.ResultsOpen() && !w.StatsOpen() && !w.PerksOpen() {
 		now := time.Now()
 		w.simulation.Input(localPlayerID, w.direction)
 		w.direction.Shoot, w.direction.Dash, w.direction.Interact = false, false, false
 		w.simulation.Step(now)
-		w.accumulator -= simulation.StepSeconds
+		w.accumulator -= parameters.StepSeconds
 		w.syncSimulation()
 	}
 	if w.StatsOpen() || w.PerksOpen() {
@@ -118,7 +120,7 @@ func (w *World) syncSimulation() {
 	w.ais = append(w.ais[:0], snapshot.AIs...)
 }
 
-func (w *World) Configure(name string, character simulation.Character) {
+func (w *World) Configure(name string, character appearance.Character) {
 	w.name = name
 	w.simulation.SetCharacter(localPlayerID, character)
 	w.syncSimulation()
@@ -126,7 +128,7 @@ func (w *World) Configure(name string, character simulation.Character) {
 func (w *World) SetName(name string) {
 	w.name = name
 }
-func (w *World) Character() simulation.Character { return w.player.Character }
+func (w *World) Character() appearance.Character { return w.player.Character }
 func (w *World) Dead() bool                      { return w.player.Dead }
 func (w *World) PerksOpen() bool                 { return w.snapshot.Players[0].ActiveStatue != "" }
 func (w *World) Center() rl.Vector2              { return playerCenter(w.player) }
@@ -148,7 +150,7 @@ func (w *World) Start(name string) {
 func (w *World) scene() rendering.Scene {
 	return rendering.Scene{
 		Snapshot: w.snapshot, PlayerName: w.name, Local: w.snapshot.Players[0], RenderedPlayers: []simulation.Player{w.player}, RenderedAIs: w.ais,
-		PreviousStatues: w.previousSnapshot.Statues, PreviousTick: w.previousSnapshot.Tick, PreviousProjectiles: w.previousSnapshot.Projectiles, ProjectileAlpha: w.accumulator / simulation.StepSeconds,
+		PreviousStatues: w.previousSnapshot.Statues, PreviousTick: w.previousSnapshot.Tick, PreviousProjectiles: w.previousSnapshot.Projectiles, ProjectileAlpha: w.accumulator / parameters.StepSeconds,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
 	mapdata "2d-dungeon/internal/worldmap"
@@ -20,7 +21,7 @@ func (e *Exploration) fogOpacity(x, y float64) float32 {
 			return 1
 		}
 	}
-	gx, gy := x/mapdata.Tile-.5, y/mapdata.Tile-.5
+	gx, gy := x/parameters.Tile-.5, y/parameters.Tile-.5
 	cx, cy := int(math.Floor(gx)), int(math.Floor(gy))
 	fx, fy := gx-float64(cx), gy-float64(cy)
 	visible := func(dx, dy int) float64 {
@@ -39,7 +40,7 @@ func (e *Exploration) fogOpacity(x, y float64) float32 {
 		outside := math.Hypot(max(overview.X-x, 0, x-overview.X-overview.W), max(overview.Y-y, 0, y-overview.Y-overview.H))
 		if outside == 0 {
 			edge := min(x-overview.X, overview.X+overview.W-x, y-overview.Y, overview.Y+overview.H-y)
-			fade = max(fade, min(1, edge/mapdata.Tile))
+			fade = max(fade, min(1, edge/parameters.Tile))
 		}
 	}
 	fade = fade * fade * (3 - 2*fade)
@@ -99,11 +100,11 @@ func (e *Exploration) advanceFog() {
 	e.fogFocus = e.focus
 	origin := explorationCell(e.focus)
 	blend := 1 - math.Exp(-float64(min(rl.GetFrameTime(), .05))*14)
-	reach := int(math.Ceil(e.radius/mapdata.Tile)) + 1
+	reach := int(math.Ceil(e.radius/parameters.Tile)) + 1
 	left, top, right, bottom := origin[0]-reach, origin[1]-reach, origin[0]+reach, origin[1]+reach
 	if overview, ok := e.state.Overview(); ok {
-		left, top = min(left, int(overview.X/mapdata.Tile)-1), min(top, int(overview.Y/mapdata.Tile)-1)
-		right, bottom = max(right, int((overview.X+overview.W)/mapdata.Tile)+1), max(bottom, int((overview.Y+overview.H)/mapdata.Tile)+1)
+		left, top = min(left, int(overview.X/parameters.Tile)-1), min(top, int(overview.Y/parameters.Tile)-1)
+		right, bottom = max(right, int((overview.X+overview.W)/parameters.Tile)+1), max(bottom, int((overview.Y+overview.H)/parameters.Tile)+1)
 	}
 	for y := top; y <= bottom; y++ {
 		for x := left; x <= right; x++ {
@@ -173,7 +174,7 @@ func (m *Map) DrawFog(ctx primitives.Context) {
 
 func (m *Map) DrawVisibleVaultGate(orb simulation.OrbState, local simulation.Player) {
 	gate, ok := m.world.Gate(mapdata.VaultGate)
-	if ok && m.Exploration.EntityVisible(float64(gate.Left+gate.Right)/2, float64(gate.Y+mapdata.Tile), 0) {
+	if ok && m.Exploration.EntityVisible(float64(gate.Left+gate.Right)/2, float64(gate.Y+parameters.Tile), 0) {
 		m.drawVaultGate(orb, local)
 	}
 }

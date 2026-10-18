@@ -2,6 +2,8 @@ package simulation
 
 import (
 	"math"
+
+	"2d-dungeon/internal/parameters"
 )
 
 func (w *World) steerSentinel(ai *aiState, input Direction) Direction {
@@ -37,15 +39,15 @@ func (w *World) steerSentinel(ai *aiState, input Direction) Direction {
 	if length := math.Hypot(x, y); length > 1 {
 		x, y = x/length, y/length
 	}
-	if ai.Behavior == "pursuing" {
+	if ai.Behavior == BehaviorPursuing {
 		ai.sentinelMoveX, ai.sentinelMoveY = x, y
 		input.X, input.Y = x, y
 		return input
 	}
-	blend := 1 - math.Exp(-StepSeconds/.2)
+	blend := 1 - math.Exp(-parameters.StepSeconds/.2)
 	dx, dy := (x-ai.sentinelMoveX)*blend, (y-ai.sentinelMoveY)*blend
-	if change := math.Hypot(dx, dy); change > StepSeconds*2.5 {
-		scale := StepSeconds * 2.5 / change
+	if change := math.Hypot(dx, dy); change > parameters.StepSeconds*2.5 {
+		scale := parameters.StepSeconds * 2.5 / change
 		dx, dy = dx*scale, dy*scale
 	}
 	ai.sentinelMoveX += dx

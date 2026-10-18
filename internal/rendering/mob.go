@@ -3,6 +3,7 @@ package rendering
 import (
 	"image/color"
 
+	"2d-dungeon/internal/appearance"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
 
@@ -11,7 +12,7 @@ import (
 
 func mobTint(t simulation.MobType) color.RGBA {
 	if t == simulation.Sentinel {
-		return primitives.CharacterColor(simulation.Triangle)
+		return primitives.CharacterColor(appearance.Triangle)
 	}
 	if t == simulation.GateHeavy {
 		return rl.NewColor(93, 138, 111, 255)

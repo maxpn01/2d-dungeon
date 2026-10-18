@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"2d-dungeon/internal/appearance"
 	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
@@ -38,8 +39,8 @@ func phaseProgress(remaining, duration float64) float32 {
 	return float32(1 - max(0, min(1, remaining/duration)))
 }
 
-func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA, characters ...simulation.Character) rl.Rectangle {
-	character := simulation.Square
+func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA, characters ...appearance.Character) rl.Rectangle {
+	character := appearance.Square
 	if len(characters) > 0 {
 		character = characters[0]
 	}
@@ -57,12 +58,12 @@ func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 	}
 	switch c.Phase {
 	case simulation.DashWinding:
-		p := phaseProgress(c.Remaining, simulation.DashWindup)
+		p := phaseProgress(c.Remaining, parameters.DashWindup)
 		stretch, offset = -0.18*p, -4*p
 	case simulation.DashRushing:
-		burst := simulation.DashBurst
-		if character == simulation.Triangle {
-			burst = simulation.SentinelDashBurst
+		burst := parameters.DashBurst
+		if character == appearance.Triangle {
+			burst = parameters.SentinelDashBurst
 		}
 		stretch = 0.3 * (1 - 0.4*phaseProgress(c.Remaining, burst))
 		for i := 3; i > 0; i-- {
@@ -72,7 +73,7 @@ func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 			primitives.DrawCharacterShape(character, trail, rl.Fade(tint, 0.19/float32(i)))
 		}
 	case simulation.DashBumped:
-		duration := simulation.BumpStun
+		duration := parameters.BumpStun
 		p := phaseProgress(c.Remaining, duration)
 		stretch = -0.28 * (1 - p)
 		offset = float32(math.Sin(float64(p)*math.Pi*4)) * 4 * (1 - p)
@@ -86,7 +87,7 @@ func DrawActor(x, y, size, hp float64, c simulation.CombatState, tint color.RGBA
 	primitives.DrawCharacterShape(character, body, tint)
 
 	drawCombat(center, bounds.Width, c)
-	if character == simulation.Triangle {
+	if character == appearance.Triangle {
 		drawSentinelSword(center, bounds.Width, c)
 	}
 	return bounds
@@ -107,7 +108,7 @@ func drawCombat(center rl.Vector2, size float32, c simulation.CombatState) {
 	}
 	switch c.Phase {
 	case simulation.DashWinding:
-		p := phaseProgress(c.Remaining, simulation.DashWindup)
+		p := phaseProgress(c.Remaining, parameters.DashWindup)
 		start, tip := point(size/2+7, 0), point(size/2+48, 0)
 		rl.DrawLineEx(start, tip, 2, rl.Fade(rl.Orange, 0.3))
 		rl.DrawLineEx(start, point(size/2+7+41*p, 0), 3, rl.Orange)
@@ -119,9 +120,9 @@ func drawCombat(center rl.Vector2, size float32, c simulation.CombatState) {
 			rl.DrawLineEx(point(-size/2-30, side*size*0.6), point(size/2, side*size*0.6), 2, rl.Fade(rl.RayWhite, 0.65))
 		}
 	case simulation.DashBumped:
-		duration := simulation.BumpStun
+		duration := parameters.BumpStun
 		p := phaseProgress(c.Remaining, duration)
-		impact := point(size/2+simulation.BumpKnockback, 0)
+		impact := point(size/2+parameters.BumpKnockback, 0)
 		for i := 0; i < 7; i++ {
 			angle := float64(i)*math.Pi/3 + float64(p)*0.4
 			dx, dy := float32(math.Cos(angle)), float32(math.Sin(angle))
@@ -129,7 +130,7 @@ func drawCombat(center rl.Vector2, size float32, c simulation.CombatState) {
 			rl.DrawLineEx(rl.NewVector2(impact.X+dx*a, impact.Y+dy*a), rl.NewVector2(impact.X+dx*b, impact.Y+dy*b), 2, rl.Fade(rl.RayWhite, 1-p))
 		}
 	case simulation.DashRecovering:
-		p := phaseProgress(c.Remaining, simulation.DashRecovery)
+		p := phaseProgress(c.Remaining, parameters.DashRecovery)
 		rl.DrawRing(center, size*0.72+3, size*0.72+4, -90+360*p, 270, 40, rl.Fade(rl.Gray, 0.65))
 	}
 }

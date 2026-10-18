@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"2d-dungeon/internal/parameters"
 )
 
 type secretPlacement struct {
@@ -19,9 +21,9 @@ func secretBase() Layout {
 	layout := DefaultLayout()
 
 	layout.RemoveRoom(WingChamber)
-	layout.RemovePassage("aerie-entrance")
+	layout.RemovePassage(AerieEntrance)
 	layout.RemoveRoom(SecretLibrary)
-	layout.RemovePassage("library-secret")
+	layout.RemovePassage(LibrarySecret)
 	layout.SecretDoors = slices.DeleteFunc(layout.SecretDoors, func(door SecretDoor) bool {
 		return door.RoomID == WingChamber || door.RoomID == SecretLibrary
 	})
@@ -44,9 +46,9 @@ func secretPlacements(layout Layout, room Room, span int) []secretPlacement {
 		area, _ := layout.passageArea(passage)
 		reserve(area)
 	}
-	reserve(Cells(0, 0, SurfaceCells, SurfaceCells))
+	reserve(Cells(0, 0, parameters.SurfaceCells, parameters.SurfaceCells))
 	var placements []secretPlacement
-	world := Cells(MinCellX+1, MinCellY+1, MaxCellX-MinCellX-2, MaxCellY-MinCellY-2)
+	world := Cells(parameters.MinCellX+1, parameters.MinCellY+1, parameters.MaxCellX-parameters.MinCellX-2, parameters.MaxCellY-parameters.MinCellY-2)
 	for _, host := range layout.Rooms {
 		if !host.HasRole(ExplorationRoom) || host.HasRole(Private) || host.Floor != FirstFloor {
 			continue
@@ -196,7 +198,7 @@ func dungeonLayout(id string) (Layout, string, error) {
 
 	parts[4] = "-"
 
-	layout, parts[0], err = secretRoom(layout, SecretLibrary, "library-wall", "library-secret", parts[0], 2)
+	layout, parts[0], err = secretRoom(layout, SecretLibrary, LibraryWall, LibrarySecret, parts[0], 2)
 	if err != nil {
 		return Layout{}, "", err
 	}

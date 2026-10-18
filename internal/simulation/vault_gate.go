@@ -3,6 +3,7 @@ package simulation
 import (
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/worldmap"
 )
 
@@ -12,7 +13,7 @@ func NearVaultGate(x, y, size float64) bool {
 }
 
 func (w *World) interactVaultGate(p *playerState) bool {
-	if p.Dead || p.Flight.Flying || !NearVaultGate(p.X, p.Y, PlayerSize) || w.orb.GateActivated {
+	if p.Dead || p.Flight.Flying || !NearVaultGate(p.X, p.Y, parameters.PlayerSize) || w.orb.GateActivated {
 		return false
 	}
 	if w.orb.GateUnlocked {

@@ -3,17 +3,17 @@ package ui
 import (
 	"strings"
 
+	"2d-dungeon/internal/appearance"
 	"2d-dungeon/internal/display"
 	"2d-dungeon/internal/preferences"
 	"2d-dungeon/internal/rendering/primitives"
-	"2d-dungeon/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type Settings struct {
 	preferences.Profile
-	character  simulation.Character
+	character  appearance.Character
 	name       string
 	focused    bool
 	errorText  string
@@ -30,7 +30,7 @@ func NewSettings() *Settings {
 
 func (s *Settings) Open() {
 	s.name = s.PlayerName
-	s.character = simulation.NormalizeCharacter(s.Character)
+	s.character = appearance.Normalize(s.Character)
 	s.focused = true
 	s.errorText = ""
 	for rl.GetCharPressed() != 0 {
@@ -38,7 +38,7 @@ func (s *Settings) Open() {
 }
 
 func (s *Settings) save() bool {
-	profile := preferences.Profile{PlayerName: preferences.NormalizePlayerName(s.name), Character: simulation.NormalizeCharacter(s.character)}
+	profile := preferences.Profile{PlayerName: preferences.NormalizePlayerName(s.name), Character: appearance.Normalize(s.character)}
 	err := profile.Save()
 	if err != nil {
 		s.errorText = "Could not save settings. Please try again."
@@ -52,9 +52,9 @@ func (s *Settings) Draw() Action {
 	cx := float32(display.Width()) / 2
 	top := float32(display.Height())/2 - 230
 	primitives.DrawCenteredText("settings", int32(top), 40, rl.RayWhite)
-	for _, character := range []simulation.Character{simulation.Square} {
+	for _, character := range []appearance.Character{appearance.Square} {
 		card := rl.NewRectangle(cx-75, top+65, 150, 115)
-		enabled := simulation.CharacterEnabled(character)
+		enabled := appearance.Enabled(character)
 		if enabled && rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(rl.GetMousePosition(), card) {
 			s.character = character
 		}

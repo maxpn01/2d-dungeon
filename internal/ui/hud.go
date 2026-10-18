@@ -5,6 +5,8 @@ import (
 	"image/color"
 	"math"
 
+	"2d-dungeon/internal/appearance"
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/preferences"
 	"2d-dungeon/internal/rendering"
 	"2d-dungeon/internal/rendering/primitives"
@@ -17,7 +19,7 @@ type playerView struct {
 	SpectralShots                    bool
 	ShotMPCost                       float32
 	Perks                            [simulation.PerkFamilyCount]int
-	Character                        simulation.Character
+	Character                        appearance.Character
 	Name                             string
 	Avatar                           color.RGBA
 	Level, MaxLevel                  int
@@ -107,7 +109,7 @@ func playerDetails(player simulation.Player, name string) playerView {
 	}
 	return playerView{
 		SpectralShots: stats.SpectralShots, Perks: stats.Perks, Character: player.Character, Name: name, Avatar: primitives.CharacterColor(player.Character),
-		Level: stats.Level, MaxLevel: simulation.MaxLevel, HP: hp, MaxHP: float32(stats.MaxHP()),
+		Level: stats.Level, MaxLevel: parameters.MaxLevel, HP: hp, MaxHP: float32(stats.MaxHP()),
 		MP: float32(stats.MP), MaxMP: float32(stats.MaxMP()), XP: float32(stats.XP), NextXP: float32(simulation.XPForNextLevel(stats.Level)),
 		Speed:  float32(player.MovementSpeed()),
 		Damage: float32(stats.Damage), ShotMPCost: float32(stats.ShotMPCost()), AttackRate: float32(stats.AttackRate), Boost: float32(stats.BoostMultiplier),

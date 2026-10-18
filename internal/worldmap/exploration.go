@@ -1,6 +1,9 @@
 package worldmap
 
-import "2d-dungeon/internal/physics"
+import (
+	"2d-dungeon/internal/parameters"
+	"2d-dungeon/internal/physics"
+)
 
 type Exploration struct {
 	world    *Map
@@ -16,7 +19,7 @@ type Exploration struct {
 func (m *Map) NewExploration(radius float64) *Exploration {
 	cells := 0
 	if radius > 0 {
-		cells = int(min(radius/Tile, float64(MaxCellX-MinCellX+MaxCellY-MinCellY)))
+		cells = int(min(radius/parameters.Tile, float64(parameters.MaxCellX-parameters.MinCellX+parameters.MaxCellY-parameters.MinCellY)))
 	}
 	return &Exploration{world: m, radius: cells, explored: make(map[[2]int]bool)}
 }
@@ -29,7 +32,7 @@ func (e *Exploration) SetWorld(world *Map) {
 }
 
 func (e *Exploration) SetVision(radius float64, flying bool, margin int) {
-	cells := int(radius / Tile)
+	cells := int(radius / parameters.Tile)
 	if e.radius != cells || e.flying != flying || e.margin != margin {
 		e.radius, e.flying, e.margin = cells, flying, margin
 		e.visible = nil
@@ -37,7 +40,7 @@ func (e *Exploration) SetVision(radius float64, flying bool, margin int) {
 }
 
 func (e *Exploration) Overview() (physics.Rect, bool) {
-	area := Cells(-e.margin, -e.margin, SurfaceCells+2*e.margin, SurfaceCells+2*e.margin)
+	area := Cells(-e.margin, -e.margin, parameters.SurfaceCells+2*e.margin, parameters.SurfaceCells+2*e.margin)
 	return area.Bounds(), e.flying && area.Contains(At(e.origin[0], e.origin[1]))
 }
 
@@ -56,21 +59,22 @@ func (e *Exploration) Reveal(position physics.Vector) {
 	overview, overlooking := e.Overview()
 	if overlooking {
 		left, top = min(left, -e.margin), min(top, -e.margin)
-		right, bottom = max(right, SurfaceCells+e.margin-1), max(bottom, SurfaceCells+e.margin-1)
+		right, bottom = max(right, parameters.SurfaceCells+e.margin-1), max(bottom, parameters.SurfaceCells+e.margin-1)
 	}
-	limitBottom := MaxCellY - 1
+	limitBottom := parameters.MaxCellY - 1
 	if overlooking {
-		limitBottom = max(limitBottom, SurfaceCells+e.margin-1)
+		limitBottom = max(limitBottom, parameters.SurfaceCells+e.margin-1)
 	}
-	for y := max(MinCellY, top); y <= min(limitBottom, bottom); y++ {
-		for x := max(MinCellX, left); x <= min(MaxCellX-1, right); x++ {
+	for y := max(parameters.MinCellY, top); y <= min(limitBottom, bottom); y++ {
+		for x := max(parameters.MinCellX, left); x <= min(parameters.MaxCellX-1, right); x++ {
 			dx, dy := x-origin[0], y-origin[1]
-			if dx*dx+dy*dy > e.radius*e.radius && !(overlooking && overview.Contains(physics.Square(float64(x*Tile), float64(y*Tile), Tile))) {
+			if dx*dx+dy*dy > e.radius*e.radius && !(overlooking && overview.Contains(physics.Square(float64(x*parameters.Tile), float64(y*parameters.Tile), parameters.Tile))) {
 				continue
 			}
 			cell := [2]int{x, y}
 			if e.flying || traceCells(origin, cell, e.world.fogOpaque) {
-				if e.world.CellFloor(x, y) != e.world.CellFloor(origin[0], origin[1]) || e.flying && e.world.SecretHidden(float64(x*Tile+Tile/2), float64(y*Tile+Tile/2)) {
+				hiddenFromAbove := e.flying && e.world.SecretHidden(float64(x*parameters.Tile+parameters.Tile/2), float64(y*parameters.Tile+parameters.Tile/2))
+				if e.world.CellFloor(x, y) != e.world.CellFloor(origin[0], origin[1]) || hiddenFromAbove {
 					continue
 				}
 				if e.flying && e.world.vaultGateClosed {

@@ -3,7 +3,7 @@ package simulation
 import (
 	"math"
 
-	"2d-dungeon/internal/worldmap"
+	"2d-dungeon/internal/parameters"
 )
 
 const WingMPPerSecond = 2.0
@@ -25,8 +25,8 @@ func FlightMPCost(stats Stats) float64 {
 }
 
 func advanceWingPlayer(p *Player, input Direction, dt float64) {
-	geometry := worldmap.Default().WithSecrets(p.OpenSecrets).WithVaultGate(p.VaultGateOpen)
-	grounded := geometry.Walkable(p.X, p.Y, PlayerSize, PlayerSize)
+	geometry := p.geometry()
+	grounded := geometry.Walkable(p.X, p.Y, parameters.PlayerSize, parameters.PlayerSize)
 	f := &p.Flight
 	if grounded {
 		f.LandingX, f.LandingY = p.X, p.Y
@@ -34,7 +34,7 @@ func advanceWingPlayer(p *Player, input Direction, dt float64) {
 	cost := FlightMPCost(p.Stats)
 	powered := input.Boost && p.Stats.MP >= cost*dt
 	if f.Flying && !powered && !grounded && !f.Returning {
-		if x, y, found := geometry.NearestLanding(p.X, p.Y, PlayerSize); found {
+		if x, y, found := geometry.NearestLanding(p.X, p.Y, parameters.PlayerSize); found {
 			f.LandingX, f.LandingY = x, y
 		}
 		f.Returning = true
@@ -55,9 +55,9 @@ func advanceWingPlayer(p *Player, input Direction, dt float64) {
 		p.Combat.Facing = Direction{X: input.AimX / length, Y: input.AimY / length}
 	}
 	dx, dy := input.X, input.Y
-	speed := p.MovementSpeed() * FlightSpeedMultiplier(p.Stats) * SpeedScale
+	speed := p.MovementSpeed() * FlightSpeedMultiplier(p.Stats) * parameters.SpeedScale
 	if f.Returning {
-		if x, y, found := geometry.FlightLandingStep(p.X, p.Y, f.LandingX, f.LandingY, PlayerSize); found {
+		if x, y, found := geometry.FlightLandingStep(p.X, p.Y, f.LandingX, f.LandingY, parameters.PlayerSize); found {
 			dx, dy = x-p.X, y-p.Y
 		} else {
 			dx, dy = 0, 0
@@ -73,12 +73,12 @@ func advanceWingPlayer(p *Player, input Direction, dt float64) {
 			distance = min(distance, length)
 		}
 		p.Combat.Direction = Direction{X: dx / length, Y: dy / length}
-		p.X, p.Y = geometry.MoveFlying(p.X, p.Y, dx/length*distance, dy/length*distance, PlayerSize)
+		p.X, p.Y = geometry.MoveFlying(p.X, p.Y, dx/length*distance, dy/length*distance, parameters.PlayerSize)
 		if input.AimX == 0 && input.AimY == 0 {
 			p.Combat.Facing = p.Combat.Direction
 		}
 	}
-	if geometry.Walkable(p.X, p.Y, PlayerSize, PlayerSize) {
+	if geometry.Walkable(p.X, p.Y, parameters.PlayerSize, parameters.PlayerSize) {
 		f.LandingX, f.LandingY = p.X, p.Y
 		if f.Returning {
 			*f = FlightState{LandingX: p.X, LandingY: p.Y}

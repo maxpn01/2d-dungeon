@@ -7,27 +7,35 @@ import (
 )
 
 const (
-	ProvisionCourt  = "the-provision-hall"
-	GateHall        = "gate-hall"
-	ColumnHall      = "the-column-hall"
-	StillwaterCourt = "the-stillwater-bridge"
-	CrownArena      = "the-crown-boss-arena"
-	TeleportSanctum = "the-descent"
-	FeastHall       = "floor-two"
-	EntranceGate    = "entrance-gate"
-	DescentPortal   = "descent"
-	ReturnPortal    = "return"
-	WestArchive     = "west-archive"
-	WestGallery     = "west-gallery"
-	EastArmory      = "east-armory"
-	EastGallery     = "east-gallery"
-	SecretLibrary   = "secret-library"
-	OrbVault        = "orb-vault"
-	VaultCourt      = "vault-court"
-	VaultGate       = "vault-gate"
-	WingChamber     = "wing-chamber"
-	WingDoor        = "wing-door"
-	WingStatue      = "wing-statue"
+	ProvisionCourt       = "the-provision-hall"
+	GateHall             = "gate-hall"
+	ColumnHall           = "the-column-hall"
+	StillwaterCourt      = "the-stillwater-bridge"
+	CrownArena           = "the-crown-boss-arena"
+	TeleportSanctum      = "the-descent"
+	FeastHall            = "floor-two"
+	EntranceGate         = "entrance-gate"
+	DescentPortal        = "descent"
+	ReturnPortal         = "return"
+	WestArchive          = "west-archive"
+	WestGallery          = "west-gallery"
+	EastArmory           = "east-armory"
+	EastGallery          = "east-gallery"
+	SecretLibrary        = "secret-library"
+	OrbVault             = "orb-vault"
+	VaultCourt           = "vault-court"
+	VaultGate            = "vault-gate"
+	WingChamber          = "wing-chamber"
+	WingDoor             = "wing-door"
+	WingStatue           = "wing-statue"
+	SurfaceEntrance      = "surface-entrance"
+	VaultProcessional    = "vault-processional"
+	VaultCourtEntrance   = "vault-court-entrance"
+	VaultGalleryApproach = "vault-gallery-approach"
+	AerieEntrance        = "aerie-entrance"
+	LibrarySecret        = "library-secret"
+	LibraryWall          = "library-wall"
+	SecretInscription    = "secret-inscription"
 )
 
 func DefaultLayout() Layout {
@@ -45,7 +53,7 @@ func DefaultLayout() Layout {
 			sideRoom(EastArmory, "THE BROKEN ARMORY", Cells(48, -112, 20, 20), "armory-inscription"),
 			sideRoom(EastGallery, "THE EAST GALLERY", Cells(48, -140, 20, 20), ""),
 			{ID: SecretLibrary, Name: "THE FORGOTTEN LIBRARY", Area: Cells(-53, -109, 20, 23), Floor: FirstFloor,
-				Statues: []Statue{{ID: "secret-inscription", At: At(9, 11)}},
+				Statues: []Statue{{ID: SecretInscription, At: At(9, 11)}},
 				Props: []Prop{
 					{ID: "moon-stacks", Kind: BookshelfProp, Area: Cells(4, 5, 7, 1)},
 					{ID: "upper-stacks", Kind: BookshelfProp, Area: Cells(13, 3, 1, 5)},
@@ -54,27 +62,27 @@ func DefaultLayout() Layout {
 				}},
 			vaultCourt(),
 			orbVault(),
-			{ID: WingChamber, Name: "THE SEALED AERIE", Area: Cells(-15, SurfaceCells-9, 14, 8), Floor: FirstFloor, Statues: []Statue{{ID: WingStatue, At: At(2, 3)}}},
+			{ID: WingChamber, Name: "THE SEALED AERIE", Area: Cells(-15, parameters.SurfaceCells-9, 14, 8), Floor: FirstFloor, Statues: []Statue{{ID: WingStatue, At: At(2, 3)}}},
 		},
 		SecretDoors: []SecretDoor{
-			{ID: WingDoor, RoomID: WingChamber, Area: Cells(-1, SurfaceCells-6, 1, 2), Interactable: true},
-			{ID: "library-wall", RoomID: SecretLibrary, Area: Cells(-33, -89, 1, 2)},
+			{ID: WingDoor, RoomID: WingChamber, Area: Cells(-1, parameters.SurfaceCells-6, 1, 2), Interactable: true},
+			{ID: LibraryWall, RoomID: SecretLibrary, Area: Cells(-33, -89, 1, 2)},
 		},
 		Passages: []Passage{
-			{ID: "aerie-entrance", From: Location{At: At(-1, SurfaceCells-6)}, To: Location{At: At(-1, SurfaceCells-5)}, Width: 1},
+			{ID: AerieEntrance, From: Location{At: At(-1, parameters.SurfaceCells-6)}, To: Location{At: At(-1, parameters.SurfaceCells-5)}, Width: 1},
 			{ID: "archive-approach", From: Location{At: At(-12, -94)}, To: Location{At: At(-6, -94)}, Width: 4},
 			{ID: "west-loop", From: Location{At: At(-24, -114)}, To: Location{At: At(-24, -106)}, Width: 4},
 			{ID: "west-crown", From: Location{At: At(-12, -124)}, To: Location{At: At(5, -124)}, Width: 4},
 			{ID: "armory-approach", From: Location{At: At(41, -98)}, To: Location{At: At(48, -98)}, Width: 4},
 			{ID: "east-loop", From: Location{At: At(56, -120)}, To: Location{At: At(56, -112)}, Width: 4},
 			{ID: "east-crown", From: Location{At: At(30, -128)}, To: Location{At: At(48, -128)}, Width: 4},
-			{ID: "library-secret", From: Location{At: At(-33, -89)}, To: Location{At: At(-32, -89)}, Width: 2},
-			{ID: "vault-gallery-approach", From: Location{At: At(68, -128)}, To: Location{At: At(78, -128)}, Width: 5},
-			{ID: "vault-processional", From: Location{At: At(74, -164)}, To: Location{At: At(74, -128)}, Width: 5},
-			{ID: "vault-court-entrance", From: Location{At: At(74, -164)}, To: Location{At: At(80, -164)}, Width: 5},
+			{ID: LibrarySecret, From: Location{At: At(-33, -89)}, To: Location{At: At(-32, -89)}, Width: 2},
+			{ID: VaultGalleryApproach, From: Location{At: At(68, -128)}, To: Location{At: At(78, -128)}, Width: 5},
+			{ID: VaultProcessional, From: Location{At: At(74, -164)}, To: Location{At: At(74, -128)}, Width: 5},
+			{ID: VaultCourtEntrance, From: Location{At: At(74, -164)}, To: Location{At: At(80, -164)}, Width: 5},
 			{ID: "vault-entrance", From: Location{At: At(90, -178)}, To: Location{At: At(90, -177)}, Width: 7},
 			{
-				ID:    "surface-entrance",
+				ID:    SurfaceEntrance,
 				From:  Location{Room: ProvisionCourt, At: At(13, 32)},
 				To:    Location{Room: ProvisionCourt, At: At(13, 56)},
 				Width: 6,

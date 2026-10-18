@@ -19,16 +19,16 @@ func (w *World) avoidPlayerShots(ai *aiState, input Direction) Direction {
 		ai.shotDodgeReactionTicks--
 		return input
 	}
-	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
+	geometry := w.geometry()
 	if ai.evadeTicks > 0 {
 		ai.evadeTicks--
-		if !w.shotDodgeFits(ai, geometry, ai.evadeDirection, StepSeconds) {
+		if !w.shotDodgeFits(ai, geometry, ai.evadeDirection, parameters.StepSeconds) {
 			ai.evadeTicks = 0
 			return input
 		}
 		input.X, input.Y = ai.evadeDirection.X, ai.evadeDirection.Y
 		input.Dash, input.Boost = false, false
-		ai.Behavior = "dodging"
+		ai.Behavior = BehaviorDodging
 		return input
 	}
 	if ai.shotDodgeCooldown > 0 || parameters.AIShotDodgeChance <= 0 {
@@ -46,15 +46,15 @@ func (w *World) avoidPlayerShots(ai *aiState, input Direction) Direction {
 	if rand.Float64() >= chance {
 		return input
 	}
-	duration := float64(parameters.AIShotDodgeDurationTicks) * StepSeconds
+	duration := float64(parameters.AIShotDodgeDurationTicks) * parameters.StepSeconds
 	best := -math.MaxFloat64
 	var direction Direction
 	for _, d := range []Direction{{X: -shot.Direction.Y, Y: shot.Direction.X}, {X: shot.Direction.Y, Y: -shot.Direction.X}} {
 		if !w.shotDodgeFits(ai, geometry, d, duration) {
 			continue
 		}
-		x := ai.X + AISize/2 + d.X*ai.Stats.MovementSpeed()*SpeedScale*duration
-		y := ai.Y + AISize/2 + d.Y*ai.Stats.MovementSpeed()*SpeedScale*duration
+		x := ai.X + parameters.AISize/2 + d.X*ai.Stats.MovementSpeed()*parameters.SpeedScale*duration
+		y := ai.Y + parameters.AISize/2 + d.Y*ai.Stats.MovementSpeed()*parameters.SpeedScale*duration
 		separation := math.Abs((x-shot.X-shot.Size/2)*shot.Direction.Y - (y-shot.Y-shot.Size/2)*shot.Direction.X)
 		score := separation + 5*(d.X*input.X+d.Y*input.Y)
 		if score > best {
@@ -71,19 +71,19 @@ func (w *World) avoidPlayerShots(ai *aiState, input Direction) Direction {
 }
 
 func (w *World) shotDodgeFits(ai *aiState, geometry *worldmap.Map, d Direction, duration float64) bool {
-	distance := ai.Stats.MovementSpeed() * SpeedScale * duration
+	distance := ai.Stats.MovementSpeed() * parameters.SpeedScale * duration
 	x, y := ai.X+d.X*distance, ai.Y+d.Y*distance
 	body := MobBody(ai.Type, ai.X, ai.Y)
 	motion := geometry.MoveBody(body, physics.Vector{X: d.X * distance, Y: d.Y * distance})
 	mx, my := motion.Bounds.X+ai.X-body.X, motion.Bounds.Y+ai.Y-body.Y
-	if math.Hypot(mx-x, my-y) > .1 || geometry.PrivateGateCrossed(ai.X, ai.Y, x, y, AISize) {
+	if math.Hypot(mx-x, my-y) > .1 || geometry.PrivateGateCrossed(ai.X, ai.Y, x, y, parameters.AISize) {
 		return false
 	}
-	if ai.Type == DungeonShooter && !geometry.OverlapsCover(physics.Square(ai.X, ai.Y, AISize)) {
+	if ai.Type == DungeonShooter && !geometry.OverlapsCover(physics.Square(ai.X, ai.Y, parameters.AISize)) {
 		cover := physics.World{CanOccupy: func(body physics.Rect) bool {
 			return !geometry.OverlapsCover(body)
 		}}
-		if _, blocked := cover.MovementLimit(physics.Square(ai.X, ai.Y, AISize), physics.Vector{X: x - ai.X, Y: y - ai.Y}); blocked {
+		if _, blocked := cover.MovementLimit(physics.Square(ai.X, ai.Y, parameters.AISize), physics.Vector{X: x - ai.X, Y: y - ai.Y}); blocked {
 			return false
 		}
 	}
@@ -96,10 +96,13 @@ func (w *World) incomingPlayerShot(ai *aiState, input Direction, geometry *world
 	var selected Projectile
 	soonest := math.Inf(1)
 	for _, shot := range w.projectiles {
-		if shot.MobOwned || shot.Kind != "" || w.players[shot.Owner] == nil || math.Hypot(shot.X+shot.Size/2-ai.X-AISize/2, shot.Y+shot.Size/2-ai.Y-AISize/2) > AIDetectionRadius {
+		if shot.MobOwned || shot.Kind != "" || w.players[shot.Owner] == nil {
 			continue
 		}
-		if !geometry.Visible(ai.X+AISize/2, ai.Y+AISize/2, shot.X+shot.Size/2, shot.Y+shot.Size/2) {
+		if math.Hypot(shot.X+shot.Size/2-ai.X-parameters.AISize/2, shot.Y+shot.Size/2-ai.Y-parameters.AISize/2) > parameters.AIDetectionRadius {
+			continue
+		}
+		if !geometry.Visible(ai.X+parameters.AISize/2, ai.Y+parameters.AISize/2, shot.X+shot.Size/2, shot.Y+shot.Size/2) {
 			continue
 		}
 		duration := min(parameters.AIShotDodgeLookahead, shot.Remaining)
@@ -109,7 +112,7 @@ func (w *World) incomingPlayerShot(ai *aiState, input Direction, geometry *world
 		travel := ProjectileSpeed(shot) * duration
 		start := position{shot.X, shot.Y}
 		end := position{shot.X + shot.Direction.X*travel, shot.Y + shot.Direction.Y*travel}
-		speed := ai.Stats.MovementSpeed() * SpeedScale
+		speed := ai.Stats.MovementSpeed() * parameters.SpeedScale
 		targetEnd := position{ai.X + input.X*speed*duration, ai.Y + input.Y*speed*duration}
 		body := MobBody(ai.Type, ai.X, ai.Y)
 		offset := ai.X - body.X

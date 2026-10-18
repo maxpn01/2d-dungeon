@@ -59,7 +59,11 @@ func (f *Feedback) DrawWallDebris(now time.Time, visibility Visibility) {
 			if age < .45 {
 				active = append(active, wall)
 				visible := false
-				for _, cell := range []worldmap.Cell{worldmap.At(wall.area.X-1, wall.area.Y), worldmap.At(wall.area.Right(), wall.area.Y), worldmap.At(wall.area.X, wall.area.Y-1), worldmap.At(wall.area.X, wall.area.Bottom())} {
+				neighbors := []worldmap.Cell{
+					worldmap.At(wall.area.X-1, wall.area.Y), worldmap.At(wall.area.Right(), wall.area.Y),
+					worldmap.At(wall.area.X, wall.area.Y-1), worldmap.At(wall.area.X, wall.area.Bottom()),
+				}
+				for _, cell := range neighbors {
 					at := cell.Center()
 					visible = visible || visibility.EntityVisible(at.X, at.Y, 0)
 				}

@@ -3,6 +3,7 @@ package simulation
 import (
 	"slices"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 	"2d-dungeon/internal/worldmap"
 )
@@ -43,7 +44,7 @@ func (w *World) CycleTestingLevel(id string) {
 	if p == nil || !p.testing {
 		return
 	}
-	levels := []int{1, 5, 10, 20, MaxLevel}
+	levels := []int{1, 5, 10, 20, parameters.MaxLevel}
 	index := slices.Index(levels, p.Stats.Level)
 	p.Stats = NewStatsAtLevel(levels[(index+1)%len(levels)])
 	w.refillTestingPlayer(p)
@@ -54,7 +55,7 @@ func (w *World) ToggleTestingWings(id string) {
 	if p == nil || !p.testing {
 		return
 	}
-	if p.HasWings && !worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen).Walkable(p.X, p.Y, PlayerSize, PlayerSize) {
+	if p.HasWings && !w.geometry().Walkable(p.X, p.Y, parameters.PlayerSize, parameters.PlayerSize) {
 		return
 	}
 	p.HasWings = !p.HasWings
@@ -148,9 +149,9 @@ func (w *World) TestingWarp(id, roomID string) bool {
 		w.orb.Carrier, p.HasOrb = id, true
 		w.orb.FrenzyAt = w.tick + OrbFrenzyDelayTicks
 	}
-	x, y := worldmap.CellPosition(at.X, at.Y, PlayerSize)
-	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
-	if !geometry.CanOccupy(physics.Square(x, y, PlayerSize)) {
+	x, y := worldmap.CellPosition(at.X, at.Y, parameters.PlayerSize)
+	geometry := w.geometry()
+	if !geometry.CanOccupy(physics.Square(x, y, parameters.PlayerSize)) {
 		return false
 	}
 	p.X, p.Y = x, y

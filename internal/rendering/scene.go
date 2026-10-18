@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"time"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/preferences"
 	"2d-dungeon/internal/rendering/primitives"
 	maprender "2d-dungeon/internal/rendering/worldmap"
@@ -55,7 +56,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		DrawAIActor(Actor{
 			Type: ai.Type, Level: ai.Stats.Level, Stone: ai.Stone, Awakening: ai.Awakening,
 			ID: ai.ID, Label: fmt.Sprintf("%s Lv.%d", mobName(ai.Type), ai.Stats.Level),
-			X: ai.X, Y: ai.Y, Size: simulation.AISize, HP: ai.Stats.HP, Character: ai.Character,
+			X: ai.X, Y: ai.Y, Size: parameters.AISize, HP: ai.Stats.HP, Character: ai.Character,
 			Aiming: ai.Aiming, Frenzied: ai.Frenzied, Combat: ai.Combat, Tint: tint,
 		}, &scene.Map.Exploration, scene.Feedback)
 	}
@@ -63,7 +64,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		if player.Dead {
 			continue
 		}
-		if player.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(player.X, player.Y, simulation.PlayerSize) {
+		if player.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(player.X, player.Y, parameters.PlayerSize) {
 			continue
 		}
 		tint := primitives.CharacterColor(player.Character)
@@ -73,16 +74,16 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 		}
 		lift := float64(0)
 		if player.HasWings {
-			lift = DrawWings(player.X, player.Y, simulation.PlayerSize, player.Flight.Flying)
+			lift = DrawWings(player.X, player.Y, parameters.PlayerSize, player.Flight.Flying)
 		}
 		if player.HasOrb {
-			center := rl.NewVector2(float32(player.X+simulation.PlayerSize/2), float32(player.Y-30-lift))
+			center := rl.NewVector2(float32(player.X+parameters.PlayerSize/2), float32(player.Y-30-lift))
 			rl.DrawCircleGradient(center, 25, rl.Fade(primitives.RuneColor, .35), rl.Blank)
 			rl.DrawCircleV(center, 8, primitives.RuneColor)
 			rl.DrawCircleV(rl.NewVector2(center.X-2, center.Y-2), 2, rl.RayWhite)
 		}
 		DrawPlayerActor(Actor{
-			ID: player.ID, Label: label, X: player.X, Y: player.Y - lift, Size: simulation.PlayerSize,
+			ID: player.ID, Label: label, X: player.X, Y: player.Y - lift, Size: parameters.PlayerSize,
 			HP: player.Stats.HP, Dead: player.Dead, Character: player.Character,
 			Combat: player.Combat, Tint: tint,
 		}, scene.Feedback, &scene.Map.Exploration)
@@ -91,7 +92,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 	DrawPortals(scene.Local, scene.Snapshot.Orb, &scene.Map.Exploration)
 	scene.Map.DrawVaultFire(scene.Snapshot)
 	for _, p := range scene.Players {
-		if p.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(p.X, p.Y, simulation.PlayerSize) {
+		if p.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(p.X, p.Y, parameters.PlayerSize) {
 			continue
 		}
 		DrawTeleportCharge(p.X, p.Y, p.TeleportCharge)

@@ -5,21 +5,6 @@ import (
 
 	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
-	"2d-dungeon/internal/worldmap"
-)
-
-const (
-	DashCost            = parameters.DashCost
-	DashWindup          = parameters.DashWindup
-	DashBurst           = parameters.DashBurst
-	SentinelDashBurst   = parameters.SentinelDashBurst
-	DashRecovery        = parameters.DashRecovery
-	DashSpeedMultiplier = parameters.DashSpeedMultiplier
-	BumpStun            = parameters.BumpStun
-	BumpCost            = parameters.BumpCost
-	BumpKnockback       = parameters.BumpKnockback
-	HitProtectionTicks  = parameters.HitProtectionTicks
-	MaxMassDrops        = parameters.MaxMassDrops
 )
 
 type DashPhase string
@@ -50,9 +35,9 @@ type CombatState struct {
 
 func DashBurstDuration(stats Stats) float64 {
 	if stats.Mob && stats.MobType == Sentinel {
-		return SentinelDashBurst
+		return parameters.SentinelDashBurst
 	}
-	return DashBurst
+	return parameters.DashBurst
 }
 
 func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
@@ -61,10 +46,10 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 	if p.Dead || !input.Valid() || dt <= 0 {
 		return
 	}
-	geometry := worldmap.Default().WithSecrets(p.OpenSecrets).WithVaultGate(p.VaultGateOpen)
+	geometry := p.geometry()
 	move := func(d Direction, distance float64) physics.Motion {
 		delta := (physics.Vector{X: d.X, Y: d.Y}).Normalized().Scale(distance)
-		body := physics.Square(p.X, p.Y, PlayerSize)
+		body := physics.Square(p.X, p.Y, parameters.PlayerSize)
 		if p.Stats.Mob {
 			body = MobBody(p.Stats.MobType, p.X, p.Y)
 		}
@@ -92,15 +77,15 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 		c.Facing.X = 1
 	}
 	if c.Phase == DashIdle {
-		if pressed && p.Stats.MP >= DashCost && !(p.Stats.Mob && p.Stats.MobType.IsHeavy()) {
-			p.Stats.MP -= DashCost
+		if pressed && p.Stats.MP >= parameters.DashCost && !(p.Stats.Mob && p.Stats.MobType.IsHeavy()) {
+			p.Stats.MP -= parameters.DashCost
 			c.Direction = c.Facing
-			c.Phase, c.Remaining = DashWinding, DashWindup
+			c.Phase, c.Remaining = DashWinding, parameters.DashWindup
 		}
 	}
 	for dt > 1e-9 {
 		if c.Phase == DashIdle {
-			motion := move(input, walkSpeed*SpeedScale*dt)
+			motion := move(input, walkSpeed*parameters.SpeedScale*dt)
 			p.X, p.Y = motion.Bounds.X, motion.Bounds.Y
 			return
 		}
@@ -108,22 +93,22 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 		switch c.Phase {
 		case DashRushing:
 			c.Attack = true
-			distance := p.MovementSpeed() * SpeedScale * DashSpeedMultiplier * step
+			distance := p.MovementSpeed() * parameters.SpeedScale * parameters.DashSpeedMultiplier * step
 			for distance > 1e-9 {
 				travel := min(distance, 4)
 				motion := move(c.Direction, travel)
 				p.X, p.Y = motion.Bounds.X, motion.Bounds.Y
 				if motion.Blocked() || motion.Rejected {
-					p.Stats.HP = max(BoostMinimumMass, p.Stats.HP-BumpCost)
-					bump := move(Direction{X: -c.Direction.X, Y: -c.Direction.Y}, BumpKnockback)
+					p.Stats.HP = max(parameters.BoostMinimumMass, p.Stats.HP-parameters.BumpCost)
+					bump := move(Direction{X: -c.Direction.X, Y: -c.Direction.Y}, parameters.BumpKnockback)
 					p.X, p.Y = bump.Bounds.X, bump.Bounds.Y
-					c.Phase, c.Remaining = DashBumped, BumpStun
+					c.Phase, c.Remaining = DashBumped, parameters.BumpStun
 					return
 				}
 				distance -= travel
 			}
 		case DashRecovering:
-			motion := move(input, walkSpeed*SpeedScale*step*.35)
+			motion := move(input, walkSpeed*parameters.SpeedScale*step*.35)
 			p.X, p.Y = motion.Bounds.X, motion.Bounds.Y
 		}
 		dt -= step
@@ -136,7 +121,7 @@ func AdvanceDashPlayer(p *Player, input Direction, dt float64) {
 					c.Remaining = min(c.Remaining, c.dashDuration)
 				}
 			case DashRushing:
-				c.Phase, c.Remaining = DashRecovering, DashRecovery
+				c.Phase, c.Remaining = DashRecovering, parameters.DashRecovery
 			default:
 				c.Phase, c.Remaining = DashIdle, 0
 			}

@@ -44,12 +44,18 @@ func (p *PerkPanel) drawWingOffer(width, height int32) {
 	x, y, w := int32(panel.X)+28, int32(panel.Y)+28, int32(panel.Width)-56
 	primitives.DrawText("THE GUARDIAN WITHOUT A SKY", x, y, 24, wingTint)
 	y += 50
-	y = wrappedText("Long before these halls sank beneath the earth, a winged guardian carried the lost home. When the gates were sealed, it chose to stay with those who could not escape. Its wings turned to stone, but their light never went out.", x, y, w, 19, rl.LightGray)
+	lore := "Long before these halls sank beneath the earth, a winged guardian carried the lost home. " +
+		"When the gates were sealed, it chose to stay with those who could not escape. " +
+		"Its wings turned to stone, but their light never went out."
+	y = wrappedText(lore, x, y, w, 19, rl.LightGray)
 	y += 12
 	y = wrappedText("A whisper stirs inside the statue: 'I have watched these walls long enough. Take what remains of my sky.'", x, y, w, 19, wingTint)
 	y += 18
 	primitives.DrawText("UNIQUE BLESSING: STONEWING", x, y, 18, wingTint)
-	wrappedText("Replaces Shift boost with flight. Hold Shift to fly over interior walls and pools; release to land. Flight uses 2 MP/sec before blessings. Overdrive improves flight speed and increases its MP drain. If you release above stone, your wings glide back to safe footing. The outer walls still bind you.", x, y+30, w, 17, rl.LightGray)
+	rules := "Replaces Shift boost with flight. Hold Shift to fly over interior walls and pools; release to land. " +
+		"Flight uses 2 MP/sec before blessings. Overdrive improves flight speed and increases its MP drain. " +
+		"If you release above stone, your wings glide back to safe footing. The outer walls still bind you."
+	wrappedText(rules, x, y+30, w, 17, rl.LightGray)
 	labels := [2]string{"[1] ACCEPT THE WINGS", "[2] LEAVE THEM HERE"}
 	for i, rect := range wingOfferButtons(width, height) {
 		tint := wingTint

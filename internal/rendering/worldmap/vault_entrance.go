@@ -58,7 +58,9 @@ func (m *Map) drawVaultApproach(room mapdata.Room, rune rl.Color) {
 					}
 				}
 				if !hidden {
-					rl.DrawLineEx(rl.NewVector2(float32(edge[0]+(edge[2]-edge[0])*from), float32(edge[1]+(edge[3]-edge[1])*from)), rl.NewVector2(float32(edge[0]+(edge[2]-edge[0])*to), float32(edge[1]+(edge[3]-edge[1])*to)), 2, rl.Fade(rune, .4))
+					start := rl.NewVector2(float32(edge[0]+(edge[2]-edge[0])*from), float32(edge[1]+(edge[3]-edge[1])*from))
+					end := rl.NewVector2(float32(edge[0]+(edge[2]-edge[0])*to), float32(edge[1]+(edge[3]-edge[1])*to))
+					rl.DrawLineEx(start, end, 2, rl.Fade(rune, .4))
 				}
 			}
 		}

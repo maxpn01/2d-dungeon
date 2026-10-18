@@ -4,6 +4,7 @@ import (
 	"math"
 	"slices"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 	"2d-dungeon/internal/worldmap"
 )
@@ -19,7 +20,7 @@ func NearWingDoor(x, y float64) bool {
 
 func nearSecretDoor(x, y float64, door worldmap.SecretDoor) bool {
 	bounds := door.Area.Bounds()
-	cx, cy := x+PlayerSize/2, y+PlayerSize/2
+	cx, cy := x+parameters.PlayerSize/2, y+parameters.PlayerSize/2
 	return math.Hypot(cx-max(bounds.X, min(bounds.X+bounds.W, cx)), cy-max(bounds.Y, min(bounds.Y+bounds.H, cy))) <= 65
 }
 
@@ -40,7 +41,7 @@ func (w *World) interactSecret(p *playerState) bool {
 
 func (w *World) advanceWingDoor() {
 	if slices.Contains(w.openSecrets, worldmap.WingDoor) {
-		w.wingDoorOpen = min(1, w.wingDoorOpen+StepSeconds/1.1)
+		w.wingDoorOpen = min(1, w.wingDoorOpen+parameters.StepSeconds/1.1)
 	}
 
 }
@@ -57,7 +58,7 @@ func constrainWingDoor(p *Player, oldX, oldY float64) {
 			bounds.X, bounds.Y = min(bounds.X, border.X), min(bounds.Y, border.Y)
 			bounds.W, bounds.H = right-bounds.X, bottom-bounds.Y
 		}
-		if door.Interactable && p.WingDoorOpen < 1 && physics.Square(p.X, p.Y, PlayerSize).Overlaps(bounds) {
+		if door.Interactable && p.WingDoorOpen < 1 && physics.Square(p.X, p.Y, parameters.PlayerSize).Overlaps(bounds) {
 			p.X, p.Y = oldX, oldY
 			return
 		}
@@ -68,7 +69,7 @@ func (w *World) revealFlownSecrets(p *playerState) {
 	if !p.Flight.Flying {
 		return
 	}
-	body := physics.Square(p.X, p.Y, PlayerSize)
+	body := physics.Square(p.X, p.Y, parameters.PlayerSize)
 	for _, door := range worldmap.Default().SecretDoors() {
 		if slices.Contains(w.openSecrets, door.ID) {
 			continue

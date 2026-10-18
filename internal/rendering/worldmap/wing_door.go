@@ -4,8 +4,8 @@ import (
 	"math"
 	"slices"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/simulation"
-	mapdata "2d-dungeon/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -31,10 +31,10 @@ func (m *Map) drawWingDoor(snapshot simulation.Snapshot) {
 			if i == 1 {
 				direction = 1
 			}
-			shift := float32(i*mapdata.Tile) + direction*progress*mapdata.Tile
-			x, y, w, h, index := int(bounds.X), int(bounds.Y+float64(shift)), mapdata.SurfaceMin, mapdata.Tile, door.Area.Y+i
+			shift := float32(i*parameters.Tile) + direction*progress*parameters.Tile
+			x, y, w, h, index := int(bounds.X), int(bounds.Y+float64(shift)), parameters.SurfaceMin, parameters.Tile, door.Area.Y+i
 			if horizontal {
-				x, y, w, h, index = int(bounds.X+float64(shift)), int(bounds.Y), mapdata.Tile, mapdata.SurfaceMin, door.Area.X+i
+				x, y, w, h, index = int(bounds.X+float64(shift)), int(bounds.Y), parameters.Tile, parameters.SurfaceMin, door.Area.X+i
 			}
 			drawSanctuaryBorder(x, y, w, h, index)
 			at := rl.NewVector2(float32(x+w/2), float32(y+h/2))

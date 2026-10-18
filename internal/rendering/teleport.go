@@ -3,8 +3,8 @@ package rendering
 import (
 	"math"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/rendering/primitives"
-	"2d-dungeon/internal/simulation"
 	"2d-dungeon/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -14,7 +14,7 @@ func DrawTeleportCharge(x, y, charge float64) {
 	if charge <= 0 {
 		return
 	}
-	player := rl.NewVector2(float32(x+simulation.PlayerSize/2), float32(y+simulation.PlayerSize/2))
+	player := rl.NewVector2(float32(x+parameters.PlayerSize/2), float32(y+parameters.PlayerSize/2))
 	center := player
 	for _, portal := range worldmap.Default().Portals() {
 		position := portal.Position()
@@ -23,7 +23,7 @@ func DrawTeleportCharge(x, y, charge float64) {
 			break
 		}
 	}
-	progress := float32(min(1, charge/simulation.PortalSeconds))
+	progress := float32(min(1, charge/parameters.PortalSeconds))
 	drawTeleportEnergy(player, center, charge, progress*progress, 1)
 }
 

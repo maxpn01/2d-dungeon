@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"2d-dungeon/internal/appearance"
 	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
 	"2d-dungeon/internal/rendering/primitives"
@@ -96,7 +97,9 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 			if actor.ai && existed && !actor.dead {
 				local := actors[f.localID]
 				geometry := worldmap.Default()
-				if !local.dead && math.Hypot(actor.x-local.x, actor.y-local.y) <= 600 && geometry.FloorAt(actor.x+actor.size/2, actor.y+actor.size/2) == geometry.FloorAt(local.x+local.size/2, local.y+local.size/2) {
+				nearby := math.Hypot(actor.x-local.x, actor.y-local.y) <= 600
+				sameFloor := geometry.FloorAt(actor.x+actor.size/2, actor.y+actor.size/2) == geometry.FloorAt(local.x+local.size/2, local.y+local.size/2)
+				if !local.dead && nearby && sameFloor {
 					impact := parameters.HeavyStompDuration - parameters.HeavyStompWindup
 					if old.stompRemaining > impact && actor.stompRemaining > 0 && actor.stompRemaining <= impact {
 						playFeedbackSound("stomp")
@@ -146,9 +149,12 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 					f.hits = make(map[string]time.Time)
 				}
 				f.hits[id] = now
-				f.effects = append(f.effects, feedbackEffect{started: now, x: float32(actor.x + actor.size/2), y: float32(actor.y + actor.size/2), size: float32(actor.size), tint: rl.Orange, kind: "hit", amount: previousHP - actor.hp, owner: id})
+				f.effects = append(f.effects, feedbackEffect{
+					started: now, x: float32(actor.x + actor.size/2), y: float32(actor.y + actor.size/2), size: float32(actor.size),
+					tint: rl.Orange, kind: "hit", amount: previousHP - actor.hp, owner: id,
+				})
 			}
-			if existed && !old.dead && !actor.dead && (actor.hp > old.hp+actor.recovery*(max(0, now.Sub(f.observed).Seconds())+simulation.StepSeconds)+1e-6 || actor.level > old.level || actor.xp > old.xp) {
+			if existed && !old.dead && !actor.dead && (actor.hp > old.hp+actor.recovery*(max(0, now.Sub(f.observed).Seconds())+parameters.StepSeconds)+1e-6 || actor.level > old.level || actor.xp > old.xp) {
 				emit(actor.x+actor.size/2, actor.y+actor.size/2, float64(actorRenderSize(actor.size, actor.hp)), actor.tint, "eat")
 			}
 		}
@@ -187,14 +193,19 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot, localID 
 	f.observeLibraryAudio(snapshot, localID)
 	actors := make(map[string]feedbackActor)
 	for _, p := range snapshot.Players {
-		actors[p.ID] = feedbackActor{x: p.X, y: p.Y, size: simulation.PlayerSize, hp: p.Stats.HP, xp: p.Stats.XP, level: p.Stats.Level, tint: primitives.CharacterColor(p.Character), dead: p.Dead, hidden: p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, simulation.PlayerSize)), escaped: p.Escaped, recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP()}
+		hidden := p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, parameters.PlayerSize))
+		actors[p.ID] = feedbackActor{
+			x: p.X, y: p.Y, size: parameters.PlayerSize, hp: p.Stats.HP, xp: p.Stats.XP, level: p.Stats.Level,
+			tint: primitives.CharacterColor(p.Character), dead: p.Dead, hidden: hidden, escaped: p.Escaped,
+			recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP(),
+		}
 	}
 	for _, a := range snapshot.AIs {
 		tint := rl.Green
-		if a.Character == simulation.Triangle {
+		if a.Character == appearance.Triangle {
 			tint = primitives.CharacterColor(a.Character)
 		}
-		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: simulation.AISize, hp: a.Stats.HP, xp: a.Stats.XP, level: a.Stats.Level, tint: tint, ai: true, maxHP: a.Stats.MaxHP()}
+		actors[a.ID] = feedbackActor{x: a.X, y: a.Y, size: parameters.AISize, hp: a.Stats.HP, xp: a.Stats.XP, level: a.Stats.Level, tint: tint, ai: true, maxHP: a.Stats.MaxHP()}
 		actor := actors[a.ID]
 		actor.stone = a.Stone
 		actor.stompRemaining = a.Combat.StompRemaining
@@ -282,7 +293,7 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 		center := rl.NewVector2(e.x, e.y)
 		switch e.kind {
 		case "teleport-arrival":
-			drawTeleportEnergy(center, center, simulation.PortalSeconds+float64(p)*duration, (1-p)*(1-p), 1-p)
+			drawTeleportEnergy(center, center, parameters.PortalSeconds+float64(p)*duration, (1-p)*(1-p), 1-p)
 			rl.DrawRing(center, 84+55*p, 87+55*p, 0, 360, 64, rl.Fade(e.tint, (1-p)*.6))
 		case "hit":
 			if !e.sounded {
@@ -351,7 +362,7 @@ func (f *Feedback) Draw(now time.Time, exploration Visibility) {
 
 const materializeDuration = 850 * time.Millisecond
 
-func (f *Feedback) DrawPlayer(id string, x, y, size, hp float64, combat simulation.CombatState, tint color.RGBA, character simulation.Character) rl.Rectangle {
+func (f *Feedback) DrawPlayer(id string, x, y, size, hp float64, combat simulation.CombatState, tint color.RGBA, character appearance.Character) rl.Rectangle {
 	if f == nil {
 		return DrawActor(x, y, size, hp, combat, tint, character)
 	}
@@ -419,7 +430,7 @@ func (f *Feedback) observeLibraryAudio(snapshot simulation.Snapshot, localID str
 		}
 		before, known := f.libraryEvents[book.ID]
 		current := book.Library
-		audible := !local.Dead && worldmap.Default().WithSecrets(snapshot.OpenSecrets).RoomContains(simulation.LibraryRoom(book.ID), physics.Square(local.X, local.Y, simulation.PlayerSize))
+		audible := !local.Dead && worldmap.Default().WithSecrets(snapshot.OpenSecrets).RoomContains(simulation.LibraryRoom(book.ID), physics.Square(local.X, local.Y, parameters.PlayerSize))
 		if known && audible && current.StartedTick != 0 && before.StartedTick == current.StartedTick {
 			for tome := 0; tome < simulation.LibraryTomeCount; tome++ {
 				if current.HitTicks[tome] > before.HitTicks[tome] {

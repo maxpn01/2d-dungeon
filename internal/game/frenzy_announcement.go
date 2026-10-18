@@ -4,6 +4,7 @@ import (
 	"math"
 	"time"
 
+	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/rendering"
 	"2d-dungeon/internal/rendering/primitives"
 	"2d-dungeon/internal/simulation"
@@ -12,17 +13,19 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-const frenzyAnnouncementDuration = float32(simulation.OrbFrenzyDelayTicks)/simulation.TickRate + 2
+const frenzyAnnouncementDuration = float32(simulation.OrbFrenzyDelayTicks)/parameters.TickRate + 2
 
 func frenzyAnnouncementAge(snapshot simulation.Snapshot, local simulation.Player) (float32, bool) {
 	if snapshot.Orb.FrenzyAt < simulation.OrbFrenzyDelayTicks {
 		return 0, false
 	}
 	at := snapshot.Orb.FrenzyAt - simulation.OrbFrenzyDelayTicks
-	if snapshot.Orb.Carrier == "" || snapshot.Tick < at || float32(snapshot.Tick-at)/simulation.TickRate >= frenzyAnnouncementDuration || snapshot.WinnerID != "" || worldmap.Default().FloorAt(local.X+simulation.PlayerSize/2, local.Y+simulation.PlayerSize/2) != worldmap.FirstFloor {
+	age := float32(snapshot.Tick-at) / parameters.TickRate
+	onFirstFloor := worldmap.Default().FloorAt(local.X+parameters.PlayerSize/2, local.Y+parameters.PlayerSize/2) == worldmap.FirstFloor
+	if snapshot.Orb.Carrier == "" || snapshot.Tick < at || age >= frenzyAnnouncementDuration || snapshot.WinnerID != "" || !onFirstFloor {
 		return 0, false
 	}
-	return float32(snapshot.Tick-at) / simulation.TickRate, true
+	return float32(snapshot.Tick-at) / parameters.TickRate, true
 }
 
 func (p *presentation) dungeonAwakeningCamera(camera rl.Camera2D, snapshot simulation.Snapshot, local simulation.Player, now time.Time) rl.Camera2D {

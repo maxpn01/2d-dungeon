@@ -9,9 +9,9 @@ import (
 )
 
 const SentinelAwakeningDuration = 3.0
-const VaultTrapWarningTicks = TickRate / 10
-const VaultTrapFireTicks = TickRate
-const VaultTrapCooldownTicks = 5 * TickRate
+const VaultTrapWarningTicks = parameters.TickRate / 10
+const VaultTrapFireTicks = parameters.TickRate
+const VaultTrapCooldownTicks = 5 * parameters.TickRate
 
 type VaultFire struct {
 	TriggeredTick uint64 `json:"triggered_tick"`
@@ -21,7 +21,7 @@ func (w *World) awakenVaultSentinels() {
 	if w.orb.GateOpen < .95 {
 		return
 	}
-	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
+	geometry := w.geometry()
 	for _, p := range w.players {
 		if p.Dead {
 			continue
@@ -31,7 +31,7 @@ func (w *World) awakenVaultSentinels() {
 			if ai.den.RoomID != worldmap.OrbVault || !ai.Stone || !w.aiCanSeePlayer(ai, p, 260) {
 				continue
 			}
-			level := min(MaxLevel, w.averageDungeonGuardLevel()+parameters.SentinelLevelOffset)
+			level := min(parameters.MaxLevel, w.averageDungeonGuardLevel()+parameters.SentinelLevelOffset)
 			for j := range w.ais {
 				guard := &w.ais[j]
 				if guard.den.RoomID == worldmap.OrbVault && guard.Stone && geometry.Cell(guard.den.At.X, guard.den.At.Y) != 0 {
@@ -41,7 +41,7 @@ func (w *World) awakenVaultSentinels() {
 						guard.grantPerkMilestones(1 + (level-parameters.SentinelFirstPerkLevel)/parameters.AIPerkLevelInterval)
 					}
 					guard.spawnMaxHP = guard.Stats.MaxHP()
-					guard.Stone, guard.Awakening, guard.Behavior = false, SentinelAwakeningDuration, "awakening"
+					guard.Stone, guard.Awakening, guard.Behavior = false, SentinelAwakeningDuration, BehaviorAwakening
 				}
 			}
 			return
@@ -50,7 +50,7 @@ func (w *World) awakenVaultSentinels() {
 }
 
 func (w *World) advanceVaultTraps(actors []eater) {
-	geometry := worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen)
+	geometry := w.geometry()
 	for i, trap := range geometry.VaultTraps() {
 		if geometry.Cell(trap.Tile.X, trap.Tile.Y) == 0 {
 			continue
@@ -62,8 +62,8 @@ func (w *World) advanceVaultTraps(actors []eater) {
 					continue
 				}
 				start, end := position{actor.start.x + actor.size/2, actor.start.y + actor.size/2}, position{actor.end.x + actor.size/2, actor.end.y + actor.size/2}
-				tile := position{float64(trap.Tile.X * worldmap.Tile), float64(trap.Tile.Y * worldmap.Tile)}
-				if _, hit := eatingContact(start, end, 1, tile, tile, worldmap.Tile); hit {
+				tile := position{float64(trap.Tile.X * parameters.Tile), float64(trap.Tile.Y * parameters.Tile)}
+				if _, hit := eatingContact(start, end, 1, tile, tile, parameters.Tile); hit {
 					state.TriggeredTick = w.tick
 					w.vaultFireHits[i] = make(map[string]bool)
 					break

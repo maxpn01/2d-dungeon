@@ -5,14 +5,40 @@ import (
 	"math"
 	"math/rand/v2"
 
+	"2d-dungeon/internal/appearance"
 	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/worldmap"
 )
 
+type Behavior string
+
 const (
-	AIRespawnSeconds  = parameters.AIRespawnSeconds
-	AISize            = parameters.AISize
-	AIDetectionRadius = parameters.AIDetectionRadius
+	BehaviorPatrolling          Behavior = "patrolling"
+	BehaviorStoneGuardian       Behavior = "stone guardian"
+	BehaviorAwakening           Behavior = "awakening"
+	BehaviorReturning           Behavior = "returning"
+	BehaviorAttacking           Behavior = "attacking"
+	BehaviorRepositioning       Behavior = "repositioning"
+	BehaviorWatching            Behavior = "watching"
+	BehaviorAiming              Behavior = "aiming"
+	BehaviorWaitingForClearShot Behavior = "waiting for clear shot"
+	BehaviorInvestigating       Behavior = "investigating"
+	BehaviorSearching           Behavior = "searching"
+	BehaviorDodging             Behavior = "dodging"
+	BehaviorHuntingOrb          Behavior = "hunting orb"
+	BehaviorCoveringOrb         Behavior = "covering orb"
+	BehaviorStriking            Behavior = "striking"
+	BehaviorWindingSword        Behavior = "winding sword"
+	BehaviorCharging            Behavior = "charging"
+	BehaviorPursuing            Behavior = "pursuing"
+	BehaviorStrafing            Behavior = "strafing"
+	BehaviorClosingDistance     Behavior = "closing distance"
+	BehaviorKeepingDistance     Behavior = "keeping distance"
+	BehaviorStomping            Behavior = "stomping"
+	BehaviorWindingStomp        Behavior = "winding stomp"
+	BehaviorWindingStrike       Behavior = "winding strike"
+	BehaviorWindingCharge       Behavior = "winding charge"
+	BehaviorRecoveringStrike    Behavior = "recovering strike"
 )
 
 type AI struct {
@@ -22,8 +48,8 @@ type AI struct {
 	Aiming    bool
 	Frenzied  bool
 	Combat    CombatState
-	Behavior  string
-	Character Character
+	Behavior  Behavior
+	Character appearance.Character
 	ID        string
 	X, Y      float64
 	Stats     Stats
@@ -76,15 +102,15 @@ type aiState struct {
 
 func (w *World) newDenAI(den worldmap.Den) aiState {
 	w.nextAI++
-	x, y := worldmap.CellPosition(den.At.X, den.At.Y, AISize)
+	x, y := worldmap.CellPosition(den.At.X, den.At.Y, parameters.AISize)
 	stats := newMobStats(den.Level, den.Type)
-	character := Square
+	character := appearance.Square
 	if den.Type == Sentinel {
-		character = Triangle
+		character = appearance.Triangle
 	}
-	ai := aiState{spawnMaxHP: stats.MaxHP(), den: den, AI: AI{Type: den.Type, ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: "patrolling", Character: character}}
+	ai := aiState{spawnMaxHP: stats.MaxHP(), den: den, AI: AI{Type: den.Type, ID: fmt.Sprintf("ai-%d", w.nextAI), X: x, Y: y, Stats: stats, Behavior: BehaviorPatrolling, Character: character}}
 	if den.Type == Sentinel {
-		ai.Stone, ai.Behavior = true, "stone guardian"
+		ai.Stone, ai.Behavior = true, BehaviorStoneGuardian
 	}
 	return ai
 }
@@ -102,15 +128,15 @@ func (w *World) updateAIs() {
 		if ai.respawnTick != 0 {
 			continue
 		}
-		if worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen).Cell(ai.den.At.X, ai.den.At.Y) == 0 && ai.den.ID != "" {
+		if w.geometry().Cell(ai.den.At.X, ai.den.At.Y) == 0 && ai.den.ID != "" {
 			continue
 		}
 		if ai.Stone {
 			continue
 		}
 		if ai.Awakening > 0 {
-			ai.Awakening = max(0, ai.Awakening-StepSeconds)
-			ai.Behavior = "awakening"
+			ai.Awakening = max(0, ai.Awakening-parameters.StepSeconds)
+			ai.Behavior = BehaviorAwakening
 			continue
 		}
 		ai.mobChargeCooldown = max(0, ai.mobChargeCooldown-1)
@@ -128,16 +154,16 @@ func (w *World) updateAIs() {
 		}
 		oldX, oldY := ai.X, ai.Y
 		actor := Player{VaultGateOpen: w.orb.GateOpen, OpenSecrets: w.openSecrets, ID: ai.ID, ShotCooldown: ai.shotCooldown, X: ai.X, Y: ai.Y, Stats: ai.Stats, Combat: ai.Combat, Character: ai.Character}
-		AdvancePlayer(&actor, input, StepSeconds)
+		AdvancePlayer(&actor, input, parameters.StepSeconds)
 		w.fire(&actor, input)
 		ai.shotCooldown = actor.ShotCooldown
 		ai.X, ai.Y, ai.Stats, ai.Combat = actor.X, actor.Y, actor.Stats, actor.Combat
-		if worldmap.Default().PrivateGateCrossed(oldX, oldY, ai.X, ai.Y, AISize) || ai.den.ID != "" && !w.aiWithinTerritory(ai) {
+		if worldmap.Default().PrivateGateCrossed(oldX, oldY, ai.X, ai.Y, parameters.AISize) || ai.den.ID != "" && !w.aiWithinTerritory(ai) {
 			ai.X, ai.Y = oldX, oldY
 			if ai.aggressorID != "" {
 				ai.aggressorID, ai.alertUntil = "", 0
 				ai.returning = true
-				ai.Behavior = "returning"
+				ai.Behavior = BehaviorReturning
 			}
 		}
 	}
@@ -180,7 +206,7 @@ func (w *World) aiIntent(ai *aiState) Direction {
 		dx, dy := target.X-ai.X, target.Y-ai.Y
 		length := math.Hypot(dx, dy)
 		d := Direction{AimX: dx / max(1, length), AimY: dy / max(1, length), Shoot: true}
-		ai.Behavior = "attacking"
+		ai.Behavior = BehaviorAttacking
 		if ai.aggressorID != "" && w.tick < ai.alertUntil {
 			movement, _ := w.investigateAI(ai)
 			d.X, d.Y = movement.X, movement.Y
@@ -190,46 +216,46 @@ func (w *World) aiIntent(ai *aiState) Direction {
 	if ai.Type == DungeonShooter && w.tick < ai.shooterSightUntil {
 		input := ai.shooterLastInput
 		input.Shoot = false
-		if !w.shotDodgeFits(ai, worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen), input, StepSeconds) {
+		if !w.shotDodgeFits(ai, w.geometry(), input, parameters.StepSeconds) {
 			input.X, input.Y = 0, 0
 		}
-		ai.Behavior = "repositioning"
+		ai.Behavior = BehaviorRepositioning
 		return input
 	}
 	if d, investigating := w.investigateAI(ai); investigating {
 		return d
 	}
-	return ai.patrolInput(worldmap.Default().WithSecrets(w.openSecrets).WithVaultGate(w.orb.GateOpen))
+	return ai.patrolInput(w.geometry())
 }
 
 func (ai *aiState) patrolInput(geometry *worldmap.Map) Direction {
 	if ai.patrolPause > 0 {
 		ai.patrolPause--
-		ai.Behavior = "watching"
+		ai.Behavior = BehaviorWatching
 		return Direction{}
 	}
 	if ai.patrolTicks == 0 {
 		ai.choosePatrolTarget(geometry)
 	}
 	if math.Hypot(ai.patrolX-ai.X, ai.patrolY-ai.Y) <= 18 {
-		if ai.Character != Triangle {
+		if ai.Character != appearance.Triangle {
 			ai.X, ai.Y = ai.patrolX, ai.patrolY
 		}
 		ai.patrolTicks = 0
-		ai.patrolPause = TickRate/3 + rand.IntN(TickRate/2)
-		ai.Behavior = "watching"
+		ai.patrolPause = parameters.TickRate/3 + rand.IntN(parameters.TickRate/2)
+		ai.Behavior = BehaviorWatching
 		return Direction{}
 	}
 	ai.patrolTicks--
-	ai.Behavior = "patrolling"
+	ai.Behavior = BehaviorPatrolling
 	return ai.navigateMap(geometry, ai.patrolX, ai.patrolY)
 }
 
 func (ai *aiState) choosePatrolTarget(geometry *worldmap.Map) {
-	left := float64(ai.den.Patrol.X*worldmap.Tile + 8)
-	right := float64(ai.den.Patrol.Right()*worldmap.Tile - AISize - 8)
-	top := float64(ai.den.Patrol.Y*worldmap.Tile + 8)
-	bottom := float64(ai.den.Patrol.Bottom()*worldmap.Tile - AISize - 8)
+	left := float64(ai.den.Patrol.X*parameters.Tile + 8)
+	right := float64(ai.den.Patrol.Right()*parameters.Tile - parameters.AISize - 8)
+	top := float64(ai.den.Patrol.Y*parameters.Tile + 8)
+	bottom := float64(ai.den.Patrol.Bottom()*parameters.Tile - parameters.AISize - 8)
 	minimumDistance := min(100.0, max(18.0, min(right-left, bottom-top)/2))
 	for range 24 {
 		x := left + rand.Float64()*(right-left)
@@ -239,11 +265,11 @@ func (ai *aiState) choosePatrolTarget(geometry *worldmap.Map) {
 			continue
 		}
 		ai.patrolX, ai.patrolY = x, y
-		ai.patrolTicks = 5 * TickRate
+		ai.patrolTicks = 5 * parameters.TickRate
 		return
 	}
-	ai.patrolX, ai.patrolY = worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, AISize)
-	ai.patrolTicks = 5 * TickRate
+	ai.patrolX, ai.patrolY = worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, parameters.AISize)
+	ai.patrolTicks = 5 * parameters.TickRate
 }
 
 func (w *World) respawnEntranceGuards() {
@@ -252,9 +278,9 @@ func (w *World) respawnEntranceGuards() {
 		if ai.den.RoomID == worldmap.OrbVault || ai.Type == GateHeavy || ai.den.ID == "" || ai.respawnTick == 0 || w.tick < ai.respawnTick {
 			continue
 		}
-		x, y := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, AISize)
+		x, y := worldmap.CellPosition(ai.den.At.X, ai.den.At.Y, parameters.AISize)
 		if !w.denClear(x, y, i) {
-			ai.respawnTick = w.tick + TickRate
+			ai.respawnTick = w.tick + parameters.TickRate
 			continue
 		}
 		*ai = w.respawnDenAI(*ai)
@@ -263,14 +289,14 @@ func (w *World) respawnEntranceGuards() {
 
 func (w *World) denClear(x, y float64, skip int) bool {
 	for _, p := range w.players {
-		if !p.Dead && math.Hypot(p.X-x, p.Y-y) < AIDetectionRadius+PlayerSize {
+		if !p.Dead && math.Hypot(p.X-x, p.Y-y) < parameters.AIDetectionRadius+parameters.PlayerSize {
 			return false
 		}
 	}
 	for j := range w.ais {
 		a := &w.ais[j]
 		if j != skip && a.respawnTick == 0 {
-			if math.Hypot(a.X-x, a.Y-y) < AISize*2 {
+			if math.Hypot(a.X-x, a.Y-y) < parameters.AISize*2 {
 				return false
 			}
 		}
