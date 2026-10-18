@@ -14,8 +14,6 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-const localPlayerID = "player"
-
 type World struct {
 	presentation
 	simulation          *simulation.World
@@ -35,7 +33,6 @@ type World struct {
 
 func NewWorld() *World {
 	w := &World{simulation: simulation.NewWorld(), presentation: newPresentation()}
-	w.simulation.Join(localPlayerID)
 	w.syncSimulation()
 	w.gameMap.Exploration.SetSecrets(w.snapshot.OpenSecrets, w.snapshot.Orb.GateOpen)
 	w.gameMap.Exploration.Reveal(w.Center(), w.player.HasWings, w.player.Flight.Flying)
@@ -46,7 +43,7 @@ func (w *World) Pause() {
 	w.direction = simulation.Direction{}
 	w.accumulator = 0
 	w.previousSnapshot = w.snapshot
-	w.player = w.snapshot.Players[0]
+	w.player = w.snapshot.Player
 	w.ais = append(w.ais[:0], w.snapshot.AIs...)
 	w.controls.suppressShootUntilRelease = true
 }
@@ -55,7 +52,7 @@ func (w *World) Update(dt float32) {
 	w.accumulator += float64(min(dt, 0.25))
 	for w.accumulator >= parameters.StepSeconds && !w.Dead() && !w.ResultsOpen() && !w.StatsOpen() && !w.PerksOpen() {
 		now := time.Now()
-		w.simulation.Input(localPlayerID, w.direction)
+		w.simulation.Input(w.direction)
 		w.direction.Shoot, w.direction.Dash, w.direction.Interact = false, false, false
 		w.simulation.Step(now)
 		w.accumulator -= parameters.StepSeconds
@@ -72,7 +69,7 @@ func (w *World) Update(dt float32) {
 }
 
 func (w *World) ReadInput(camera rl.Camera2D, width, height int32) {
-	p := w.snapshot.Players[0]
+	p := w.snapshot.Player
 	statue := w.perks.Sync(p.ActiveStatue, w.snapshot.Statues)
 	if statue != nil {
 		w.CloseStats()
@@ -82,7 +79,7 @@ func (w *World) ReadInput(camera rl.Camera2D, width, height int32) {
 			if worldmap.IsWingStatue(statue.ID) && card == 1 {
 				w.ClosePerks()
 			} else {
-				w.simulation.ChoosePerk(localPlayerID, statue.ID, statue.Cycle, card)
+				w.simulation.ChoosePerk(statue.ID, statue.Cycle, card)
 			}
 			w.syncSimulation()
 		}
@@ -106,23 +103,22 @@ func (w *World) ReadInput(camera rl.Camera2D, width, height int32) {
 }
 
 func (w *World) ClosePerks() {
-	w.simulation.CloseOffer(localPlayerID)
+	w.simulation.CloseOffer()
 	w.controls.suppressShootUntilRelease = true
 	w.syncSimulation()
 }
 
 func (w *World) syncSimulation() {
 	snapshot := w.simulation.Snapshot()
-	snapshot.Statues = w.simulation.StatuesForPlayer(localPlayerID)
-	w.feedback.Observe(time.Now(), snapshot, localPlayerID)
+	w.feedback.Observe(time.Now(), snapshot)
 	w.previousSnapshot, w.snapshot = w.snapshot, snapshot
-	w.player = snapshot.Players[0]
+	w.player = snapshot.Player
 	w.ais = append(w.ais[:0], snapshot.AIs...)
 }
 
 func (w *World) Configure(name string, character appearance.Character) {
 	w.name = name
-	w.simulation.SetCharacter(localPlayerID, character)
+	w.simulation.SetCharacter(character)
 	w.syncSimulation()
 }
 func (w *World) SetName(name string) {
@@ -130,7 +126,7 @@ func (w *World) SetName(name string) {
 }
 func (w *World) Character() appearance.Character { return w.player.Character }
 func (w *World) Dead() bool                      { return w.player.Dead }
-func (w *World) PerksOpen() bool                 { return w.snapshot.Players[0].ActiveStatue != "" }
+func (w *World) PerksOpen() bool                 { return w.snapshot.Player.ActiveStatue != "" }
 func (w *World) Center() rl.Vector2              { return playerCenter(w.player) }
 
 func (w *World) Start(name string) {
@@ -139,7 +135,7 @@ func (w *World) Start(name string) {
 	}
 	w.CloseStats()
 	if !w.started {
-		w.feedback.Spawn(localPlayerID, time.Now())
+		w.feedback.Spawn(simulation.PlayerID, time.Now())
 		w.started = true
 	}
 	w.SetName(name)
@@ -149,7 +145,7 @@ func (w *World) Start(name string) {
 
 func (w *World) scene() rendering.Scene {
 	return rendering.Scene{
-		Snapshot: w.snapshot, PlayerName: w.name, Local: w.snapshot.Players[0], RenderedPlayers: []simulation.Player{w.player}, RenderedAIs: w.ais,
+		Snapshot: w.snapshot, PlayerName: w.name, Local: w.snapshot.Player, RenderedPlayer: w.player, RenderedAIs: w.ais,
 		PreviousStatues: w.previousSnapshot.Statues, PreviousTick: w.previousSnapshot.Tick, PreviousProjectiles: w.previousSnapshot.Projectiles, ProjectileAlpha: w.accumulator / parameters.StepSeconds,
 	}
 }
@@ -159,7 +155,7 @@ func (w *World) Draw(camera rl.Camera2D, width, height int32) {
 	if !w.StatsOpen() && !w.PerksOpen() {
 		w.teleporterDiscovery.Draw(width, height)
 	}
-	p := w.snapshot.Players[0]
+	p := w.snapshot.Player
 	w.perks.Draw(p.ActiveStatue, w.snapshot.Statues, p.Stats, p.HasWings, width, height)
 	if w.StatsOpen() {
 		w.stats.Draw(p, w.name, width, height)

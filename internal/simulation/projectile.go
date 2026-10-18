@@ -19,19 +19,19 @@ const (
 )
 
 type Projectile struct {
-	MobOwned         bool           `json:"mob_owned,omitempty"`
-	Kind             ProjectileKind `json:"kind,omitempty"`
+	MobOwned         bool
+	Kind             ProjectileKind
 	originX, originY float64
-	ID               string    `json:"id"`
-	Owner            string    `json:"owner"`
-	X                float64   `json:"x"`
-	Y                float64   `json:"y"`
-	Direction        Direction `json:"direction"`
-	Lifetime         float64   `json:"lifetime,omitempty"`
-	Remaining        float64   `json:"remaining"`
-	Damage           float64   `json:"damage"`
-	StunDuration     float64   `json:"stun_duration,omitempty"`
-	Size             float64   `json:"size"`
+	ID               string
+	Owner            string
+	X                float64
+	Y                float64
+	Direction        Direction
+	Lifetime         float64
+	Remaining        float64
+	Damage           float64
+	StunDuration     float64
+	Size             float64
 }
 
 func ProjectileWallBody(shot Projectile) physics.Rect {
@@ -140,7 +140,7 @@ func (w *World) advanceProjectiles(actors []eater) {
 				}
 			}
 			if wallBlocked && (winner < 0 || wallFraction <= first) {
-				if w.players[shot.Owner] != nil {
+				if w.playerWithID(shot.Owner) != nil {
 					w.revealSecret(start.x, start.y, end.x-start.x, end.y-start.y, shot.Size)
 				}
 				alive = false
@@ -232,21 +232,8 @@ func (w *World) dropKillLoot(target eater, hp, mp float64) {
 }
 
 func (w *World) rangedTarget(ai *aiState) *playerState {
-	var target *playerState
-	best := parameters.AIDetectionRadius
-	for _, p := range w.players {
-		distance := math.Hypot(p.X-ai.X, p.Y-ai.Y)
-		alerted := p.ID == ai.aggressorID && w.tick < ai.alertUntil
-		if !w.aiCanSeePlayer(ai, p, parameters.AIDetectionRadius) {
-			continue
-		}
-		if alerted {
-			return p
-		}
-
-		if target == nil || distance < best || distance == best && p.ID < target.ID {
-			target, best = p, distance
-		}
+	if !w.aiCanSeePlayer(ai, w.player, parameters.AIDetectionRadius) {
+		return nil
 	}
-	return target
+	return w.player
 }

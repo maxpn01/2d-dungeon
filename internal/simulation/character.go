@@ -7,11 +7,9 @@ import (
 	"2d-dungeon/internal/worldmap"
 )
 
-func (w *World) SetCharacter(id string, character appearance.Character) {
-	if p := w.players[id]; p != nil {
-		p.Character = appearance.Normalize(character)
-		p.Combat = CombatState{}
-	}
+func (w *World) SetCharacter(character appearance.Character) {
+	w.player.Character = appearance.Normalize(character)
+	w.player.Combat = CombatState{}
 }
 
 func AdvancePlayer(p *Player, input Direction, dt float64) {

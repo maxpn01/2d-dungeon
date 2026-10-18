@@ -219,10 +219,8 @@ func (m *Map) DrawRadar(width, height int32, focus rl.Vector2, markers []Marker,
 			rl.DrawCircleV(point, 4, tint)
 		}
 	} else {
-		for _, player := range snapshot.Players {
-			if player.ID == snapshot.Orb.Carrier && m.Exploration.PlayerVisible(player.X, player.Y, parameters.PlayerSize) {
-				v.marker(rl.NewVector2(float32(player.X+parameters.PlayerSize/2), float32(player.Y+parameters.PlayerSize/2)), 5, primitives.RuneColor)
-			}
+		if player := snapshot.Player; player.ID == snapshot.Orb.Carrier && m.Exploration.PlayerVisible(player.X, player.Y, parameters.PlayerSize) {
+			v.marker(rl.NewVector2(float32(player.X+parameters.PlayerSize/2), float32(player.Y+parameters.PlayerSize/2)), 5, primitives.RuneColor)
 		}
 	}
 	v.end(focus)

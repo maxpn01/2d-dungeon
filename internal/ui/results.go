@@ -37,20 +37,14 @@ func (p *ResultsPanel) Draw(snapshot simulation.Snapshot, local simulation.Playe
 	primitives.DrawCenteredText("You discovered the way to the next floor.", y+52, 20, rl.RayWhite)
 	seconds := snapshot.FinishedTick / parameters.TickRate
 	primitives.DrawCenteredText(fmt.Sprintf("Run time  %d:%02d", seconds/60, seconds%60), y+88, 20, rl.Gray)
-	for i, player := range snapshot.Players {
-		name := preferences.NormalizePlayerName(playerName)
-		if player.ID == local.ID {
-			name += " (you)"
-		}
-		status := ""
-		rowTint := rl.LightGray
-		if player.ID == snapshot.WinnerID {
-			status = " / Escaped"
-			rowTint = rl.Gold
-		}
-
-		primitives.DrawCenteredText(fmt.Sprintf("%s / Lv.%d%s", name, player.Stats.Level, status), y+138+int32(i)*36, 20, rowTint)
+	name := preferences.NormalizePlayerName(playerName) + " (you)"
+	status := ""
+	rowTint := rl.LightGray
+	if local.ID == snapshot.WinnerID {
+		status = " / Escaped"
+		rowTint = rl.Gold
 	}
+	primitives.DrawCenteredText(fmt.Sprintf("%s / Lv.%d%s", name, local.Stats.Level, status), y+138, 20, rowTint)
 	action := ActionNone
 	p.playAgain.Bounds = rl.NewRectangle(float32(width-260)/2, float32(y+228), 260, 56)
 	action = p.playAgain.Draw()

@@ -17,19 +17,19 @@ const LibraryWardRadius = 35.0
 const LibraryRecallSeconds = .8
 
 type LibraryState struct {
-	StartedTick   uint64                           `json:"started_tick,omitempty"`
-	Owner         string                           `json:"owner,omitempty"`
-	Bound         uint8                            `json:"bound,omitempty"`
-	Completed     bool                             `json:"completed,omitempty"`
-	CompletedTick uint64                           `json:"completed_tick,omitempty"`
-	Positions     [LibraryTomeCount]physics.Vector `json:"positions"`
-	Velocities    [LibraryTomeCount]physics.Vector `json:"velocities"`
-	HitTicks      [LibraryTomeCount]uint64         `json:"hit_ticks"`
-	BounceTicks   [LibraryTomeCount]uint64         `json:"bounce_ticks"`
-	BoundTicks    [LibraryTomeCount]uint64         `json:"bound_ticks"`
-	RecallTick    uint64                           `json:"recall_tick,omitempty"`
-	RecallFrom    [LibraryTomeCount]physics.Vector `json:"recall_from"`
-	NudgeTick     uint64                           `json:"nudge_tick,omitempty"`
+	StartedTick   uint64
+	Owner         string
+	Bound         uint8
+	Completed     bool
+	CompletedTick uint64
+	Positions     [LibraryTomeCount]physics.Vector
+	Velocities    [LibraryTomeCount]physics.Vector
+	HitTicks      [LibraryTomeCount]uint64
+	BounceTicks   [LibraryTomeCount]uint64
+	BoundTicks    [LibraryTomeCount]uint64
+	RecallTick    uint64
+	RecallFrom    [LibraryTomeCount]physics.Vector
+	NudgeTick     uint64
 }
 
 func IsLibraryBook(id string) bool {
@@ -162,7 +162,7 @@ func (w *World) advanceLibraries() {
 		if !IsLibraryBook(book.ID) || book.Library.StartedTick == 0 || book.Library.Completed {
 			continue
 		}
-		owner := w.players[book.Library.Owner]
+		owner := w.playerWithID(book.Library.Owner)
 		if owner == nil || owner.Dead {
 			book.Library = LibraryState{}
 			continue

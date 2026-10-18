@@ -110,18 +110,11 @@ func (w *World) sentinelInput(ai *aiState) Direction {
 
 func (w *World) sentinelTarget(ai *aiState) *playerState {
 	geometry := worldmap.Default()
-	var target *playerState
-	best := math.Inf(1)
-	for _, p := range w.players {
-		if p.Dead || !geometry.RoomContains(ai.den.RoomID, physics.Square(p.X, p.Y, parameters.PlayerSize)) {
-			continue
-		}
-		distance := math.Hypot(p.X-ai.X, p.Y-ai.Y)
-		if target == nil || distance < best || distance == best && p.ID < target.ID {
-			target, best = p, distance
-		}
+	p := w.player
+	if p.Dead || !geometry.RoomContains(ai.den.RoomID, physics.Square(p.X, p.Y, parameters.PlayerSize)) {
+		return nil
 	}
-	return target
+	return p
 }
 
 func (w *World) sentinelDashContact(ai *aiState, start position, target eater) bool {

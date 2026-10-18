@@ -9,7 +9,7 @@ import (
 )
 
 func (w *World) alertAI(ai *aiState, shot Projectile) {
-	if w.players[shot.Owner] == nil || ai.returning {
+	if w.playerWithID(shot.Owner) == nil || ai.returning {
 		return
 	}
 	ai.aggressorID = shot.Owner

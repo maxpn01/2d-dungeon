@@ -8,19 +8,15 @@ import (
 	"2d-dungeon/internal/worldmap"
 )
 
-func (w *World) EnableTesting(id string) bool {
-	p := w.players[id]
-	if p == nil || len(w.players) != 1 {
-		return false
-	}
+func (w *World) EnableTesting() {
+	p := w.player
 	p.testing, p.god = true, true
 	p.Stats = NewStatsAtLevel(10)
 	w.refillTestingPlayer(p)
-	return true
 }
 
-func (w *World) TestingEnabled(id string) bool { p := w.players[id]; return p != nil && p.testing }
-func (w *World) GodMode(id string) bool        { p := w.players[id]; return p != nil && p.testing && p.god }
+func (w *World) TestingEnabled() bool { return w.player.testing }
+func (w *World) GodMode() bool        { return w.player.testing && w.player.god }
 
 func (w *World) refillTestingPlayer(p *playerState) {
 	p.Stats.HP = p.Stats.MaxHP()
@@ -28,9 +24,9 @@ func (w *World) refillTestingPlayer(p *playerState) {
 	p.Dead, p.KilledBy, p.progressionReset = false, "", false
 }
 
-func (w *World) ToggleTestingGod(id string) {
-	p := w.players[id]
-	if p == nil || !p.testing {
+func (w *World) ToggleTestingGod() {
+	p := w.player
+	if !p.testing {
 		return
 	}
 	p.god = !p.god
@@ -39,9 +35,9 @@ func (w *World) ToggleTestingGod(id string) {
 	}
 }
 
-func (w *World) CycleTestingLevel(id string) {
-	p := w.players[id]
-	if p == nil || !p.testing {
+func (w *World) CycleTestingLevel() {
+	p := w.player
+	if !p.testing {
 		return
 	}
 	levels := []int{1, 5, 10, 20, parameters.MaxLevel}
@@ -50,9 +46,9 @@ func (w *World) CycleTestingLevel(id string) {
 	w.refillTestingPlayer(p)
 }
 
-func (w *World) ToggleTestingWings(id string) {
-	p := w.players[id]
-	if p == nil || !p.testing {
+func (w *World) ToggleTestingWings() {
+	p := w.player
+	if !p.testing {
 		return
 	}
 	if p.HasWings && !w.geometry().Walkable(p.X, p.Y, parameters.PlayerSize, parameters.PlayerSize) {
@@ -63,9 +59,9 @@ func (w *World) ToggleTestingWings(id string) {
 	p.Combat = CombatState{Facing: p.Combat.Facing}
 }
 
-func (w *World) TestingWarp(id, roomID string) bool {
-	p := w.players[id]
-	if p == nil || !p.testing {
+func (w *World) TestingWarp(roomID string) bool {
+	p := w.player
+	if !p.testing {
 		return false
 	}
 	room, ok := worldmap.Default().Room(roomID)
@@ -134,7 +130,7 @@ func (w *World) TestingWarp(id, roomID string) bool {
 		w.vaultFire = [worldmap.VaultFireTrapCount]VaultFire{}
 		w.vaultArrowStarted = 0
 		w.vaultFireHits = [worldmap.VaultFireTrapCount]map[string]bool{}
-		w.releaseOrb(id)
+		w.releaseOrb(p.ID)
 		w.orb.Unlocked = false
 		w.orb.Consumed = false
 	}
@@ -146,7 +142,7 @@ func (w *World) TestingWarp(id, roomID string) bool {
 			}
 		}
 		w.updateOrb()
-		w.orb.Carrier, p.HasOrb = id, true
+		w.orb.Carrier, p.HasOrb = p.ID, true
 		w.orb.FrenzyAt = w.tick + OrbFrenzyDelayTicks
 	}
 	x, y := worldmap.CellPosition(at.X, at.Y, parameters.PlayerSize)

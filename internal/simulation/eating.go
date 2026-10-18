@@ -2,7 +2,6 @@ package simulation
 
 import (
 	"math"
-	"sort"
 
 	"2d-dungeon/internal/parameters"
 	"2d-dungeon/internal/physics"
@@ -50,15 +49,11 @@ func (e eater) at(step, steps int) position {
 }
 
 func (w *World) eaters(previous map[string]position) []eater {
-	capacity := len(w.players) + len(w.ais)
-	eaters := make([]eater, 0, capacity)
-	for id, player := range w.players {
-		if player.Dead {
-			continue
-		}
-		eaters = append(eaters, eater{id: id, start: previous[id], end: position{player.X, player.Y}, size: parameters.PlayerSize, stats: &player.Stats, player: player})
+	eaters := make([]eater, 0, 1+len(w.ais))
+	if player := w.player; !player.Dead {
+		start := previous[player.ID]
+		eaters = append(eaters, eater{id: player.ID, start: start, end: position{player.X, player.Y}, size: parameters.PlayerSize, stats: &player.Stats, player: player})
 	}
-	sort.Slice(eaters, func(i, j int) bool { return eaters[i].id < eaters[j].id })
 	for i := range w.ais {
 		ai := &w.ais[i]
 		if ai.respawnTick != 0 {

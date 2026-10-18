@@ -19,7 +19,7 @@ type Scene struct {
 	PlayerName          string
 	Map                 *maprender.Map
 	Local               simulation.Player
-	RenderedPlayers     []simulation.Player
+	RenderedPlayer      simulation.Player
 	RenderedAIs         []simulation.AI
 	PreviousStatues     []simulation.StatueState
 	PreviousTick        uint64
@@ -29,22 +29,12 @@ type Scene struct {
 }
 
 func DrawScene(ctx primitives.Context, scene Scene) {
-	local := scene.Local
-	for _, player := range scene.RenderedPlayers {
-		if player.ID == local.ID {
-			local = player
-			break
-		}
-	}
-	scene.Map.PrepareLibraryFrame(scene.PreviousStatues, scene.PreviousTick, scene.Tick, scene.ProjectileAlpha, local)
+	scene.Map.PrepareLibraryFrame(scene.PreviousStatues, scene.PreviousTick, scene.Tick, scene.ProjectileAlpha, scene.RenderedPlayer)
 	rl.BeginMode2D(ctx.Camera)
 	scene.Map.Draw(ctx, scene.Snapshot, scene.Local)
 	scene.Map.DrawVaultArrowWarning(scene.Snapshot)
 	scene.Feedback.DrawWallDebris(time.Now(), &scene.Map.Exploration)
-	playerColors := make(map[string]color.RGBA, len(scene.Players))
-	for _, player := range scene.Players {
-		playerColors[player.ID] = primitives.CharacterColor(player.Character)
-	}
+	playerColors := map[string]color.RGBA{scene.Player.ID: primitives.CharacterColor(scene.Player.Character)}
 	for _, fruit := range scene.Fruits {
 		if !scene.Map.Exploration.EntityVisible(fruit.X, fruit.Y, fruit.Size) {
 			continue
@@ -60,18 +50,9 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 			Aiming: ai.Aiming, Frenzied: ai.Frenzied, Combat: ai.Combat, Tint: tint,
 		}, &scene.Map.Exploration, scene.Feedback)
 	}
-	for _, player := range scene.RenderedPlayers {
-		if player.Dead {
-			continue
-		}
-		if player.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(player.X, player.Y, parameters.PlayerSize) {
-			continue
-		}
+	if player := scene.RenderedPlayer; !player.Dead {
 		tint := primitives.CharacterColor(player.Character)
-		label := fmt.Sprintf("%s Lv.%d", preferences.NormalizePlayerName(scene.PlayerName), player.Stats.Level)
-		if player.ID == scene.Local.ID {
-			label += " (you)"
-		}
+		label := fmt.Sprintf("%s Lv.%d (you)", preferences.NormalizePlayerName(scene.PlayerName), player.Stats.Level)
 		lift := float64(0)
 		if player.HasWings {
 			lift = DrawWings(player.X, player.Y, parameters.PlayerSize, player.Flight.Flying)
@@ -91,12 +72,7 @@ func DrawScene(ctx primitives.Context, scene Scene) {
 	DrawProjectiles(scene.PreviousProjectiles, scene.Projectiles, scene.ProjectileAlpha, &scene.Map.Exploration)
 	DrawPortals(scene.Local, scene.Snapshot.Orb, &scene.Map.Exploration)
 	scene.Map.DrawVaultFire(scene.Snapshot)
-	for _, p := range scene.Players {
-		if p.ID != scene.Local.ID && !scene.Map.Exploration.PlayerVisible(p.X, p.Y, parameters.PlayerSize) {
-			continue
-		}
-		DrawTeleportCharge(p.X, p.Y, p.TeleportCharge)
-	}
+	DrawTeleportCharge(scene.Player.X, scene.Player.Y, scene.Player.TeleportCharge)
 	scene.Feedback.Draw(time.Now(), &scene.Map.Exploration)
 	rl.EndMode2D()
 	scene.Map.DrawFog(ctx)

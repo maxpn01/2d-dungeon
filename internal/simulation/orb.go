@@ -10,18 +10,18 @@ import (
 )
 
 type OrbState struct {
-	Seals               [4]bool `json:"seals"`
-	GateGuardsRemaining int     `json:"gate_guards_remaining"`
-	GateUnlocked        bool    `json:"gate_unlocked"`
-	GateActivated       bool    `json:"gate_activated"`
-	GateOpen            float64 `json:"gate_open"`
-	Consumed            bool    `json:"consumed,omitempty"`
-	FrenzyAt            uint64  `json:"frenzy_at,omitempty"`
-	X                   float64 `json:"x"`
-	Y                   float64 `json:"y"`
-	Unlocked            bool    `json:"unlocked"`
-	Carrier             string  `json:"carrier,omitempty"`
-	GuardsRemaining     int     `json:"guards_remaining"`
+	Seals               [4]bool
+	GateGuardsRemaining int
+	GateUnlocked        bool
+	GateActivated       bool
+	GateOpen            float64
+	Consumed            bool
+	FrenzyAt            uint64
+	X                   float64
+	Y                   float64
+	Unlocked            bool
+	Carrier             string
+	GuardsRemaining     int
 }
 
 func (w *World) revealSecret(x, y, dx, dy, size float64) {
@@ -68,10 +68,8 @@ func (w *World) updateOrb() {
 	if remaining == 0 {
 		w.orb.Unlocked = true
 	}
-	for _, p := range w.players {
-		if p.Dead {
-			w.releaseOrb(p.ID)
-		}
+	if w.player.Dead {
+		w.releaseOrb(w.player.ID)
 	}
 }
 
@@ -80,7 +78,7 @@ func (w *World) releaseOrb(id string) {
 		w.orb.Carrier = ""
 		w.orb.FrenzyAt = 0
 	}
-	if p := w.players[id]; p != nil {
+	if p := w.playerWithID(id); p != nil {
 		p.HasOrb = false
 		p.TeleportCharge = 0
 	}

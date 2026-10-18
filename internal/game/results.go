@@ -8,7 +8,7 @@ import (
 
 func (w *World) Finished() bool { return w.snapshot.WinnerID != "" }
 func (w *World) DrawResults(width, height int32) ui.Action {
-	return w.results.Draw(w.snapshot, w.snapshot.Players[0], w.name, width, height)
+	return w.results.Draw(w.snapshot, w.snapshot.Player, w.name, width, height)
 }
 
 func (p *presentation) resultsOpen(snapshot simulation.Snapshot) bool {

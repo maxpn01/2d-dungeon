@@ -14,7 +14,7 @@ func (w *World) orbTarget(ai *aiState) *playerState {
 	if w.tick < w.orb.FrenzyAt {
 		return nil
 	}
-	carrier := w.players[w.orb.Carrier]
+	carrier := w.playerWithID(w.orb.Carrier)
 	if carrier == nil || carrier.Dead || !carrier.HasOrb || carrier.Y >= 0 {
 		return nil
 	}
@@ -84,23 +84,13 @@ func (ai *aiState) setFrenzy(active bool) {
 }
 
 func (w *World) orbShotTarget(ai *aiState, carrier *playerState) *playerState {
-	var target *playerState
-	best := math.Inf(1)
-	for _, p := range w.players {
-		radius := parameters.AIDetectionRadius
-		if p.ID == carrier.ID {
-			radius = ProjectileSpeed(Projectile{MobOwned: true}) * parameters.ShotLifetime
-		}
-		if !w.aiCanSeePlayer(ai, p, radius) {
-			continue
-		}
-		if !w.clearMobShot(ai, p) {
-			continue
-		}
-		distance := math.Hypot(p.X-ai.X, p.Y-ai.Y)
-		if target == nil || distance < best || distance == best && p.ID < target.ID {
-			target, best = p, distance
-		}
+	p := w.player
+	radius := parameters.AIDetectionRadius
+	if p.ID == carrier.ID {
+		radius = ProjectileSpeed(Projectile{MobOwned: true}) * parameters.ShotLifetime
 	}
-	return target
+	if !w.aiCanSeePlayer(ai, p, radius) || !w.clearMobShot(ai, p) {
+		return nil
+	}
+	return p
 }

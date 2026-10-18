@@ -27,8 +27,8 @@ const (
 const MaxPerkRank = 6
 
 type PerkCard struct {
-	Family PerkFamily `json:"family"`
-	Rank   int        `json:"rank"`
+	Family PerkFamily
+	Rank   int
 }
 
 func RankName(rank int) string {

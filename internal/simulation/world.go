@@ -2,7 +2,6 @@ package simulation
 
 import (
 	"math"
-	"sort"
 	"time"
 
 	"2d-dungeon/internal/appearance"
@@ -28,7 +27,7 @@ func (d Direction) Valid() bool {
 }
 
 type Player struct {
-	EntranceID     string `json:"entrance_id"`
+	EntranceID     string
 	HasWings       bool
 	Flight         FlightState
 	WingDoorOpen   float64
@@ -60,30 +59,34 @@ type playerState struct {
 }
 
 type World struct {
+	floorOne
+	dungeonLayout  string
+	winnerID       string
+	finishedTick   uint64
+	statues        []StatueState
+	projectiles    []Projectile
+	nextProjectile uint64
+	ais            []aiState
+	nextAI         uint64
+	fruits         []Fruit
+	patchNext      map[string]uint64
+	nextFruit      uint64
+	player         *playerState
+	tick           uint64
+}
+
+type floorOne struct {
+	orb               OrbState
+	openSecrets       []string
+	secretWallHits    map[string]int
+	wingDoorOpen      float64
 	vaultArrowStarted uint64
 	vaultFire         [worldmap.VaultFireTrapCount]VaultFire
 	vaultFireHits     [worldmap.VaultFireTrapCount]map[string]bool
-	dungeonLayout     string
-	wingDoorOpen      float64
-	winnerID          string
-	finishedTick      uint64
-	secretWallHits    map[string]int
-	openSecrets       []string
-	orb               OrbState
-	statues           []StatueState
-	projectiles       []Projectile
-	nextProjectile    uint64
-	ais               []aiState
-	nextAI            uint64
-	fruits            []Fruit
-	patchNext         map[string]uint64
-	nextFruit         uint64
-	players           map[string]*playerState
-	tick              uint64
 }
 
 func NewWorld() *World {
-	w := &World{dungeonLayout: worldmap.RandomizeDungeon(), secretWallHits: make(map[string]int), patchNext: make(map[string]uint64), players: make(map[string]*playerState)}
+	w := &World{floorOne: floorOne{secretWallHits: make(map[string]int)}, dungeonLayout: worldmap.RandomizeDungeon(), patchNext: make(map[string]uint64)}
 	for _, statue := range worldmap.Default().Statues() {
 		at := statue.Position()
 		w.statues = append(w.statues, StatueState{ID: statue.ID, X: at.X, Y: at.Y, Cycle: 1})
@@ -92,36 +95,32 @@ func NewWorld() *World {
 	w.orb = OrbState{X: at.X, Y: at.Y}
 	w.spawnEntranceGuards()
 	w.replenishEntranceFood()
+	x, y := w.spawnPosition()
+	w.player = &playerState{Player: Player{
+		EntranceID: worldmap.EntranceGate, EntranceGate: EntranceGateState{ID: worldmap.EntranceGate},
+		Character: appearance.Square, Stats: NewStats(), ID: PlayerID, X: x, Y: y,
+	}}
 	w.updateOrb()
 	return w
 }
 
-const MaxPlayers = 1
+const PlayerID = "player"
 
-func (w *World) Join(id string) bool {
-	if _, exists := w.players[id]; exists {
-		return true
+func (w *World) playerWithID(id string) *playerState {
+	if w.player.ID == id {
+		return w.player
 	}
-	if len(w.players) >= MaxPlayers {
-		return false
-	}
-	x, y := w.spawnPosition()
-	w.players[id] = &playerState{Player: Player{
-		EntranceID: worldmap.EntranceGate, EntranceGate: EntranceGateState{ID: worldmap.EntranceGate},
-		Character: appearance.Square, Stats: NewStats(), ID: id, X: x, Y: y,
-	}}
-	return true
+	return nil
 }
 
-func (w *World) Input(id string, direction Direction) bool {
-	player, exists := w.players[id]
-	if !exists || !direction.Valid() {
+func (w *World) Input(direction Direction) bool {
+	if !direction.Valid() {
 		return false
 	}
-	if player.Dead {
+	if w.player.Dead {
 		direction = Direction{}
 	}
-	player.direction = direction
+	w.player.direction = direction
 	return true
 }
 
@@ -155,31 +154,9 @@ func (w *World) Step(now time.Time) {
 	if w.orb.GateActivated {
 		w.orb.GateOpen = min(1, w.orb.GateOpen+parameters.StepSeconds*.65)
 	}
-	previousCapacity := len(w.players) + len(w.ais)
-	previous := make(map[string]position, previousCapacity)
-	for id, player := range w.players {
-		previous[id] = position{player.X, player.Y}
-		if player.Dead {
-			continue
-		}
-		if player.god {
-			w.refillTestingPlayer(player)
-		}
-
-		direction := player.direction
-
-		player.VaultGateOpen = w.orb.GateOpen
-		player.OpenSecrets = w.openSecrets
-		player.WingDoorOpen = w.wingDoorOpen
-		if direction.Interact && (w.interactLibrary(player, direction) || w.interactVaultGate(player) || w.interactSecret(player) || w.interactObjective(player) || w.interactStatue(player)) {
-			direction.Interact = false
-		}
-		AdvancePlayer(&player.Player, direction, parameters.StepSeconds)
-		player.velocityX = (player.X - previous[id].x) / parameters.StepSeconds
-		player.velocityY = (player.Y - previous[id].y) / parameters.StepSeconds
-		w.revealFlownSecrets(player)
-		w.fire(&player.Player, direction)
-	}
+	previous := make(map[string]position, 1+len(w.ais))
+	previous[w.player.ID] = position{w.player.X, w.player.Y}
+	w.advancePlayer(previous[w.player.ID])
 	for _, ai := range w.ais {
 		previous[ai.ID] = position{ai.X, ai.Y}
 	}
@@ -204,17 +181,39 @@ func (w *World) Step(now time.Time) {
 		}
 	}
 	w.consumeFruits(eaters)
-	for _, p := range w.players {
-		clampPlayerBodies(&p.Player)
-	}
+	clampPlayerBodies(&w.player.Player)
 	w.updateOrb()
 	w.updatePortals()
 	w.updateStatues()
-	for _, p := range w.players {
-		if p.god {
-			w.refillTestingPlayer(p)
-		}
+	if w.player.god {
+		w.refillTestingPlayer(w.player)
 	}
+}
+
+func (w *World) advancePlayer(previous position) {
+	player := w.player
+	if player.Dead {
+		return
+	}
+	if player.god {
+		w.refillTestingPlayer(player)
+	}
+	direction := player.direction
+	player.VaultGateOpen = w.orb.GateOpen
+	player.OpenSecrets = w.openSecrets
+	player.WingDoorOpen = w.wingDoorOpen
+	if direction.Interact && w.interact(player, direction) {
+		direction.Interact = false
+	}
+	AdvancePlayer(&player.Player, direction, parameters.StepSeconds)
+	player.velocityX = (player.X - previous.x) / parameters.StepSeconds
+	player.velocityY = (player.Y - previous.y) / parameters.StepSeconds
+	w.revealFlownSecrets(player)
+	w.fire(&player.Player, direction)
+}
+
+func (w *World) interact(p *playerState, direction Direction) bool {
+	return w.interactLibrary(p, direction) || w.interactVaultGate(p) || w.interactSecret(p) || w.interactObjective(p) || w.interactStatue(p)
 }
 
 type Snapshot struct {
@@ -231,20 +230,15 @@ type Snapshot struct {
 	Projectiles       []Projectile
 	AIs               []AI
 	Tick              uint64
-	Players           []Player
+	Player            Player
 	Fruits            []Fruit
 }
 
 func (w *World) Snapshot() Snapshot {
-	players := make([]Player, 0, len(w.players))
-	for _, player := range w.players {
-		state := player.Player
-		state.VaultGateOpen = w.orb.GateOpen
-		state.WingDoorOpen = w.wingDoorOpen
-		state.OpenSecrets = append([]string(nil), w.openSecrets...)
-		players = append(players, state)
-	}
-	sort.Slice(players, func(i, j int) bool { return players[i].ID < players[j].ID })
+	player := w.player.Player
+	player.VaultGateOpen = w.orb.GateOpen
+	player.WingDoorOpen = w.wingDoorOpen
+	player.OpenSecrets = append([]string(nil), w.openSecrets...)
 	fruits := make([]Fruit, len(w.fruits))
 	copy(fruits, w.fruits)
 	ais := make([]AI, 0, len(w.ais))
@@ -255,7 +249,7 @@ func (w *World) Snapshot() Snapshot {
 		state := ai.AI
 		ais = append(ais, state)
 	}
-	statues := w.StatuesForPlayer("")
+	statues := w.statueSnapshots()
 	hits := make(map[string]int, len(w.secretWallHits))
 	for id, count := range w.secretWallHits {
 		hits[id] = count
@@ -265,7 +259,7 @@ func (w *World) Snapshot() Snapshot {
 		SecretWallHits: hits, DungeonLayout: w.dungeonLayout, WingDoorOpen: w.wingDoorOpen,
 		WinnerID: w.winnerID, FinishedTick: w.finishedTick, OpenSecrets: append([]string(nil), w.openSecrets...),
 		Orb: w.orb, Statues: statues, Projectiles: append([]Projectile(nil), w.projectiles...),
-		Tick: w.tick, Players: players, Fruits: fruits, AIs: ais,
+		Tick: w.tick, Player: player, Fruits: fruits, AIs: ais,
 	}
 }
 

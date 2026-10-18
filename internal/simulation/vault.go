@@ -14,7 +14,7 @@ const VaultTrapFireTicks = parameters.TickRate
 const VaultTrapCooldownTicks = 5 * parameters.TickRate
 
 type VaultFire struct {
-	TriggeredTick uint64 `json:"triggered_tick"`
+	TriggeredTick uint64
 }
 
 func (w *World) awakenVaultSentinels() {
@@ -22,30 +22,29 @@ func (w *World) awakenVaultSentinels() {
 		return
 	}
 	geometry := w.geometry()
-	for _, p := range w.players {
-		if p.Dead {
+	p := w.player
+	if p.Dead {
+		return
+	}
+	for i := range w.ais {
+		ai := &w.ais[i]
+		if ai.den.RoomID != worldmap.OrbVault || !ai.Stone || !w.aiCanSeePlayer(ai, p, 260) {
 			continue
 		}
-		for i := range w.ais {
-			ai := &w.ais[i]
-			if ai.den.RoomID != worldmap.OrbVault || !ai.Stone || !w.aiCanSeePlayer(ai, p, 260) {
-				continue
-			}
-			level := min(parameters.MaxLevel, w.averageDungeonGuardLevel()+parameters.SentinelLevelOffset)
-			for j := range w.ais {
-				guard := &w.ais[j]
-				if guard.den.RoomID == worldmap.OrbVault && guard.Stone && geometry.Cell(guard.den.At.X, guard.den.At.Y) != 0 {
-					guard.Stats = newMobStats(level, guard.Type)
-					guard.perkMilestones = 0
-					if level >= parameters.SentinelFirstPerkLevel {
-						guard.grantPerkMilestones(1 + (level-parameters.SentinelFirstPerkLevel)/parameters.AIPerkLevelInterval)
-					}
-					guard.spawnMaxHP = guard.Stats.MaxHP()
-					guard.Stone, guard.Awakening, guard.Behavior = false, SentinelAwakeningDuration, BehaviorAwakening
+		level := min(parameters.MaxLevel, w.averageDungeonGuardLevel()+parameters.SentinelLevelOffset)
+		for j := range w.ais {
+			guard := &w.ais[j]
+			if guard.den.RoomID == worldmap.OrbVault && guard.Stone && geometry.Cell(guard.den.At.X, guard.den.At.Y) != 0 {
+				guard.Stats = newMobStats(level, guard.Type)
+				guard.perkMilestones = 0
+				if level >= parameters.SentinelFirstPerkLevel {
+					guard.grantPerkMilestones(1 + (level-parameters.SentinelFirstPerkLevel)/parameters.AIPerkLevelInterval)
 				}
+				guard.spawnMaxHP = guard.Stats.MaxHP()
+				guard.Stone, guard.Awakening, guard.Behavior = false, SentinelAwakeningDuration, BehaviorAwakening
 			}
-			return
 		}
+		return
 	}
 }
 

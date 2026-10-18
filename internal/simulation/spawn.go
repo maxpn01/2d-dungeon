@@ -27,10 +27,8 @@ func (w *World) spawnPosition() (float64, float64) {
 				distance = min(distance, math.Hypot(x-ai.X, y-ai.Y))
 			}
 		}
-		for _, player := range w.players {
-			if !player.Dead {
-				distance = min(distance, math.Hypot(x-player.X, y-player.Y))
-			}
+		if player := w.player; player != nil && !player.Dead {
+			distance = min(distance, math.Hypot(x-player.X, y-player.Y))
 		}
 		if distance > bestDistance {
 			bestX, bestY, bestDistance = x, y, distance

@@ -188,17 +188,16 @@ func (f *Feedback) observe(now time.Time, actors map[string]feedbackActor, fruit
 	}
 }
 
-func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot, localID string) {
+func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot) {
+	p := snapshot.Player
+	localID := p.ID
 	f.localID = localID
-	f.observeLibraryAudio(snapshot, localID)
+	f.observeLibraryAudio(snapshot)
 	actors := make(map[string]feedbackActor)
-	for _, p := range snapshot.Players {
-		hidden := p.ID != localID && worldmap.Default().OverlapsCover(physics.Square(p.X, p.Y, parameters.PlayerSize))
-		actors[p.ID] = feedbackActor{
-			x: p.X, y: p.Y, size: parameters.PlayerSize, hp: p.Stats.HP, xp: p.Stats.XP, level: p.Stats.Level,
-			tint: primitives.CharacterColor(p.Character), dead: p.Dead, hidden: hidden, escaped: p.Escaped,
-			recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP(),
-		}
+	actors[p.ID] = feedbackActor{
+		x: p.X, y: p.Y, size: parameters.PlayerSize, hp: p.Stats.HP, xp: p.Stats.XP, level: p.Stats.Level,
+		tint: primitives.CharacterColor(p.Character), dead: p.Dead, escaped: p.Escaped,
+		recovery: p.Stats.HPRecoveryPerSecond(), maxHP: p.Stats.MaxHP(),
 	}
 	for _, a := range snapshot.AIs {
 		tint := rl.Green
@@ -244,22 +243,17 @@ func (f *Feedback) Observe(now time.Time, snapshot simulation.Snapshot, localID 
 		}
 	}
 	f.vaultGateOpen, f.vaultSeals = snapshot.Orb.GateOpen, snapshot.Orb.Seals
-	f.observeWalls(now, snapshot, localID)
+	f.observeWalls(now, snapshot)
 	f.observe(now, actors, snapshot.Fruits)
-	for _, p := range snapshot.Players {
-		if p.ID != localID {
-			continue
-		}
-		if at := f.hits[localID]; at == now {
-			f.hurtAt = now
-			playFeedbackSound("hurt")
-		}
-		low := !p.Dead && p.Stats.HP <= p.Stats.MaxHP()*.25
-		if low && !f.lowHP {
-			playFeedbackSound("low")
-		}
-		f.lowHP = low
+	if at := f.hits[localID]; at == now {
+		f.hurtAt = now
+		playFeedbackSound("hurt")
 	}
+	low := !p.Dead && p.Stats.HP <= p.Stats.MaxHP()*.25
+	if low && !f.lowHP {
+		playFeedbackSound("low")
+	}
+	f.lowHP = low
 }
 
 func (f *Feedback) Draw(now time.Time, exploration Visibility) {
@@ -413,17 +407,11 @@ func (f *Feedback) Spawn(id string, now time.Time) {
 	f.spawns[id] = now
 }
 
-func (f *Feedback) observeLibraryAudio(snapshot simulation.Snapshot, localID string) {
+func (f *Feedback) observeLibraryAudio(snapshot simulation.Snapshot) {
 	if f.libraryEvents == nil {
 		f.libraryEvents = make(map[string]simulation.LibraryState)
 	}
-	var local simulation.Player
-	for _, p := range snapshot.Players {
-		if p.ID == localID {
-			local = p
-			break
-		}
-	}
+	local := snapshot.Player
 	for _, book := range snapshot.Statues {
 		if !simulation.IsLibraryBook(book.ID) {
 			continue

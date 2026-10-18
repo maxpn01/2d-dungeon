@@ -18,19 +18,19 @@ const (
 )
 
 type CombatState struct {
-	StompRemaining float64   `json:"stomp_remaining,omitempty"`
-	StompDirection Direction `json:"stomp_direction"`
-	StunRemaining  float64   `json:"stun_remaining,omitempty"`
+	StompRemaining float64
+	StompDirection Direction
+	StunRemaining  float64
 	dashDuration   float64
-	SwordRemaining float64   `json:"sword_remaining,omitempty"`
-	SwordDirection Direction `json:"sword_direction"`
-	Boosting       bool      `json:"boosting,omitempty"`
-	Phase          DashPhase `json:"phase,omitempty"`
-	Remaining      float64   `json:"remaining,omitempty"`
-	Facing         Direction `json:"facing"`
-	Direction      Direction `json:"direction"`
-	Held           bool      `json:"held,omitempty"`
-	Attack         bool      `json:"attack,omitempty"`
+	SwordRemaining float64
+	SwordDirection Direction
+	Boosting       bool
+	Phase          DashPhase
+	Remaining      float64
+	Facing         Direction
+	Direction      Direction
+	Held           bool
+	Attack         bool
 }
 
 func DashBurstDuration(stats Stats) float64 {

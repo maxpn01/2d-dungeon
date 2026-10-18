@@ -10,16 +10,15 @@ import (
 const StatueInteractionRadius = 100.0
 
 type StatueState struct {
-	Library           LibraryState `json:"library,omitempty"`
+	Library           LibraryState
 	rechargeUntil     uint64
-	offers            map[string][]PerkCard
-	RechargeRemaining float64    `json:"recharge_remaining,omitempty"`
-	ID                string     `json:"id"`
-	X                 float64    `json:"x"`
-	Y                 float64    `json:"y"`
-	Cycle             uint64     `json:"cycle"`
-	ClaimedBy         string     `json:"claimed_by,omitempty"`
-	Cards             []PerkCard `json:"cards"`
+	RechargeRemaining float64
+	ID                string
+	X                 float64
+	Y                 float64
+	Cycle             uint64
+	ClaimedBy         string
+	Cards             []PerkCard
 }
 
 func (s StatueState) Near(x, y float64, open ...[]string) bool {
@@ -53,24 +52,19 @@ func (w *World) interactStatue(p *playerState) bool {
 		return w.startLibrary(s, p)
 	}
 	if !worldmap.IsWingStatue(s.ID) {
-		if s.offers == nil {
-			s.offers = make(map[string][]PerkCard)
-		}
-		s.offers[p.ID] = refreshPerkOffer(s.offers[p.ID], p.Stats)
+		s.Cards = refreshPerkOffer(s.Cards, p.Stats)
 	}
 	p.ActiveStatue = s.ID
 	return true
 }
 
-func (w *World) CloseOffer(id string) {
-	if p := w.players[id]; p != nil {
-		p.ActiveStatue = ""
-	}
+func (w *World) CloseOffer() {
+	w.player.ActiveStatue = ""
 }
 
-func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
-	p := w.players[id]
-	if p == nil || p.Dead || p.ActiveStatue != statueID {
+func (w *World) ChoosePerk(statueID string, cycle uint64, card int) bool {
+	p := w.player
+	if p.Dead || p.ActiveStatue != statueID {
 		return false
 	}
 	for i := range w.statues {
@@ -78,7 +72,7 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 		if s.ID != statueID {
 			continue
 		}
-		if s.ClaimedBy != "" || s.Cycle != cycle || !s.Near(p.X, p.Y, w.openSecrets) || card < 0 || (!worldmap.IsWingStatue(s.ID) && card >= len(s.offers[id])) {
+		if s.ClaimedBy != "" || s.Cycle != cycle || !s.Near(p.X, p.Y, w.openSecrets) || card < 0 || (!worldmap.IsWingStatue(s.ID) && card >= len(s.Cards)) {
 			return false
 		}
 		if worldmap.IsWingStatue(s.ID) {
@@ -86,21 +80,16 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 				return false
 			}
 			p.HasWings = true
-		} else if !p.Stats.ApplyPerk(s.offers[id][card]) {
+		} else if !p.Stats.ApplyPerk(s.Cards[card]) {
 			return false
 		}
-		s.ClaimedBy = id
+		s.ClaimedBy = p.ID
 		if !worldmap.IsWingStatue(s.ID) {
 			s.rechargeUntil = w.tick + parameters.StatueRechargeSeconds*parameters.TickRate
 			s.RechargeRemaining = parameters.StatueRechargeSeconds
 			s.Cards = nil
-			s.offers = nil
 		}
-		for _, viewer := range w.players {
-			if viewer.ActiveStatue == statueID {
-				viewer.ActiveStatue = ""
-			}
-		}
+		p.ActiveStatue = ""
 		return true
 	}
 	return false
@@ -109,7 +98,7 @@ func (w *World) ChoosePerk(id, statueID string, cycle uint64, card int) bool {
 func (w *World) releaseStatues(id string) {
 	for i := range w.statues {
 		s := &w.statues[i]
-		delete(s.offers, id)
+		s.Cards = nil
 		if s.ClaimedBy == id && worldmap.IsWingStatue(s.ID) {
 			s.ClaimedBy, s.Cards = "", nil
 			s.Cycle++
@@ -127,47 +116,43 @@ func (w *World) updateStatues() {
 			s.RechargeRemaining = float64(s.rechargeUntil-w.tick) / parameters.TickRate
 			continue
 		}
-		s.Cards, s.offers = nil, nil
+		s.Cards = nil
 		s.ClaimedBy, s.RechargeRemaining, s.rechargeUntil = "", 0, 0
 		s.Cycle++
 	}
 
-	for _, p := range w.players {
-		if p.Dead {
-			if !p.progressionReset {
-				w.releaseStatues(p.ID)
-				w.releaseOrb(p.ID)
-				p.HasWings, p.Flight = false, FlightState{}
-				p.Stats = NewStats()
-				p.Stats.HP = 0
-				p.ActiveStatue = ""
-				p.progressionReset = true
-			}
-			continue
-		}
-		if p.ActiveStatue == "" {
-			continue
-		}
-		valid := false
-		for _, s := range w.statues {
-			if s.ID == p.ActiveStatue && s.ClaimedBy == "" && s.Near(p.X, p.Y, w.openSecrets) {
-				valid = true
-				break
-			}
-		}
-		if !valid {
+	p := w.player
+	if p.Dead {
+		if !p.progressionReset {
+			w.releaseStatues(p.ID)
+			w.releaseOrb(p.ID)
+			p.HasWings, p.Flight = false, FlightState{}
+			p.Stats = NewStats()
+			p.Stats.HP = 0
 			p.ActiveStatue = ""
+			p.progressionReset = true
 		}
+		return
+	}
+	if p.ActiveStatue == "" {
+		return
+	}
+	valid := false
+	for _, s := range w.statues {
+		if s.ID == p.ActiveStatue && s.ClaimedBy == "" && s.Near(p.X, p.Y, w.openSecrets) {
+			valid = true
+			break
+		}
+	}
+	if !valid {
+		p.ActiveStatue = ""
 	}
 }
 
-func (w *World) StatuesForPlayer(id string) []StatueState {
+func (w *World) statueSnapshots() []StatueState {
 	statues := append([]StatueState(nil), w.statues...)
 	for i := range statues {
-		statues[i].offers = nil
-		if cards, ok := w.statues[i].offers[id]; ok {
-			statues[i].Cards = append([]PerkCard{}, cards...)
-		}
+		statues[i].Cards = append([]PerkCard(nil), statues[i].Cards...)
 	}
 	return statues
 }

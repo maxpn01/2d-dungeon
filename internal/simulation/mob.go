@@ -163,7 +163,7 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 		if ai.Combat.StompRemaining > parameters.HeavyStompDuration-parameters.HeavyStompWindup {
 			ai.Behavior = BehaviorWindingStomp
 			if ai.Combat.StompRemaining > parameters.HeavyStompDuration-parameters.HeavyStompWindup+parameters.HeavyStompAimLock {
-				if target := w.players[ai.aggressorID]; target != nil && w.aiCanSeePlayer(ai, target, stomp.Reach+parameters.PlayerSize) {
+				if target := w.playerWithID(ai.aggressorID); target != nil && w.aiCanSeePlayer(ai, target, stomp.Reach+parameters.PlayerSize) {
 					impactIn := ai.Combat.StompRemaining - (parameters.HeavyStompDuration - parameters.HeavyStompWindup)
 					travel := math.Hypot(target.X-ai.X, target.Y-ai.Y) / parameters.HeavyStompWaveSpeed
 					intercept := meleeIntercept(target, impactIn+travel)
@@ -176,25 +176,25 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 			}
 		}
 		d := Direction{AimX: ai.Combat.StompDirection.X, AimY: ai.Combat.StompDirection.Y}
-		if target := w.players[ai.aggressorID]; target != nil && !target.Dead {
+		if target := w.playerWithID(ai.aggressorID); target != nil && !target.Dead {
 			movement := ai.navigateMap(w.geometry(), target.X, target.Y)
 			d.X, d.Y = movement.X, movement.Y
 		}
-		return limitMeleeAdvance(ai, w.players[ai.aggressorID], d, 1)
+		return limitMeleeAdvance(ai, w.playerWithID(ai.aggressorID), d, 1)
 	}
 	if ai.Combat.SwordRemaining > 0 {
 		ai.Behavior = BehaviorStriking
 		elapsed := attack.Duration - ai.Combat.SwordRemaining
 		if elapsed < attack.Windup {
 			ai.Behavior = BehaviorWindingStrike
-			if target := w.players[ai.aggressorID]; target != nil && elapsed < attack.Windup-parameters.MeleeAimLock && w.aiCanSeePlayer(ai, target, attack.Reach+parameters.PlayerSize+80) {
+			if target := w.playerWithID(ai.aggressorID); target != nil && elapsed < attack.Windup-parameters.MeleeAimLock && w.aiCanSeePlayer(ai, target, attack.Reach+parameters.PlayerSize+80) {
 				trackMeleeAim(ai, target, attack.Windup-elapsed, parameters.MeleeTurnRate)
 			}
 		}
 		d := Direction{AimX: ai.Combat.SwordDirection.X, AimY: ai.Combat.SwordDirection.Y}
 		if elapsed < attack.Windup+attack.Active {
 			d.X, d.Y = d.AimX, d.AimY
-		} else if target := w.players[ai.aggressorID]; target != nil && !target.Dead {
+		} else if target := w.playerWithID(ai.aggressorID); target != nil && !target.Dead {
 			movement := ai.navigateMap(w.geometry(), target.X, target.Y)
 			d.X, d.Y = movement.X, movement.Y
 		}
@@ -202,7 +202,7 @@ func (w *World) meleeGuardInput(ai *aiState, target *playerState) Direction {
 		if elapsed < attack.Windup+attack.Active {
 			multiplier = attack.AdvanceMultiplier
 		}
-		return limitMeleeAdvance(ai, w.players[ai.aggressorID], d, multiplier)
+		return limitMeleeAdvance(ai, w.playerWithID(ai.aggressorID), d, multiplier)
 	}
 
 	if ai.Combat.Phase != DashIdle {

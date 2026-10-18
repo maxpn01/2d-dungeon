@@ -8,53 +8,52 @@ import (
 )
 
 func (w *World) updatePortals() {
-	for _, p := range w.players {
-		if p.Dead || p.Flight.Flying {
-			p.TeleportCharge = 0
-			continue
-		}
-		if p.portalCooldown > 0 {
-			p.portalCooldown--
-			p.TeleportCharge = 0
-			continue
-		}
-		if p.TeleportCharge <= 0 {
-			continue
-		}
-		portal, distance, found := nearestPortal(p.X+parameters.PlayerSize/2, p.Y+parameters.PlayerSize/2)
-		if !found {
-			p.TeleportCharge = 0
-			p.portalCooldown = 0
-			continue
-		}
-		if portal.ID == worldmap.DescentPortal && !w.orb.Consumed && !p.HasOrb {
-			p.TeleportCharge = 0
-			continue
-		}
-		destination, _ := worldmap.Default().Portal(portal.Destination)
-		landing := destination.Position()
-		toX, toY := landing.X, landing.Y
-		if distance > 60 {
-			p.TeleportCharge = 0
-			continue
-		}
-		p.TeleportCharge += parameters.StepSeconds
-		if p.TeleportCharge >= parameters.PortalSeconds {
-			p.X, p.Y = toX-parameters.PlayerSize/2, toY-parameters.PlayerSize/2
-			if portal.ID == worldmap.DescentPortal {
-				w.orb.Consumed = true
-				w.releaseOrb(w.orb.Carrier)
-				p.Escaped = true
-				if w.winnerID == "" {
-					w.winnerID = p.ID
-					w.finishedTick = w.tick
-				}
+	p := w.player
+	if p.Dead || p.Flight.Flying {
+		p.TeleportCharge = 0
+		return
+	}
+	if p.portalCooldown > 0 {
+		p.portalCooldown--
+		p.TeleportCharge = 0
+		return
+	}
+	if p.TeleportCharge <= 0 {
+		return
+	}
+	portal, distance, found := nearestPortal(p.X+parameters.PlayerSize/2, p.Y+parameters.PlayerSize/2)
+	if !found {
+		p.TeleportCharge = 0
+		p.portalCooldown = 0
+		return
+	}
+	if portal.ID == worldmap.DescentPortal && !w.orb.Consumed && !p.HasOrb {
+		p.TeleportCharge = 0
+		return
+	}
+	destination, _ := worldmap.Default().Portal(portal.Destination)
+	landing := destination.Position()
+	toX, toY := landing.X, landing.Y
+	if distance > 60 {
+		p.TeleportCharge = 0
+		return
+	}
+	p.TeleportCharge += parameters.StepSeconds
+	if p.TeleportCharge >= parameters.PortalSeconds {
+		p.X, p.Y = toX-parameters.PlayerSize/2, toY-parameters.PlayerSize/2
+		if portal.ID == worldmap.DescentPortal {
+			w.orb.Consumed = true
+			w.releaseOrb(w.orb.Carrier)
+			p.Escaped = true
+			if w.winnerID == "" {
+				w.winnerID = p.ID
+				w.finishedTick = w.tick
 			}
-			p.Combat = CombatState{}
-			p.TeleportCharge = 0
-			p.portalCooldown = 2 * parameters.TickRate
-			p.direction = Direction{}
 		}
+		p.Combat = CombatState{}
+		p.TeleportCharge = 0
+		p.portalCooldown = 2 * parameters.TickRate
+		p.direction = Direction{}
 	}
 }
 

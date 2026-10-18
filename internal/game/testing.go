@@ -11,8 +11,8 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func (w *World) EnableTesting()       { w.simulation.EnableTesting(localPlayerID); w.syncSimulation() }
-func (w *World) TestingEnabled() bool { return w.simulation.TestingEnabled(localPlayerID) }
+func (w *World) EnableTesting()       { w.simulation.EnableTesting(); w.syncSimulation() }
+func (w *World) TestingEnabled() bool { return w.simulation.TestingEnabled() }
 
 func (w *World) ReadTestingInput() bool {
 	if !w.TestingEnabled() || !rl.IsWindowFocused() {
@@ -21,23 +21,23 @@ func (w *World) ReadTestingInput() bool {
 	changed := true
 	switch {
 	case rl.IsKeyPressed(rl.KeyF1):
-		w.simulation.ToggleTestingGod(localPlayerID)
+		w.simulation.ToggleTestingGod()
 	case rl.IsKeyPressed(rl.KeyF2):
-		w.simulation.TestingWarp(localPlayerID, worldmap.OrbVault)
+		w.simulation.TestingWarp(worldmap.OrbVault)
 	case rl.IsKeyPressed(rl.KeyF3):
-		w.simulation.TestingWarp(localPlayerID, worldmap.ColumnHall)
+		w.simulation.TestingWarp(worldmap.ColumnHall)
 	case rl.IsKeyPressed(rl.KeyF4):
-		w.simulation.TestingWarp(localPlayerID, worldmap.TeleportSanctum)
+		w.simulation.TestingWarp(worldmap.TeleportSanctum)
 	case rl.IsKeyPressed(rl.KeyF5):
-		w.simulation.TestingWarp(localPlayerID, worldmap.FeastHall)
+		w.simulation.TestingWarp(worldmap.FeastHall)
 	case rl.IsKeyPressed(rl.KeyF6):
-		w.simulation.CycleTestingLevel(localPlayerID)
+		w.simulation.CycleTestingLevel()
 	case rl.IsKeyPressed(rl.KeyF8):
-		w.simulation.TestingWarp(localPlayerID, worldmap.VaultCourt)
+		w.simulation.TestingWarp(worldmap.VaultCourt)
 	case rl.IsKeyPressed(rl.KeyF9):
-		w.simulation.TestingWarp(localPlayerID, worldmap.SecretLibrary)
+		w.simulation.TestingWarp(worldmap.SecretLibrary)
 	case rl.IsKeyPressed(rl.KeyF7):
-		w.simulation.ToggleTestingWings(localPlayerID)
+		w.simulation.ToggleTestingWings()
 	default:
 		changed = false
 	}
@@ -63,7 +63,7 @@ func (w *World) drawTesting(width, height int32) {
 		return
 	}
 	state := "OFF"
-	if w.simulation.GodMode(localPlayerID) {
+	if w.simulation.GodMode() {
 		state = "ON"
 	}
 	x, y := int32(18), height-223

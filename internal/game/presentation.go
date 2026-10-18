@@ -34,7 +34,7 @@ func (p *presentation) draw(ctx primitives.Context, scene rendering.Scene) {
 	sceneContext.Camera = p.dungeonAwakeningCamera(ctx.Camera, scene.Snapshot, scene.Local, time.Now())
 	rendering.DrawScene(sceneContext, scene)
 	width, height := ctx.WindowWidth, ctx.WindowHeight
-	snapshot, local, players := scene.Snapshot, scene.Local, scene.RenderedPlayers
+	snapshot, local := scene.Snapshot, scene.Local
 	ui.DrawPlayer(local, scene.PlayerName, width)
 	p.feedback.DrawCombatOverlay(time.Now(), local, width, height)
 	drawFrenzyAnnouncement(snapshot, local, width)
@@ -45,33 +45,16 @@ func (p *presentation) draw(ctx primitives.Context, scene rendering.Scene) {
 		rl.DrawRectangle((width-panelWidth)/2, 50, panelWidth, 44, rl.Fade(rl.Black, .85))
 		primitives.DrawCenteredText(label, 60, 24, rl.Gold)
 	}
-	for _, player := range players {
-		if player.ID != local.ID {
-			continue
-		}
-		p.drawRadar(width, 0, scene)
-		x, y := float32(player.X), float32(player.Y)
-
-		ui.DrawLocation(x, y, width, height)
-		break
-	}
+	p.drawRadar(width, 0, scene)
+	ui.DrawLocation(float32(scene.RenderedPlayer.X), float32(scene.RenderedPlayer.Y), width, height)
 }
 
 func (p *presentation) drawRadar(width, height int32, scene rendering.Scene) {
-	snapshot, players, ais := scene.Snapshot, scene.RenderedPlayers, scene.RenderedAIs
-	local := scene.Local
-	found := false
-	for _, player := range players {
-		if player.ID == local.ID {
-			local = player
-			found = true
-			break
-		}
-	}
-	if !found || local.Dead {
+	snapshot, ais, local := scene.Snapshot, scene.RenderedAIs, scene.RenderedPlayer
+	if local.Dead {
 		return
 	}
-	markers := make([]maprender.Marker, 0, len(snapshot.Fruits)+len(ais)+len(players))
+	markers := make([]maprender.Marker, 0, len(snapshot.Fruits)+len(ais))
 	for _, fruit := range snapshot.Fruits {
 		tint := rendering.HealthFoodColor
 		if fruit.MP > 0 {
@@ -85,11 +68,6 @@ func (p *presentation) drawRadar(width, height int32, scene rendering.Scene) {
 		markers = append(markers, maprender.Marker{
 			Center: rl.NewVector2(float32(ai.X+parameters.AISize/2), float32(ai.Y+parameters.AISize/2)), Radius: 3, Tint: rl.Green,
 		})
-	}
-	for _, player := range players {
-		if player.ID != local.ID && !player.Dead && p.gameMap.Exploration.PlayerVisible(player.X, player.Y, parameters.PlayerSize) {
-			markers = append(markers, maprender.Marker{Center: playerCenter(player), Radius: 3, Tint: rl.SkyBlue})
-		}
 	}
 	p.gameMap.DrawRadar(width, height, playerCenter(local), markers, snapshot)
 }

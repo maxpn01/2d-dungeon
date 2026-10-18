@@ -10,10 +10,10 @@ const WingMPPerSecond = 2.0
 const WingSpeedMultiplier = 1.2
 
 type FlightState struct {
-	Flying    bool    `json:"flying"`
-	Returning bool    `json:"returning"`
-	LandingX  float64 `json:"landing_x"`
-	LandingY  float64 `json:"landing_y"`
+	Flying    bool
+	Returning bool
+	LandingX  float64
+	LandingY  float64
 }
 
 func FlightSpeedMultiplier(stats Stats) float64 {

@@ -17,7 +17,7 @@ type wallBreak struct {
 	hit     bool
 }
 
-func (f *Feedback) observeWalls(now time.Time, snapshot simulation.Snapshot, localID string) {
+func (f *Feedback) observeWalls(now time.Time, snapshot simulation.Snapshot) {
 	open := snapshot.OpenSecrets
 	current := make(map[string]bool, len(open))
 	for _, id := range open {
@@ -28,10 +28,9 @@ func (f *Feedback) observeWalls(now time.Time, snapshot simulation.Snapshot, loc
 			if !door.Interactable && !current[door.ID] && snapshot.SecretWallHits[door.ID] > f.wallHits[door.ID] {
 				f.walls = append(f.walls, wallBreak{started: now, area: door.Area, hit: true})
 				center := door.Area.Bounds().Center()
-				for _, p := range snapshot.Players {
-					if p.ID == localID && worldmap.Default().FloorAt(p.X, p.Y) == worldmap.Default().FloorAt(center.X, center.Y) && math.Hypot(p.X-center.X, p.Y-center.Y) < 300 {
-						playFeedbackSound("stone")
-					}
+				p := snapshot.Player
+				if worldmap.Default().FloorAt(p.X, p.Y) == worldmap.Default().FloorAt(center.X, center.Y) && math.Hypot(p.X-center.X, p.Y-center.Y) < 300 {
+					playFeedbackSound("stone")
 				}
 			}
 			if !door.Interactable && current[door.ID] && !f.secrets[door.ID] {

@@ -8,11 +8,11 @@ import (
 )
 
 type EntranceGateState struct {
-	ID        string  `json:"id,omitempty"`
-	Open      float64 `json:"open"`
-	Remaining float64 `json:"remaining"`
-	Side      int     `json:"side"`
-	Passed    bool    `json:"passed"`
+	ID        string
+	Open      float64
+	Remaining float64
+	Side      int
+	Passed    bool
 }
 
 func NearEntranceGateFor(id string, x, y float64) bool {

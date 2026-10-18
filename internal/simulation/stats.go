@@ -7,19 +7,19 @@ import (
 )
 
 type Stats struct {
-	SpectralShots   bool                 `json:"spectral_shots,omitempty"`
-	MobType         MobType              `json:"mob_type,omitempty"`
-	Mob             bool                 `json:"mob,omitempty"`
-	Level           int                  `json:"level"`
-	XP              float64              `json:"xp"`
-	HP              float64              `json:"hp"`
-	MP              float64              `json:"mp"`
-	Speed           float64              `json:"speed"`
-	Damage          float64              `json:"damage"`
-	AttackRate      float64              `json:"attack_rate"`
-	BoostMultiplier float64              `json:"boost_multiplier"`
-	BoostCost       float64              `json:"boost_cost"`
-	Perks           [PerkFamilyCount]int `json:"perks"`
+	SpectralShots   bool
+	MobType         MobType
+	Mob             bool
+	Level           int
+	XP              float64
+	HP              float64
+	MP              float64
+	Speed           float64
+	Damage          float64
+	AttackRate      float64
+	BoostMultiplier float64
+	BoostCost       float64
+	Perks           [PerkFamilyCount]int
 }
 
 func NewStats() Stats {

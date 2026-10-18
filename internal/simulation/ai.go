@@ -288,10 +288,8 @@ func (w *World) respawnEntranceGuards() {
 }
 
 func (w *World) denClear(x, y float64, skip int) bool {
-	for _, p := range w.players {
-		if !p.Dead && math.Hypot(p.X-x, p.Y-y) < parameters.AIDetectionRadius+parameters.PlayerSize {
-			return false
-		}
+	if p := w.player; !p.Dead && math.Hypot(p.X-x, p.Y-y) < parameters.AIDetectionRadius+parameters.PlayerSize {
+		return false
 	}
 	for j := range w.ais {
 		a := &w.ais[j]
