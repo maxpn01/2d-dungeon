@@ -172,6 +172,40 @@ const (
 	FruitTreeRespawnSecs   = 45
 )
 
+// Forest snakes.
+const (
+	ForestSnakeCount           = 20
+	SnakeRouteStops            = 3
+	SnakeLevel                 = 4
+	SnakeHealthMultiplier      = 2.5
+	SnakeMinStartSegments      = 3
+	SnakeMaxStartSegments      = 4
+	SnakeSegmentSpacing        = 22.0
+	SnakeSegmentSize           = 24.0
+	SnakeSpeedMultiplier       = 1.6
+	SnakePatrolSpeed           = 0.55
+	SnakeDetectionRadius       = 320.0
+	SnakeChaseLeash            = 700.0
+	SnakeStopPauseTicks        = 2 * TickRate
+	SnakeLegTimeoutTicks       = 40 * TickRate
+	SnakeBiteReach             = 58.0
+	SnakeBiteWindup            = .3
+	SnakeBiteDuration          = .65
+	SnakeBiteActive            = .1
+	SnakeBiteAdvance           = 2.2
+	SnakeBiteDamage            = 1.4
+	SnakeBitePullback          = 10.0
+	SnakeRetreatMinTicks       = TickRate
+	SnakeRetreatVariationTicks = TickRate * 3 / 4
+	SnakeRetreatDistance       = 170.0
+	SnakeRetreatSpeed          = .75
+	SnakeRetreatProbe          = 70.0
+	SnakeFlinchDamage          = .2
+	SnakeFlinchDecay           = .25
+	SnakeWeaveSeconds          = 1.1
+	SnakeWeaveStrength         = .6
+)
+
 var PerkRankWeights = [6]int{40, 28, 16, 9, 5, 2}
 
 var PerkBonuses = [10][6]float64{

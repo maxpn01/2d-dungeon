@@ -17,6 +17,9 @@ func mobTint(t simulation.MobType) color.RGBA {
 	if t == simulation.GateHeavy {
 		return rl.NewColor(93, 138, 111, 255)
 	}
+	if t == simulation.ForestSnake {
+		return snakeTint
+	}
 	return rl.Green
 }
 
@@ -32,6 +35,8 @@ func mobName(t simulation.MobType) string {
 		return "HEAVY GUARD"
 	case simulation.Sentinel:
 		return "SENTINEL"
+	case simulation.ForestSnake:
+		return "SNAKE"
 	}
 	return "SPAWN GUARD"
 }

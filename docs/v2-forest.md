@@ -37,7 +37,7 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 - In the forest, fog of war dims unexplored and remembered terrain instead of hiding it; enemies and items are still hidden outside vision.
 
 ### Patrolling snakes
-- Green snakes start with 2 body segments and patrol routes between feeding spots.
+- Green snakes start with 3–4 body segments (random) and patrol routes between feeding spots.
 - They eat the food at those spots, competing with the player, and grow longer and stronger.
 - Each growth step needs a bit more food than the last; the increase should stay modest. Health and length grow more freely than damage and speed.
 - Maximum length: 20 segments. A snake at full length stops growing entirely: no more length and no more stats.
@@ -45,6 +45,12 @@ These are settled. Numbers marked *(tune)* are starting values to balance during
 - Snakes respawn at their starting size after about 1 minute, the same as floor 1 mobs and perk statues.
 - The player can kill snakes early, take the food before they arrive, or leave them to grow into bigger threats.
 - Use the archived serpent boss (`_archive/prototype/internal/simulation/boss*.go`) as a starting reference for body following, feeding and attacks.
+- Snakes are generated from the map, not placed by hand: 20 snakes (`parameters.ForestSnakeCount`) are spread over the forest feeding spots outside the cave, so some spots are home to two. A snake's patrol route is its home spot plus the 2 nearest other feeding spots, visited in a loop with a short pause at each; a second snake at the same spot walks the route in reverse, starting from the far end.
+- Snakes start at level 4 with 2.5× the normal mob health *(tune)*, so they survive long enough to grow. They slither slower on patrol than when chasing.
+- A snake chases the player it can see within a short radius, as long as the player stays near one of the snake's route stops (`parameters.SnakeChaseLeash`). After losing the player it searches, then returns home.
+- Snakes are slippery instead of relentless: after each bite they back off (to about 170 px, for under a second) while still facing the player, then weave back in with a side-to-side sway that makes them harder to hit. Taking a burst of damage (20% of max HP in a short window) also makes them back off.
+- Body segments follow the head and can be hit by projectiles; damage goes to the snake's single HP pool.
+- Snakes are drawn as low-poly 3D actors in the forest view: a head with eyes and a tapered, banded body.
 
 ### Snake attacks
 - **Bite:** close-range snap that deals damage and applies poison. Short head pullback and a cooldown.
@@ -90,7 +96,7 @@ Build in this order. Each milestone should be playable on its own.
 
 1. **Progression** *(done)*: the descent portal leads into floor 2 without ending the run; the win screen moves to a floor 3 placeholder.
 2. **Forest map** *(in playtest)*: the new layout method, the forest itself, and navigation (minimap, fog of war, AI pathing).
-3. **Basic snake:** segmented body, patrol routes, bite attack, respawn.
+3. **Basic snake** *(in playtest)*: segmented body, patrol routes, bite attack, respawn.
 4. **Status effects:** the shared system, poison, and its HUD and visuals.
 5. **Feeding and growth:** snakes eat, grow with rising costs, 20-segment cap.
 6. **More snake attacks:** spit and fast slither.

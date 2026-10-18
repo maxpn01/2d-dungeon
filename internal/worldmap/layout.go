@@ -100,6 +100,7 @@ type Guard struct {
 	PatrolRadius int
 	Level        int
 	Respawn      time.Duration
+	Route        []Cell
 }
 
 type FeedingArea struct {

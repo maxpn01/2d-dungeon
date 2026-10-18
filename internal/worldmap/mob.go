@@ -9,11 +9,12 @@ const (
 	DungeonHeavy   MobType = "heavy"
 	GateHeavy      MobType = "gate-heavy"
 	Sentinel       MobType = "sentinel"
+	ForestSnake    MobType = "snake"
 )
 
 func (t MobType) Valid() bool {
 	switch t {
-	case SpawnGuard, DungeonShooter, DungeonPursuer, DungeonHeavy, GateHeavy, Sentinel:
+	case SpawnGuard, DungeonShooter, DungeonPursuer, DungeonHeavy, GateHeavy, Sentinel, ForestSnake:
 		return true
 	}
 	return false

@@ -18,6 +18,7 @@ const (
 	DungeonHeavy   = worldmap.DungeonHeavy
 	GateHeavy      = worldmap.GateHeavy
 	Sentinel       = worldmap.Sentinel
+	ForestSnake    = worldmap.ForestSnake
 )
 
 func MobBody(t MobType, x, y float64) physics.Rect {
@@ -44,6 +45,11 @@ func MobMelee(t MobType) MobMeleeAttack {
 		return MobMeleeAttack{
 			Reach: parameters.HeavyMeleeReach, Windup: parameters.HeavyMeleeWindup, Duration: parameters.HeavyMeleeDuration,
 			Active: parameters.HeavyMeleeActive, DamageMultiplier: parameters.HeavyMeleeDamageMultiplier, AdvanceMultiplier: parameters.HeavyMeleeAdvanceMultiplier,
+		}
+	case ForestSnake:
+		return MobMeleeAttack{
+			Reach: parameters.SnakeBiteReach, Windup: parameters.SnakeBiteWindup, Duration: parameters.SnakeBiteDuration,
+			Active: parameters.SnakeBiteActive, DamageMultiplier: parameters.SnakeBiteDamage, AdvanceMultiplier: parameters.SnakeBiteAdvance,
 		}
 	case Sentinel:
 		return MobMeleeAttack{

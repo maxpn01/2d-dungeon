@@ -7,6 +7,7 @@ import (
 
 	"2d-dungeon/internal/appearance"
 	"2d-dungeon/internal/parameters"
+	"2d-dungeon/internal/physics"
 	"2d-dungeon/internal/worldmap"
 )
 
@@ -39,6 +40,7 @@ const (
 	BehaviorWindingStrike       Behavior = "winding strike"
 	BehaviorWindingCharge       Behavior = "winding charge"
 	BehaviorRecoveringStrike    Behavior = "recovering strike"
+	BehaviorRetreating          Behavior = "retreating"
 )
 
 type AI struct {
@@ -51,6 +53,7 @@ type AI struct {
 	Combat     CombatState
 	Behavior   Behavior
 	Character  appearance.Character
+	Segments   []physics.Vector
 	ID         string
 	X, Y       float64
 	Stats      Stats
@@ -77,6 +80,7 @@ type aiState struct {
 	dodge             dodgeState
 	shooter           shooterState
 	sentinel          sentinelState
+	snake             snakeState
 }
 
 type patrolState struct {
@@ -140,6 +144,12 @@ func (w *World) newDenAI(den worldmap.Den) aiState {
 	if den.Type == Sentinel {
 		ai.Stone, ai.Behavior = true, BehaviorStoneGuardian
 	}
+	if den.Type == ForestSnake {
+		ai.Segments = make([]physics.Vector, parameters.SnakeMinStartSegments+rand.IntN(parameters.SnakeMaxStartSegments-parameters.SnakeMinStartSegments+1))
+		for i := range ai.Segments {
+			ai.Segments[i] = physics.Vector{X: x, Y: y}
+		}
+	}
 	return ai
 }
 
@@ -168,12 +178,14 @@ func (w *World) updateAIs() {
 			continue
 		}
 		ai.mobChargeCooldown = max(0, ai.mobChargeCooldown-1)
-		if ai.Type == DungeonPursuer || ai.Type.IsHeavy() {
+		if ai.Type == DungeonPursuer || ai.Type.IsHeavy() || ai.Type == ForestSnake {
 			ai.attackCooldown = max(0, ai.attackCooldown-1)
 		}
 		ai.setFrenzy(w.orbTarget(ai) != nil)
 		input := w.aiInput(ai)
-		input = w.avoidPlayerShots(ai, input)
+		if ai.Type != ForestSnake {
+			input = w.avoidPlayerShots(ai, input)
+		}
 		if ai.Type == Sentinel || ai.Frenzied {
 			input = w.steerSentinel(ai, input)
 		}
@@ -195,12 +207,16 @@ func (w *World) updateAIs() {
 				ai.Behavior = BehaviorReturning
 			}
 		}
+		ai.followSegments()
 	}
 }
 
 func (w *World) aiIntent(ai *aiState) Direction {
 	if ai.Type == Sentinel {
 		return w.sentinelInput(ai)
+	}
+	if ai.Type == ForestSnake {
+		return w.snakeInput(ai)
 	}
 	if ai.Combat.SwordRemaining > 0 || ai.Combat.StompRemaining > 0 {
 		return w.meleeGuardInput(ai, nil)

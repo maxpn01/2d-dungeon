@@ -99,6 +99,7 @@ func forest() Room {
 			}
 		}
 	}
+	assignForestSnakes(&room, grid)
 	seen := map[[2]int]bool{}
 	for y, row := range grid {
 		for x, ch := range row {

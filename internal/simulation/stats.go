@@ -48,6 +48,9 @@ func (s Stats) MaxHP() float64 {
 	if s.Mob && s.MobType == GateHeavy {
 		hp *= parameters.GateHeavyHealthMultiplier
 	}
+	if s.Mob && s.MobType == ForestSnake {
+		hp *= parameters.SnakeHealthMultiplier
+	}
 	return hp
 }
 func (s Stats) MaxMP() float64 {

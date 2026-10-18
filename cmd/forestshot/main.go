@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"2d-dungeon/internal/parameters"
+	"2d-dungeon/internal/physics"
 	"2d-dungeon/internal/rendering"
 	"2d-dungeon/internal/rendering/primitives"
 	maprender "2d-dungeon/internal/rendering/worldmap"
@@ -39,11 +40,25 @@ func main() {
 		camera := rl.NewCamera2D(rl.NewVector2(float32(width)/2, float32(height)/2), rl.NewVector2(float32(x), float32(y)), 0, 1)
 		ctx := primitives.Context{Camera: camera, WindowWidth: width, WindowHeight: height}
 		snapshot := simulation.Snapshot{Statues: statues}
+		var ais []simulation.AI
+		if os.Getenv("SHOT_SNAKE") != "" {
+			snake := simulation.AI{ID: "snake", Type: simulation.ForestSnake, X: x + 60, Y: y + 110, Stats: simulation.NewStatsAtLevel(parameters.SnakeLevel)}
+			snake.Combat.Facing = simulation.Direction{X: -1}
+			for i := range 6 {
+				snake.Segments = append(snake.Segments, physics.Vector{X: snake.X + float64(i+1)*parameters.SnakeSegmentSpacing, Y: snake.Y + float64(i*i)*2})
+			}
+			if os.Getenv("SHOT_SNAKE") == "bite" {
+				attack := simulation.MobMelee(simulation.ForestSnake)
+				snake.Combat.SwordDirection = snake.Combat.Facing
+				snake.Combat.SwordRemaining = attack.Duration - attack.Windup*.7
+			}
+			ais = append(ais, snake)
+		}
 		for frame := 0; frame < 4; frame++ {
 			started := time.Now()
 			rl.BeginDrawing()
 			rl.ClearBackground(rl.Black)
-			rendering.DrawScene(ctx, rendering.Scene{Snapshot: snapshot, Map: m, Local: player, RenderedPlayer: player, Feedback: &rendering.Feedback{}})
+			rendering.DrawScene(ctx, rendering.Scene{Snapshot: snapshot, Map: m, Local: player, RenderedPlayer: player, RenderedAIs: ais, Feedback: &rendering.Feedback{}})
 			if frame == 0 || frame == 3 {
 				fmt.Println(cx, cy, "frame", frame, time.Since(started))
 			}

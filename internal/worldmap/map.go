@@ -25,6 +25,7 @@ type Den struct {
 	Patrol     CellRect
 	Level      int
 	Respawn    time.Duration
+	Route      []Cell
 }
 
 type GateBounds struct{ Left, Right, Y int }
@@ -113,7 +114,11 @@ func New(layout Layout) (*Map, error) {
 			}
 			if area.Guard != nil {
 				guard := area.Guard
-				m.dens = append(m.dens, Den{Type: guard.Type, ID: area.ID, RoomID: room.ID, At: at, Patrol: Around(at, guard.PatrolRadius), Level: guard.Level, Respawn: guard.Respawn})
+				den := Den{Type: guard.Type, ID: area.ID, RoomID: room.ID, At: at, Patrol: Around(at, guard.PatrolRadius), Level: guard.Level, Respawn: guard.Respawn}
+				for _, stop := range guard.Route {
+					den.Route = append(den.Route, room.WorldCell(stop))
+				}
+				m.dens = append(m.dens, den)
 			}
 		}
 		for _, gate := range room.Gates {

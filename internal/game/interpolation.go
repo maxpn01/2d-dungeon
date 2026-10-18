@@ -2,6 +2,7 @@ package game
 
 import (
 	"2d-dungeon/internal/parameters"
+	"2d-dungeon/internal/physics"
 	"2d-dungeon/internal/worldmap"
 )
 
@@ -30,6 +31,13 @@ func (w *World) interpolateActors() {
 				continue
 			}
 			ai.X, ai.Y = interpolate(previous.X, previous.Y, current.X, current.Y)
+			if len(previous.Segments) == len(current.Segments) {
+				ai.Segments = make([]physics.Vector, len(current.Segments))
+				for j, segment := range current.Segments {
+					before := previous.Segments[j]
+					ai.Segments[j] = physics.Vector{X: before.X + (segment.X-before.X)*alpha, Y: before.Y + (segment.Y-before.Y)*alpha}
+				}
+			}
 			break
 		}
 	}

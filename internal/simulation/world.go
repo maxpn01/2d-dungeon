@@ -249,6 +249,7 @@ func (w *World) Snapshot() Snapshot {
 			continue
 		}
 		state := ai.AI
+		state.Segments = append([]physics.Vector(nil), ai.Segments...)
 		ais = append(ais, state)
 	}
 	statues := w.statueSnapshots()

@@ -130,6 +130,8 @@ func (s *Stats) rebuildPerks() {
 			s.Speed *= parameters.SentinelSpeedMultiplier
 		case DungeonPursuer:
 			s.Speed *= parameters.PursuerSpeedMultiplier
+		case ForestSnake:
+			s.Speed *= parameters.SnakeSpeedMultiplier
 		case DungeonHeavy, GateHeavy:
 			s.Speed *= parameters.HeavySpeedMultiplier
 		}

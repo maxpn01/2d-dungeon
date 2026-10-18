@@ -61,17 +61,17 @@ func playerLabel(scene Scene) string {
 func forestActors(scene Scene) []maprender.ForestActor {
 	player := scene.RenderedPlayer
 	if player.Dead {
-		return nil
+		return snakeForestActors(scene)
 	}
 	body := actorBody(player.X, player.Y, parameters.PlayerSize, player.Stats.HP, player.Combat, player.Character)
-	return []maprender.ForestActor{{
+	return append(snakeForestActors(scene), maprender.ForestActor{
 		ID: player.ID, Label: playerLabel(scene),
 		Center: rl.NewVector2(body.X+body.Width/2, body.Y+body.Height/2),
 		Width:  body.Width, Depth: body.Height, Height: actorRenderSize(parameters.PlayerSize, player.Stats.HP),
 		Tint:  primitives.CharacterColor(player.Character),
 		Flash: scene.Feedback.HitFlash(player.ID), Spawn: scene.Feedback.SpawnProgress(player.ID),
 		Wings: player.HasWings, Flying: player.Flight.Flying,
-	}}
+	})
 }
 
 func drawSceneEntities(scene Scene, forest bool) {
@@ -84,6 +84,10 @@ func drawSceneEntities(scene Scene, forest bool) {
 		DrawFruit(float32(fruit.X), float32(fruit.Y), float32(fruit.Size), MassColor(fruit.Source, playerColors), fruit.Source != "", fruit.MP > 0)
 	}
 	for _, ai := range scene.RenderedAIs {
+		if ai.Type == simulation.ForestSnake {
+			drawSnakeBite(ai, &scene.Map.Exploration, scene.Feedback)
+			continue
+		}
 		tint := mobTint(ai.Type)
 		DrawAIActor(Actor{
 			Type: ai.Type, Level: ai.Stats.Level, Stone: ai.Stone, Awakening: ai.Awakening,

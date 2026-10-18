@@ -14,10 +14,11 @@ type ForestActor struct {
 	Label         string
 	Center        rl.Vector2
 	Width, Depth  float32
-	Height        float32
+	Height, Lift  float32
 	Tint          color.RGBA
 	Flash, Spawn  float32
 	Wings, Flying bool
+	NoShadow      bool
 }
 
 type actorPose struct {
@@ -31,7 +32,7 @@ func (f *forestRenderer) poses(actors []ForestActor) []actorPose {
 	clock := rl.GetTime()
 	poses := make([]actorPose, 0, len(actors))
 	for _, a := range actors {
-		pose := actorPose{ForestActor: a}
+		pose := actorPose{ForestActor: a, lift: a.Lift}
 		if a.Flying {
 			pose.lift = 18 + float32(math.Sin(clock*5))*3
 		}
@@ -42,6 +43,9 @@ func (f *forestRenderer) poses(actors []ForestActor) []actorPose {
 
 func (f *forestRenderer) drawActorShadows(poses []actorPose) {
 	for _, p := range poses {
+		if p.NoShadow {
+			continue
+		}
 		height := min(p.lift, 40)
 		size := (p.Width + p.Depth) * (1.6 - height/80) * p.Spawn
 		alpha := uint8(235 - height*3)

@@ -48,7 +48,7 @@ func (w *World) aiWithinTerritory(ai *aiState) bool {
 	if room, ok := geometry.Room(ai.den.RoomID); ok && room.HasRole(worldmap.Private) {
 		return room.Bounds().Contains(body)
 	}
-	if ai.Type == Sentinel {
+	if ai.Type == Sentinel || ai.Type == ForestSnake {
 		return geometry.RoomContains(ai.den.RoomID, body)
 	}
 	if w.tick < ai.alert.until || ai.patrol.returning {

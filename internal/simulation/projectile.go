@@ -139,6 +139,16 @@ func (w *World) advanceProjectiles(actors []eater) {
 				if t, hit := eatingContact(start, end, shot.Size, from, to, actor.size); hit && (t < first || t == first && (winner < 0 || actor.id < actors[winner].id)) {
 					winner, first = i, t
 				}
+				if actor.ai == nil {
+					continue
+				}
+				for _, segment := range actor.ai.Segments {
+					body := SnakeSegmentBody(segment)
+					at := position{body.X, body.Y}
+					if t, hit := eatingContact(start, end, shot.Size, at, at, body.W); hit && t < first {
+						winner, first = i, t
+					}
+				}
 			}
 			if wallBlocked && (winner < 0 || wallFraction <= first) {
 				if w.playerWithID(shot.Owner) != nil {
