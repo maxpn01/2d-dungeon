@@ -3,9 +3,9 @@ package rendering
 import (
 	"math"
 
-	"2d-dungeon/internal/rendering/primitives"
-	"2d-dungeon/internal/simulation"
-	"2d-dungeon/internal/worldmap"
+	"dungeon-raylib-go/internal/rendering/primitives"
+	"dungeon-raylib-go/internal/simulation"
+	"dungeon-raylib-go/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

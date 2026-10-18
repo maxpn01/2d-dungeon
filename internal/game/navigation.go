@@ -1,9 +1,9 @@
 package game
 
 import (
-	"2d-dungeon/internal/display"
-	maprender "2d-dungeon/internal/rendering/worldmap"
-	"2d-dungeon/internal/ui"
+	"dungeon-raylib-go/internal/display"
+	maprender "dungeon-raylib-go/internal/rendering/worldmap"
+	"dungeon-raylib-go/internal/ui"
 )
 
 func (g *Game) enterSinglePlayer() screen {

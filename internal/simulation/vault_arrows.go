@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math"
 
-	"2d-dungeon/internal/parameters"
-	"2d-dungeon/internal/physics"
-	"2d-dungeon/internal/worldmap"
+	"dungeon-raylib-go/internal/parameters"
+	"dungeon-raylib-go/internal/physics"
+	"dungeon-raylib-go/internal/worldmap"
 )
 
 const VaultArrowDurationTicks = 10 * parameters.TickRate

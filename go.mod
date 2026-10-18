@@ -1,4 +1,4 @@
-module 2d-dungeon
+module dungeon-raylib-go
 
 go 1.26.2
 

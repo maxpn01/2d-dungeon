@@ -5,7 +5,7 @@ import (
 	"math/rand/v2"
 	"slices"
 
-	"2d-dungeon/internal/parameters"
+	"dungeon-raylib-go/internal/parameters"
 )
 
 type PerkFamily int

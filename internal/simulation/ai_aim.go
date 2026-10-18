@@ -1,6 +1,6 @@
 package simulation
 
-import "2d-dungeon/internal/parameters"
+import "dungeon-raylib-go/internal/parameters"
 
 func (w *World) aiInput(ai *aiState) Direction {
 	ai.shotTargetID = ""

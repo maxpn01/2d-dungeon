@@ -3,8 +3,8 @@ package simulation
 import (
 	"math"
 
-	"2d-dungeon/internal/parameters"
-	"2d-dungeon/internal/physics"
+	"dungeon-raylib-go/internal/parameters"
+	"dungeon-raylib-go/internal/physics"
 )
 
 func meleeIntercept(target *playerState, seconds float64) physics.Vector {

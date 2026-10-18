@@ -1,7 +1,7 @@
 package worldmap
 
 import (
-	mapdata "2d-dungeon/internal/worldmap"
+	mapdata "dungeon-raylib-go/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

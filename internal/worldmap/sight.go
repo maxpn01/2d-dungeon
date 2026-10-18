@@ -4,8 +4,8 @@ import (
 	"container/heap"
 	"math"
 
-	"2d-dungeon/internal/parameters"
-	"2d-dungeon/internal/physics"
+	"dungeon-raylib-go/internal/parameters"
+	"dungeon-raylib-go/internal/physics"
 )
 
 var steps = [][2]int{{0, -1}, {-1, 0}, {1, 0}, {0, 1}}

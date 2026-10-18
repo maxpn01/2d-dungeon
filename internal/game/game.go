@@ -1,8 +1,8 @@
 package game
 
 import (
-	"2d-dungeon/internal/parameters"
-	"2d-dungeon/internal/ui"
+	"dungeon-raylib-go/internal/parameters"
+	"dungeon-raylib-go/internal/ui"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -24,7 +24,7 @@ func NewGame() *Game {
 	window := NewWindow(
 		parameters.WindowWidth,
 		parameters.WindowHeight,
-		"2D Dungeon",
+		"dungeon-raylib-go",
 		rl.Black,
 	)
 
@@ -36,7 +36,7 @@ func NewGame() *Game {
 		ui.NewMenuButton("exit", ui.ActionExit),
 	}, 30, rl.Black)
 
-	menu.Title = "2D DUNGEON"
+	menu.Title = "THE DUNGEON"
 
 	settings := ui.NewSettings()
 	world := NewWorld()

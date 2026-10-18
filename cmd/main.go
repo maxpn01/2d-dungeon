@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"2d-dungeon/internal/game"
+	"dungeon-raylib-go/internal/game"
 )
 
 func main() {

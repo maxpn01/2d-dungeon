@@ -3,7 +3,7 @@ package ui
 import (
 	"image/color"
 
-	"2d-dungeon/internal/display"
+	"dungeon-raylib-go/internal/display"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

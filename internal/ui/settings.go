@@ -3,11 +3,11 @@ package ui
 import (
 	"strings"
 
-	"2d-dungeon/internal/appearance"
-	"2d-dungeon/internal/display"
-	"2d-dungeon/internal/preferences"
-	"2d-dungeon/internal/rendering"
-	"2d-dungeon/internal/rendering/primitives"
+	"dungeon-raylib-go/internal/appearance"
+	"dungeon-raylib-go/internal/display"
+	"dungeon-raylib-go/internal/preferences"
+	"dungeon-raylib-go/internal/rendering"
+	"dungeon-raylib-go/internal/rendering/primitives"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

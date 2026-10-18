@@ -1,8 +1,8 @@
 package game
 
 import (
-	"2d-dungeon/internal/rendering"
-	"2d-dungeon/internal/worldmap"
+	"dungeon-raylib-go/internal/rendering"
+	"dungeon-raylib-go/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

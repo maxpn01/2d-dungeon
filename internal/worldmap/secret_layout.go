@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"2d-dungeon/internal/parameters"
+	"dungeon-raylib-go/internal/parameters"
 )
 
 type secretPlacement struct {

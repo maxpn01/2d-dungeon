@@ -3,12 +3,12 @@ package game
 import (
 	"time"
 
-	"2d-dungeon/internal/parameters"
-	"2d-dungeon/internal/rendering"
-	"2d-dungeon/internal/rendering/primitives"
-	maprender "2d-dungeon/internal/rendering/worldmap"
-	"2d-dungeon/internal/simulation"
-	"2d-dungeon/internal/ui"
+	"dungeon-raylib-go/internal/parameters"
+	"dungeon-raylib-go/internal/rendering"
+	"dungeon-raylib-go/internal/rendering/primitives"
+	maprender "dungeon-raylib-go/internal/rendering/worldmap"
+	"dungeon-raylib-go/internal/simulation"
+	"dungeon-raylib-go/internal/ui"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

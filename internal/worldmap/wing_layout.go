@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math/rand/v2"
 
-	"2d-dungeon/internal/parameters"
-	"2d-dungeon/internal/physics"
+	"dungeon-raylib-go/internal/parameters"
+	"dungeon-raylib-go/internal/physics"
 )
 
 func wingRoom(layout Layout, id string) (Layout, string, error) {

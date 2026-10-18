@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math"
 
-	"2d-dungeon/internal/parameters"
-	maprender "2d-dungeon/internal/rendering/worldmap"
-	"2d-dungeon/internal/simulation"
+	"dungeon-raylib-go/internal/parameters"
+	maprender "dungeon-raylib-go/internal/rendering/worldmap"
+	"dungeon-raylib-go/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

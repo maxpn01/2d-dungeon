@@ -3,7 +3,7 @@ package simulation
 import (
 	"math"
 
-	"2d-dungeon/internal/worldmap"
+	"dungeon-raylib-go/internal/worldmap"
 )
 
 func (ai *aiState) approach(x, y float64) Direction {

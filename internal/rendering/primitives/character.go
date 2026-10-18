@@ -3,7 +3,7 @@ package primitives
 import (
 	"image/color"
 
-	"2d-dungeon/internal/appearance"
+	"dungeon-raylib-go/internal/appearance"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

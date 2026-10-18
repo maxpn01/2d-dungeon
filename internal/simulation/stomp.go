@@ -3,7 +3,7 @@ package simulation
 import (
 	"fmt"
 
-	"2d-dungeon/internal/parameters"
+	"dungeon-raylib-go/internal/parameters"
 )
 
 type MobStompAttack struct {

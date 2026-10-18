@@ -4,8 +4,8 @@ import (
 	"image/color"
 	"math"
 
-	"2d-dungeon/assets"
-	"2d-dungeon/internal/display"
+	"dungeon-raylib-go/assets"
+	"dungeon-raylib-go/internal/display"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

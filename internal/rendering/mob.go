@@ -3,9 +3,9 @@ package rendering
 import (
 	"image/color"
 
-	"2d-dungeon/internal/appearance"
-	"2d-dungeon/internal/rendering/primitives"
-	"2d-dungeon/internal/simulation"
+	"dungeon-raylib-go/internal/appearance"
+	"dungeon-raylib-go/internal/rendering/primitives"
+	"dungeon-raylib-go/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

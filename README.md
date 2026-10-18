@@ -1,8 +1,6 @@
-# 2D Dungeon
+# dungeon-raylib-go
 
-v1 prototype
-
-explore the floors of the 2d dungeon in roguelike fashion 
+Explore the floors of the dungeon in roguelike fashion
 
 ## Run
 
@@ -21,5 +19,5 @@ go run ./cmd --testing
 Build a local executable:
 
 ```sh
-go build -o 2d-dungeon ./cmd
+go build -o dungeon-raylib-go ./cmd
 ```

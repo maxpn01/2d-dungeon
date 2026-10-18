@@ -5,12 +5,12 @@ import (
 	"image/color"
 	"math"
 
-	"2d-dungeon/internal/appearance"
-	"2d-dungeon/internal/parameters"
-	"2d-dungeon/internal/preferences"
-	"2d-dungeon/internal/rendering"
-	"2d-dungeon/internal/rendering/primitives"
-	"2d-dungeon/internal/simulation"
+	"dungeon-raylib-go/internal/appearance"
+	"dungeon-raylib-go/internal/parameters"
+	"dungeon-raylib-go/internal/preferences"
+	"dungeon-raylib-go/internal/rendering"
+	"dungeon-raylib-go/internal/rendering/primitives"
+	"dungeon-raylib-go/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

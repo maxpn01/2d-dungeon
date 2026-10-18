@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math"
 
-	"2d-dungeon/internal/parameters"
-	"2d-dungeon/internal/physics"
+	"dungeon-raylib-go/internal/parameters"
+	"dungeon-raylib-go/internal/physics"
 )
 
 func (m *Map) Cover(x, y int) bool { return m.cover[[2]int{x, y}] }

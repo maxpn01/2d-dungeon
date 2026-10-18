@@ -1,6 +1,6 @@
 package worldmap
 
-import "2d-dungeon/internal/parameters"
+import "dungeon-raylib-go/internal/parameters"
 
 func (m *Map) CellFloor(x, y int) Floor {
 	for _, room := range m.layout.Rooms {

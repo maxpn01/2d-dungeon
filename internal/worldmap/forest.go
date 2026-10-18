@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"2d-dungeon/internal/parameters"
+	"dungeon-raylib-go/internal/parameters"
 )
 
 //go:embed forest.txt

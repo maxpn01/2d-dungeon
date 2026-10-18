@@ -1,9 +1,9 @@
 package game
 
 import (
-	"2d-dungeon/internal/parameters"
-	"2d-dungeon/internal/simulation"
-	"2d-dungeon/internal/ui"
+	"dungeon-raylib-go/internal/parameters"
+	"dungeon-raylib-go/internal/simulation"
+	"dungeon-raylib-go/internal/ui"
 )
 
 func (w *World) Finished() bool { return w.snapshot.WinnerID != "" }

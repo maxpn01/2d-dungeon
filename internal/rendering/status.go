@@ -4,8 +4,8 @@ import (
 	"image/color"
 	"math"
 
-	maprender "2d-dungeon/internal/rendering/worldmap"
-	"2d-dungeon/internal/simulation"
+	maprender "dungeon-raylib-go/internal/rendering/worldmap"
+	"dungeon-raylib-go/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

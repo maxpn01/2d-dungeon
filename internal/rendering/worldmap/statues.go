@@ -5,10 +5,10 @@ import (
 	"image/color"
 	"math"
 
-	"2d-dungeon/internal/parameters"
-	"2d-dungeon/internal/rendering/primitives"
-	"2d-dungeon/internal/simulation"
-	mapdata "2d-dungeon/internal/worldmap"
+	"dungeon-raylib-go/internal/parameters"
+	"dungeon-raylib-go/internal/rendering/primitives"
+	"dungeon-raylib-go/internal/simulation"
+	mapdata "dungeon-raylib-go/internal/worldmap"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

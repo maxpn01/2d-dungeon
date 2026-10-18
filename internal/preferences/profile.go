@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"2d-dungeon/internal/appearance"
+	"dungeon-raylib-go/internal/appearance"
 )
 
 type Profile struct {
@@ -57,5 +57,5 @@ func settingsPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "2d-dungeon", "settings.json"), nil
+	return filepath.Join(dir, "dungeon-raylib-go", "settings.json"), nil
 }

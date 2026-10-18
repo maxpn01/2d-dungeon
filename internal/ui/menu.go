@@ -3,8 +3,8 @@ package ui
 import (
 	"image/color"
 
-	"2d-dungeon/internal/display"
-	"2d-dungeon/internal/rendering"
+	"dungeon-raylib-go/internal/display"
+	"dungeon-raylib-go/internal/rendering"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -114,7 +114,8 @@ func (m *Menu) Draw() Action {
 		titleY := cy - 10*pixelSize
 
 		rl.DrawRectangle(cx-2*pixelSize, titleY-8*pixelSize, 4*pixelSize, 4*pixelSize, rl.Red)
-		drawPixelTitle(m.Title, cx, titleY, pixelSize, rl.RayWhite)
+		titlePixelSize := max(int32(1), pixelSize*4/5)
+		drawPixelTitle(m.Title, cx, titleY+7*(pixelSize-titlePixelSize)/2, titlePixelSize, rl.RayWhite)
 
 		return m.drawOptions(float32(cy + 5*pixelSize))
 	}

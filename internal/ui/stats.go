@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"image/color"
 
-	"2d-dungeon/internal/preferences"
-	"2d-dungeon/internal/rendering/primitives"
-	"2d-dungeon/internal/simulation"
+	"dungeon-raylib-go/internal/preferences"
+	"dungeon-raylib-go/internal/rendering/primitives"
+	"dungeon-raylib-go/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

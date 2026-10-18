@@ -1,6 +1,6 @@
 package display
 
-import "2d-dungeon/internal/parameters"
+import "dungeon-raylib-go/internal/parameters"
 
 var width, height = int32(parameters.WindowWidth), int32(parameters.WindowHeight)
 

@@ -2,7 +2,7 @@
 - do not add comments unless asked
 
 ## Project
-- 2D roguelike dungeon crawler in Go with raylib (`github.com/gen2brain/raylib-go`). Module name: `2d-dungeon`.
+- roguelike dungeon crawler in Go with raylib (`github.com/gen2brain/raylib-go`). Module name: `dungeon-raylib-go`.
 - Run: `go run ./cmd`. Developer playground: `go run ./cmd --testing`. Check that it compiles: `go build ./...`.
 - Forest screenshots without playing: `go run ./cmd/forestshot <outDir> <cellX> <cellY> ...`, with cells relative to the forest's top-left corner. `SHOT_HYDRA=<ticks>` screenshots a simulated hydra fight instead (see `docs/v2-forest.md`).
 

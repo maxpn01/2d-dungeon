@@ -4,7 +4,7 @@ import (
 	"math"
 	"time"
 
-	"2d-dungeon/internal/parameters"
+	"dungeon-raylib-go/internal/parameters"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )

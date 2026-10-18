@@ -3,7 +3,7 @@ package simulation
 import (
 	"math"
 
-	"2d-dungeon/internal/physics"
+	"dungeon-raylib-go/internal/physics"
 )
 
 func (ai *aiState) canAttack(target *playerState) bool {

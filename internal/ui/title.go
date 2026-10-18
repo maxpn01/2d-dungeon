@@ -9,6 +9,8 @@ import (
 func drawPixelTitle(title string, centerX, y, pixelSize int32, tint color.RGBA) {
 	var glyphs = map[rune][7]uint8{
 		'2': {14, 17, 1, 2, 4, 8, 31},
+		'T': {31, 4, 4, 4, 4, 4, 4},
+		'H': {17, 17, 17, 31, 17, 17, 17},
 		'D': {30, 17, 17, 17, 17, 17, 30},
 		'U': {17, 17, 17, 17, 17, 17, 14},
 		'S': {15, 16, 16, 14, 1, 1, 30},

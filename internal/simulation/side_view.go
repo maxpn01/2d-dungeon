@@ -3,8 +3,8 @@ package simulation
 import (
 	"math"
 
-	"2d-dungeon/internal/parameters"
-	"2d-dungeon/internal/worldmap"
+	"dungeon-raylib-go/internal/parameters"
+	"dungeon-raylib-go/internal/worldmap"
 )
 
 func SideView(x, y float64) bool {

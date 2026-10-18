@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	"2d-dungeon/internal/parameters"
+	"dungeon-raylib-go/internal/parameters"
 )
 
 func validateLayout(layout Layout) error {

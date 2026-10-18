@@ -3,7 +3,7 @@ package rendering
 import (
 	"math"
 
-	"2d-dungeon/internal/simulation"
+	"dungeon-raylib-go/internal/simulation"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
